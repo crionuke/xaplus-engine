@@ -9,7 +9,7 @@
     <version>1.0.0</version>
 
     <name>xaplus-engine</name>
-    <description>Distributed Transaction Processing Engine</description>
+    <description>Distributed transaction processing engine</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
