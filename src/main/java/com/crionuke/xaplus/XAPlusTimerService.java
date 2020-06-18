@@ -46,7 +46,7 @@ final class XAPlusTimerService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         state.track(transaction);
         if (logger.isDebugEnabled()) {
-            logger.trace("Track timeout for xid={}", transaction.getXid());
+            logger.debug("Track timeout for xid={}", transaction.getXid());
         }
     }
 
@@ -58,15 +58,15 @@ final class XAPlusTimerService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         state.track(transaction);
         if (logger.isDebugEnabled()) {
-            logger.trace("Track timeout for xid={}", transaction.getXid());
+            logger.debug("Track timeout for xid={}", transaction.getXid());
         }
     }
 
     @Override
     public void handleTick(XAPlusTickEvent event) throws InterruptedException {
-        List<XAPlusXid> expiredTransaction = state.removeExpiredTransactions();
-        for (XAPlusXid xid : expiredTransaction) {
-            dispatcher.dispatch(new XAPlusTimeoutEvent(xid));
+        List<XAPlusTransaction> expiredTransaction = state.removeExpiredTransactions();
+        for (XAPlusTransaction transaction : expiredTransaction) {
+            dispatcher.dispatch(new XAPlusTimeoutEvent(transaction));
         }
     }
 
@@ -78,8 +78,9 @@ final class XAPlusTimerService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         if (state.remove(transaction.getXid())) {
             if (logger.isDebugEnabled()) {
-                logger.trace("Timeout tracking for xid={} cancelled as 2pc procotol done", transaction.getXid());
+                logger.debug("Timeout tracking for xid={} cancelled as 2pc procotol done", transaction.getXid());
             }
+            dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
         }
     }
 
@@ -90,9 +91,11 @@ final class XAPlusTimerService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         XAPlusXid xid = transaction.getXid();
-        state.remove(xid);
-        if (logger.isDebugEnabled()) {
-            logger.trace("Timeout tracking for xid={} cancelled as rollback protocol done", xid);
+        if (state.remove(xid)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Timeout tracking for xid={} cancelled as rollback protocol done", xid);
+            }
+            dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
         }
     }
 
@@ -102,10 +105,12 @@ final class XAPlusTimerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        if (state.remove(transaction.getXid())) {
+        XAPlusXid xid = transaction.getXid();
+        if (state.remove(xid)) {
             if (logger.isDebugEnabled()) {
-                logger.trace("Timeout tracking for xid={} cancelled as 2pc protocol failed", transaction.getXid());
+                logger.debug("Timeout tracking for xid={} cancelled as 2pc protocol failed", xid);
             }
+            dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
         }
     }
 
@@ -114,14 +119,15 @@ final class XAPlusTimerService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getXid();
-        state.remove(xid);
-        if (logger.isDebugEnabled()) {
-            logger.trace("Timeout tracking for xid={} cancelled as rollback protocol failed", xid);
+        XAPlusTransaction transaction = event.getTransaction();
+        XAPlusXid xid = transaction.getXid();
+        if (state.remove(xid)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Timeout tracking for xid={} cancelled as rollback protocol failed", xid);
+            }
+            dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
         }
     }
-
-    // TODO: fire XAPlusRollbackTimeoutEvent
 
     @PostConstruct
     void postConstruct() {
@@ -151,8 +157,8 @@ final class XAPlusTimerService extends Bolt implements
             return transactions.remove(xid) != null;
         }
 
-        List<XAPlusXid> removeExpiredTransactions() {
-            List<XAPlusXid> expired = new ArrayList<>();
+        List<XAPlusTransaction> removeExpiredTransactions() {
+            List<XAPlusTransaction> expired = new ArrayList<>();
             long time = System.currentTimeMillis();
             Iterator<Map.Entry<XAPlusXid, XAPlusTransaction>> iterator = transactions.entrySet().iterator();
             while (iterator.hasNext()) {
@@ -160,7 +166,7 @@ final class XAPlusTimerService extends Bolt implements
                 XAPlusXid xid = entry.getKey();
                 XAPlusTransaction transaction = entry.getValue();
                 if (time >= transaction.getExpireTimeInMillis()) {
-                    expired.add(xid);
+                    expired.add(transaction);
                     iterator.remove();
                 }
             }

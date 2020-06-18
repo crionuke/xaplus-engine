@@ -127,10 +127,10 @@ import java.util.Map;
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getXid();
+        XAPlusTransaction transaction = event.getTransaction();
         Exception exception = event.getException();
-        XAPlusTransaction transaction = state.remove(xid);
-        if (transaction != null) {
+        XAPlusXid xid = event.getTransaction().getXid();
+        if (state.remove(xid) != null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("xid={} rollback failed, exception=\"{}\"", xid, exception.getMessage());
             }
@@ -143,9 +143,9 @@ import java.util.Map;
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getXid();
-        XAPlusTransaction transaction = state.remove(xid);
-        if (transaction != null) {
+        XAPlusTransaction transaction = event.getTransaction();
+        XAPlusXid xid = event.getTransaction().getXid();
+        if (state.remove(xid) != null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("xid={} timed out", xid);
             }

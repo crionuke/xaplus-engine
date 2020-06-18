@@ -147,7 +147,7 @@ class XAPlusCommitterService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getXid();
+        XAPlusXid xid = event.getTransaction().getXid();
         state.remove(xid);
     }
 

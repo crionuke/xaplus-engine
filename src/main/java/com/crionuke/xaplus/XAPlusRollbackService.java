@@ -83,7 +83,7 @@ import java.util.Set;
         XAPlusTransaction transaction = state.getTransaction(xid);
         if (transaction != null) {
             Exception exception = event.getException();
-            dispatcher.dispatch(new XAPlusRollbackFailedEvent(xid, exception));
+            dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction, exception));
         }
     }
 
@@ -125,7 +125,7 @@ import java.util.Set;
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getXid();
+        XAPlusXid xid = event.getTransaction().getXid();
         state.remove(xid);
     }
 
@@ -134,7 +134,7 @@ import java.util.Set;
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getXid();
+        XAPlusXid xid = event.getTransaction().getXid();
         state.remove(xid);
     }
 

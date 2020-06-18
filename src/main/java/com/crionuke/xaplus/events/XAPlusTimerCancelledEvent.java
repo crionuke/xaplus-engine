@@ -8,11 +8,11 @@ import com.crionuke.xaplus.XAPlusXid;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusTimeoutEvent extends Event<XAPlusTimeoutEvent.Handler> {
+public final class XAPlusTimerCancelledEvent extends Event<XAPlusTimerCancelledEvent.Handler> {
 
     private final XAPlusTransaction transaction;
 
-    public XAPlusTimeoutEvent(XAPlusTransaction transaction) {
+    public XAPlusTimerCancelledEvent(XAPlusTransaction transaction) {
         super();
         if (transaction == null) {
             throw new NullPointerException("transaction is null");
@@ -26,10 +26,10 @@ public final class XAPlusTimeoutEvent extends Event<XAPlusTimeoutEvent.Handler> 
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleTimeout(this);
+        handler.handleTimerCancelled(this);
     }
 
     public interface Handler {
-        void handleTimeout(XAPlusTimeoutEvent event) throws InterruptedException;
+        void handleTimerCancelled(XAPlusTimerCancelledEvent event) throws InterruptedException;
     }
 }
