@@ -37,7 +37,7 @@ public class XAPlusTransaction {
                 + "=(superiorServerId=" + superiorServerId
                 + ", isSuperior=" + isSuperior()
                 + ", isSubordinate=" + isSubordinate()
-                + ", " + (expireTimeInMillis - System.currentTimeMillis()) + " seconds to expire"
+                + ", " + (expireTimeInMillis - System.currentTimeMillis()) + " ms to expire"
                 + ", enlisted " + xaResources.size() + " XA and " + xaPlusResources.size() + " XA+ resources"
                 + ", xid=" + xid;
     }
