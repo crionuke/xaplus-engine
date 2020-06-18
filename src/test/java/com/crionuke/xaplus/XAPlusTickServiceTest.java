@@ -3,17 +3,16 @@ package com.crionuke.xaplus;
 import com.crionuke.bolts.Bolt;
 import com.crionuke.xaplus.events.XAPlusTickEvent;
 import org.junit.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusTickServiceTest extends Assert {
-    final int QUEUE_SIZE = 128;
-    final int POLL_TIMIOUT_MS = 2000;
+public class XAPlusTickServiceTest extends XAPlusServiceTest {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusTickServiceTest.class);
 
-    XAPlusThreadPool xaPlusThreadPool;
-    XAPlusDispatcher xaPlusDispatcher;
     XAPlusTickService xaPlusTickService;
 
     BlockingQueue<XAPlusTickEvent> tickEvents;
@@ -21,13 +20,13 @@ public class XAPlusTickServiceTest extends Assert {
 
     @Before
     public void beforeTest() {
-        xaPlusThreadPool = new XAPlusThreadPool();
-        xaPlusDispatcher = new XAPlusDispatcher();
-        xaPlusTickService = new XAPlusTickService(xaPlusThreadPool, xaPlusDispatcher);
+        createXAPlusComponents();
+
+        xaPlusTickService = new XAPlusTickService(threadPool, dispatcher);
         xaPlusTickService.postConstruct();
 
         tickEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        tickEventConsumer = new TickEventConsumer(tickEvents, xaPlusThreadPool, xaPlusDispatcher);
+        tickEventConsumer = new TickEventConsumer(tickEvents, threadPool, dispatcher);
         tickEventConsumer.postConstruct();
     }
 
@@ -50,15 +49,19 @@ public class XAPlusTickServiceTest extends Assert {
         assertEquals(tick3.getIndex(), 3);
     }
 
-    class TickEventConsumer extends Bolt
+    private class TickEventConsumer extends Bolt
             implements XAPlusTickEvent.Handler {
 
         private final BlockingQueue<XAPlusTickEvent> tickEvents;
+        private final XAPlusThreadPool xaPlusThreadPool;
+        private final XAPlusDispatcher xaPlusDispatcher;
 
         TickEventConsumer(BlockingQueue<XAPlusTickEvent> tickEvents, XAPlusThreadPool xaPlusThreadPool,
                           XAPlusDispatcher xaPlusDispatcher) {
             super("tick-event-consumer", QUEUE_SIZE);
             this.tickEvents = tickEvents;
+            this.xaPlusThreadPool = xaPlusThreadPool;
+            this.xaPlusDispatcher = xaPlusDispatcher;
         }
 
         @Override
