@@ -1,2 +1,2 @@
 # xaplus-engine
-Distributed Transaction Processing Engine
+Distributed transaction processing engine
