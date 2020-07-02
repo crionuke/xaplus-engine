@@ -49,13 +49,9 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (transaction.isSubordinate()) {
-            if (transaction.getXaResources().size() > 0) {
-                if (state.track(transaction)) {
-                    XAPlusXid xid = event.getTransaction().getXid();
-                    check(xid);
-                }
-            } else {
-                dispatcher.dispatch(new XAPlusPrepareTransactionEvent(transaction));
+            if (state.track(transaction)) {
+                XAPlusXid xid = event.getTransaction().getXid();
+                check(xid);
             }
         }
     }
