@@ -50,8 +50,9 @@ import java.util.Map;
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        state.track(transaction);
-        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
+        if (state.track(transaction)) {
+            dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
+        }
     }
 
     @Override
@@ -60,8 +61,9 @@ import java.util.Map;
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        state.track(transaction);
-        dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
+        if (state.track(transaction)) {
+            dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
+        }
     }
 
     @Override
@@ -174,8 +176,8 @@ import java.util.Map;
             transactions = new HashMap<>();
         }
 
-        void track(XAPlusTransaction transaction) {
-            transactions.put(transaction.getXid(), transaction);
+        boolean track(XAPlusTransaction transaction) {
+            return transactions.put(transaction.getXid(), transaction) == null;
         }
 
         XAPlusTransaction getTransaction(XAPlusXid xid) {

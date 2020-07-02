@@ -44,9 +44,10 @@ final class XAPlusTimerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        state.track(transaction);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Track timeout for xid={}", transaction.getXid());
+        if (state.track(transaction)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Track timeout for xid={}", transaction.getXid());
+            }
         }
     }
 
@@ -56,9 +57,10 @@ final class XAPlusTimerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        state.track(transaction);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Track timeout for xid={}", transaction.getXid());
+        if (state.track(transaction)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Track timeout for xid={}", transaction.getXid());
+            }
         }
     }
 
@@ -149,8 +151,8 @@ final class XAPlusTimerService extends Bolt implements
             transactions = new HashMap<>();
         }
 
-        void track(XAPlusTransaction transaction) {
-            transactions.put(transaction.getXid(), transaction);
+        boolean track(XAPlusTransaction transaction) {
+            return transactions.put(transaction.getXid(), transaction) == null;
         }
 
         boolean remove(XAPlusXid xid) {

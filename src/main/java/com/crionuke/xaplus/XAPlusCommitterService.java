@@ -190,9 +190,10 @@ class XAPlusCommitterService extends Bolt implements
     }
 
     private void fireCommitDecision(XAPlusTransaction transaction) throws InterruptedException {
-        state.track(transaction);
-        XAPlusXid xid = transaction.getXid();
-        dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(xid, transaction.getUniqueNames()));
+        if (state.track(transaction)) {
+            XAPlusXid xid = transaction.getXid();
+            dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(xid, transaction.getUniqueNames()));
+        }
     }
 
     private void check(XAPlusXid xid) throws InterruptedException {
@@ -213,18 +214,22 @@ class XAPlusCommitterService extends Bolt implements
             waiting = new HashMap<>();
         }
 
-        void track(XAPlusTransaction transaction) {
+        boolean track(XAPlusTransaction transaction) {
             XAPlusXid xid = transaction.getXid();
-            transactions.put(xid, transaction);
-            HashSet branches = new HashSet();
-            transaction.getXaResources().forEach((x, r) -> {
-                branches.add(x);
-            });
-            transaction.getXaPlusResources().forEach((x, r) -> {
-                branches.add(x);
-                branchToTransactionXids.put(x, xid);
-            });
-            waiting.put(xid, branches);
+            if (transactions.put(xid, transaction) == null) {
+                HashSet branches = new HashSet();
+                transaction.getXaResources().forEach((x, r) -> {
+                    branches.add(x);
+                });
+                transaction.getXaPlusResources().forEach((x, r) -> {
+                    branches.add(x);
+                    branchToTransactionXids.put(x, xid);
+                });
+                waiting.put(xid, branches);
+                return true;
+            } else {
+                return false;
+            }
         }
 
         XAPlusTransaction getTransaction(XAPlusXid xid) {

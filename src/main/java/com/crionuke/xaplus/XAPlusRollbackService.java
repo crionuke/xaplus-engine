@@ -48,9 +48,10 @@ import java.util.Set;
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        state.track(transaction);
-        XAPlusXid xid = transaction.getXid();
-        dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(xid, transaction.getUniqueNames()));
+        if (state.track(transaction)) {
+            XAPlusXid xid = transaction.getXid();
+            dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(xid, transaction.getUniqueNames()));
+        }
     }
 
     @Override
@@ -169,18 +170,22 @@ import java.util.Set;
             waiting = new HashMap<>();
         }
 
-        void track(XAPlusTransaction transaction) {
+        boolean track(XAPlusTransaction transaction) {
             XAPlusXid xid = transaction.getXid();
-            transactions.put(xid, transaction);
-            HashSet branches = new HashSet();
-            transaction.getXaResources().forEach((x, r) -> {
-                branches.add(x);
-            });
-            transaction.getXaPlusResources().forEach((x, r) -> {
-                branches.add(x);
-                branchToTransactionXids.put(x, xid);
-            });
-            waiting.put(xid, branches);
+            if (transactions.put(xid, transaction) == null) {
+                HashSet branches = new HashSet();
+                transaction.getXaResources().forEach((x, r) -> {
+                    branches.add(x);
+                });
+                transaction.getXaPlusResources().forEach((x, r) -> {
+                    branches.add(x);
+                    branchToTransactionXids.put(x, xid);
+                });
+                waiting.put(xid, branches);
+                return true;
+            } else {
+                return false;
+            }
         }
 
         XAPlusTransaction getTransaction(XAPlusXid xid) {

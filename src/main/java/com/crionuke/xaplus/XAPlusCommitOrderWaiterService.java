@@ -51,14 +51,15 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (transaction.isSubordinate()) {
-            state.track(transaction);
-            XAPlusXid xid = transaction.getXid();
-            String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
-            try {
-                XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
-                dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(xid, resource));
-            } catch (XAPlusSystemException readyException) {
-                dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, readyException));
+            if (state.track(transaction)) {
+                XAPlusXid xid = transaction.getXid();
+                String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
+                try {
+                    XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
+                    dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(xid, resource));
+                } catch (XAPlusSystemException readyException) {
+                    dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, readyException));
+                }
             }
         }
     }
@@ -132,9 +133,9 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
             transactions = new HashMap<>();
         }
 
-        void track(XAPlusTransaction transaction) {
+        boolean track(XAPlusTransaction transaction) {
             XAPlusXid xid = transaction.getXid();
-            transactions.put(xid, transaction);
+            return transactions.put(xid, transaction) == null;
         }
 
         XAPlusTransaction getTransaction(XAPlusXid xid) {

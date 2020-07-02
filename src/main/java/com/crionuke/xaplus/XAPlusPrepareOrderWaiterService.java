@@ -50,9 +50,12 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         if (transaction.isSubordinate()) {
             if (transaction.getXaResources().size() > 0) {
-                state.track(transaction);
-                XAPlusXid xid = event.getTransaction().getXid();
-                check(xid);
+                if (state.track(transaction)) {
+                    XAPlusXid xid = event.getTransaction().getXid();
+                    check(xid);
+                }
+            } else {
+                dispatcher.dispatch(new XAPlusPrepareTransactionEvent(transaction));
             }
         }
     }
@@ -133,8 +136,8 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             prepareOrders = new HashSet<>();
         }
 
-        void track(XAPlusTransaction transaction) {
-            transactions.put(transaction.getXid(), transaction);
+        boolean track(XAPlusTransaction transaction) {
+            return transactions.put(transaction.getXid(), transaction) == null;
         }
 
         void addPrepareOrder(XAPlusXid xid) {

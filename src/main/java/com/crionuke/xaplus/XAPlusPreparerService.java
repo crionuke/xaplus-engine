@@ -152,15 +152,16 @@ class XAPlusPreparerService extends Bolt implements
     }
 
     private void prepare(XAPlusTransaction transaction) throws InterruptedException {
-        state.track(transaction);
-        XAPlusXid xid = transaction.getXid();
-        Map<XAPlusXid, XAResource> resources = new HashMap<>();
-        resources.putAll(transaction.getXaResources());
-        resources.putAll(transaction.getXaPlusResources());
-        for (Map.Entry<XAPlusXid, XAResource> entry : resources.entrySet()) {
-            XAPlusXid branchXid = entry.getKey();
-            XAResource resource = entry.getValue();
-            dispatcher.dispatch(new XAPlusPrepareBranchRequestEvent(xid, branchXid, resource));
+        if (state.track(transaction)) {
+            XAPlusXid xid = transaction.getXid();
+            Map<XAPlusXid, XAResource> resources = new HashMap<>();
+            resources.putAll(transaction.getXaResources());
+            resources.putAll(transaction.getXaPlusResources());
+            for (Map.Entry<XAPlusXid, XAResource> entry : resources.entrySet()) {
+                XAPlusXid branchXid = entry.getKey();
+                XAResource resource = entry.getValue();
+                dispatcher.dispatch(new XAPlusPrepareBranchRequestEvent(xid, branchXid, resource));
+            }
         }
     }
 
@@ -198,21 +199,25 @@ class XAPlusPreparerService extends Bolt implements
             waiting = new HashMap<>();
         }
 
-        void track(XAPlusTransaction transaction) {
+        boolean track(XAPlusTransaction transaction) {
             XAPlusXid xid = transaction.getXid();
-            transactions.put(xid, transaction);
-            HashSet preparingBranches = new HashSet();
-            HashSet waitingBranches = new HashSet();
-            transaction.getXaResources().forEach((x, r) -> {
-                preparingBranches.add(x);
-            });
-            transaction.getXaPlusResources().forEach((x, r) -> {
-                preparingBranches.add(x);
-                waitingBranches.add(x);
-                branchToTransactionXids.put(x, xid);
-            });
-            preparing.put(xid, preparingBranches);
-            waiting.put(xid, waitingBranches);
+            if (transactions.put(xid, transaction) == null) {
+                HashSet preparingBranches = new HashSet();
+                HashSet waitingBranches = new HashSet();
+                transaction.getXaResources().forEach((x, r) -> {
+                    preparingBranches.add(x);
+                });
+                transaction.getXaPlusResources().forEach((x, r) -> {
+                    preparingBranches.add(x);
+                    waitingBranches.add(x);
+                    branchToTransactionXids.put(x, xid);
+                });
+                preparing.put(xid, preparingBranches);
+                waiting.put(xid, waitingBranches);
+                return true;
+            } else {
+                return false;
+            }
         }
 
         XAPlusTransaction getTransaction(XAPlusXid xid) {
