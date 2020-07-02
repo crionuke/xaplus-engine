@@ -73,7 +73,8 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        if (state.remove(xid)) {
+        XAPlusTransaction transaction = state.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled for xid={} as transaction failed", xid);
             }
@@ -86,7 +87,8 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        if (state.remove(xid)) {
+        XAPlusTransaction transaction = state.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled for xid={} as transaction timed out", xid);
             }
@@ -99,7 +101,8 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        if (state.remove(xid)) {
+        XAPlusTransaction transaction = state.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled for xid={} as got order to rollback", xid);
             }
@@ -144,10 +147,10 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             return transactions.get(xid);
         }
 
-        boolean remove(XAPlusXid xid) {
+        XAPlusTransaction remove(XAPlusXid xid) {
             XAPlusTransaction transaction = transactions.remove(xid);
             prepareOrders.remove(xid);
-            return transaction != null;
+            return transaction;
         }
 
         Boolean check(XAPlusXid xid) {
