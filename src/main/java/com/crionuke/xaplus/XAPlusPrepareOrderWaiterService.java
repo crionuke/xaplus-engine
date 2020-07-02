@@ -6,6 +6,7 @@ import com.crionuke.xaplus.events.XAPlusTimeoutEvent;
 import com.crionuke.xaplus.events.twopc.XAPlus2pcFailedEvent;
 import com.crionuke.xaplus.events.twopc.XAPlus2pcRequestEvent;
 import com.crionuke.xaplus.events.xaplus.XAPlusRemoteSuperiorOrderToPrepareEvent;
+import com.crionuke.xaplus.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,8 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         XAPlus2pcRequestEvent.Handler,
         XAPlusRemoteSuperiorOrderToPrepareEvent.Handler,
         XAPlus2pcFailedEvent.Handler,
-        XAPlusTimeoutEvent.Handler {
+        XAPlusTimeoutEvent.Handler,
+        XAPlusRemoteSuperiorOrderToRollbackEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusPrepareOrderWaiterService.class);
 
     private final XAPlusThreadPool threadPool;
@@ -67,21 +69,42 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
     }
 
     @Override
-    public void handle2pcFailed(XAPlus2pcFailedEvent event) throws InterruptedException {
+    public void handle2pcFailed(XAPlus2pcFailedEvent event) {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        state.remove(xid);
+        if (state.remove(xid)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("2pc protocol cancelled for xid={} as transaction failed", xid);
+            }
+        }
     }
 
     @Override
-    public void handleTimeout(XAPlusTimeoutEvent event) throws InterruptedException {
+    public void handleTimeout(XAPlusTimeoutEvent event) {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        state.remove(xid);
+        if (state.remove(xid)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("2pc protocol cancelled for xid={} as transaction timed out", xid);
+            }
+        }
+    }
+
+    @Override
+    public void handleRemoteSuperiorOrderToRollback(XAPlusRemoteSuperiorOrderToRollbackEvent event) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        if (state.remove(xid)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("2pc protocol cancelled for xid={} as got order to rollback", xid);
+            }
+        }
     }
 
     @PostConstruct
@@ -91,6 +114,7 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         dispatcher.subscribe(this, XAPlusRemoteSuperiorOrderToPrepareEvent.class);
         dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);
         dispatcher.subscribe(this, XAPlusTimeoutEvent.class);
+        dispatcher.subscribe(this, XAPlusRemoteSuperiorOrderToRollbackEvent.class);
     }
 
     private void check(XAPlusXid xid) throws InterruptedException {
@@ -121,9 +145,10 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             return transactions.get(xid);
         }
 
-        void remove(XAPlusXid xid) {
-            transactions.remove(xid);
+        boolean remove(XAPlusXid xid) {
+            XAPlusTransaction transaction = transactions.remove(xid);
             prepareOrders.remove(xid);
+            return transaction != null;
         }
 
         Boolean check(XAPlusXid xid) {
