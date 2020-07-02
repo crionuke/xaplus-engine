@@ -72,7 +72,7 @@ import java.util.Map;
         }
         XAPlusXid xid = event.getXid();
         XAPlusTransaction transaction = state.getTransaction(xid);
-        if (transaction != null) {
+        if (transaction != null && transaction.isSubordinate()) {
             dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
         }
     }
