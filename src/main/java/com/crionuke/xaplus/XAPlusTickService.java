@@ -26,7 +26,8 @@ final class XAPlusTickService extends Worker {
 
     @Override
     public void run() {
-        setThreadNamePrefix("tick");
+        String oldThreadName = Thread.currentThread().getName();
+        Thread.currentThread().setName("tick-" + uid);
         logger.debug("{} started", this);
         looping = true;
         try {
@@ -41,7 +42,7 @@ final class XAPlusTickService extends Worker {
             looping = false;
         }
         logger.debug("{} finished", this);
-        resetThreadName();
+        Thread.currentThread().setName(oldThreadName);
     }
 
     @PostConstruct
