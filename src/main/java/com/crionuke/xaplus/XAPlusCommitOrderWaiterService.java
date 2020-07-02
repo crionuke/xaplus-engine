@@ -22,21 +22,21 @@ import java.util.Map;
  * @since 1.0.0
  */
 @Service
-class XAPlusReadyStatusReporterService extends Bolt implements
+class XAPlusCommitOrderWaiterService extends Bolt implements
         XAPlusTransactionPreparedEvent.Handler,
         XAPlusRemoteSuperiorOrderToCommitEvent.Handler,
         XAPlus2pcFailedEvent.Handler,
         XAPlusTimeoutEvent.Handler,
         XAPlusRemoteSuperiorOrderToRollbackEvent.Handler {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusReadyStatusReporterService.class);
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusCommitOrderWaiterService.class);
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
     private final XAPlusResources resources;
     private final State state;
 
-    XAPlusReadyStatusReporterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
-                                     XAPlusDispatcher dispatcher, XAPlusResources resources) {
+    XAPlusCommitOrderWaiterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
+                                   XAPlusDispatcher dispatcher, XAPlusResources resources) {
         super("subordinate-ready-status-reporter", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
