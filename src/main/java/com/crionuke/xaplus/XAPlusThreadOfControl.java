@@ -9,14 +9,12 @@ import org.springframework.stereotype.Component;
  * @since 1.0.0
  */
 @Component
-final class XAPlusThreadOfControl {
+class XAPlusThreadOfControl {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusThreadOfControl.class);
 
-    private final com.crionuke.xaplus.XAPlusProperties XAPlusProperties;
     private final ThreadOfControl threadOfControl;
 
-    XAPlusThreadOfControl(XAPlusProperties XAPlusProperties) {
-        this.XAPlusProperties = XAPlusProperties;
+    XAPlusThreadOfControl() {
         threadOfControl = new ThreadOfControl();
     }
 
@@ -28,7 +26,7 @@ final class XAPlusThreadOfControl {
 
         @Override
         protected XAPlusThreadContext initialValue() {
-            return new XAPlusThreadContext(XAPlusProperties);
+            return new XAPlusThreadContext();
         }
     }
 }

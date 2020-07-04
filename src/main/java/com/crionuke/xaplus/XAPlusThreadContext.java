@@ -5,13 +5,8 @@ package com.crionuke.xaplus;
  * @since 1.0.0
  */
 class XAPlusThreadContext {
-    private final XAPlusProperties properties;
 
     private volatile XAPlusTransaction transaction;
-
-    XAPlusThreadContext(XAPlusProperties properties) {
-        this.properties = properties;
-    }
 
     XAPlusTransaction getTransaction() {
         return transaction;
