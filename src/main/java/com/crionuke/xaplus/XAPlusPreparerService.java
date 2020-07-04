@@ -210,7 +210,6 @@ class XAPlusPreparerService extends Bolt implements
                     preparingBranches.add(x);
                 });
                 transaction.getXaPlusResources().forEach((x, r) -> {
-                    preparingBranches.add(x);
                     waitingBranches.add(x);
                     branchToTransactionXids.put(x, xid);
                 });
