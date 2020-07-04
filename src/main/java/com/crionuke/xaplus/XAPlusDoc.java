@@ -8,7 +8,7 @@ public class XAPlusDoc {
 
     private XAPlusPrepareOrderWaiterService prepareOrderWaiterService;
     private XAPlusPreparerService preparerService;
-    private XAPlusReadyStatusReporterService readyStatusReporterService;
+    private XAPlusCommitOrderWaiterService commitOrderWaiterService;
     private XAPlusCommitterService committerService;
 
     private XAPlusRollbackService rollbackService;
