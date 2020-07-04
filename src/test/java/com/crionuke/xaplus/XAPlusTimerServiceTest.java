@@ -22,7 +22,7 @@ public class XAPlusTimerServiceTest extends XAPlusServiceTest {
 
     BlockingQueue<XAPlusTimeoutEvent> timeoutEvents;
     BlockingQueue<XAPlusTimerCancelledEvent> timerCancelledEvents;
-    StubConsumer stubConsumer;
+    ConsumerStub consumerStub;
 
     @Before
     public void beforeTest() {
@@ -34,14 +34,14 @@ public class XAPlusTimerServiceTest extends XAPlusServiceTest {
         timeoutEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         timerCancelledEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
-        stubConsumer = new StubConsumer();
-        stubConsumer.postConstruct();
+        consumerStub = new ConsumerStub();
+        consumerStub.postConstruct();
     }
 
     @After
     public void afterTest() {
         xaPlusTimerService.finish();
-        stubConsumer.finish();
+        consumerStub.finish();
     }
 
     @Test
@@ -114,12 +114,12 @@ public class XAPlusTimerServiceTest extends XAPlusServiceTest {
         logger.info("rolling back of transaction {} failed", timerCancelledEvent.getTransaction());
     }
 
-    private class StubConsumer extends Bolt implements
+    private class ConsumerStub extends Bolt implements
             XAPlusTimeoutEvent.Handler,
             XAPlusTimerCancelledEvent.Handler {
 
-        StubConsumer() {
-            super("stub-consumer", QUEUE_SIZE);
+        ConsumerStub() {
+            super("consumer-stub", QUEUE_SIZE);
         }
 
         @Override

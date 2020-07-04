@@ -20,7 +20,7 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusServiceTest {
     XAPlusPrepareOrderWaiterService xaPlusPrepareOrderWaiterService;
 
     BlockingQueue<XAPlusPrepareTransactionEvent> waiterEvents;
-    StubConsumer stubConsumer;
+    ConsumerStub consumerStub;
 
     @Before
     public void beforeTest() {
@@ -31,14 +31,14 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusServiceTest {
 
         waiterEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
-        stubConsumer = new StubConsumer();
-        stubConsumer.postConstruct();
+        consumerStub = new ConsumerStub();
+        consumerStub.postConstruct();
     }
 
     @After
     public void afterTest() {
         xaPlusPrepareOrderWaiterService.finish();
-        stubConsumer.finish();
+        consumerStub.finish();
     }
 
     @Test
@@ -75,10 +75,10 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusServiceTest {
         assertEquals(event.getTransaction().getXid(), transaction2.getXid());
     }
 
-    private class StubConsumer extends Bolt implements XAPlusPrepareTransactionEvent.Handler {
+    private class ConsumerStub extends Bolt implements XAPlusPrepareTransactionEvent.Handler {
 
-        StubConsumer() {
-            super("stub-consumer", QUEUE_SIZE);
+        ConsumerStub() {
+            super("consumer-stub", QUEUE_SIZE);
         }
 
         @Override

@@ -16,7 +16,7 @@ public class XAPlusTickServiceTest extends XAPlusServiceTest {
     XAPlusTickService xaPlusTickService;
 
     BlockingQueue<XAPlusTickEvent> tickEvents;
-    StubConsumer stubConsumer;
+    ConsumerStub consumerStub;
 
     @Before
     public void beforeTest() {
@@ -26,14 +26,14 @@ public class XAPlusTickServiceTest extends XAPlusServiceTest {
         xaPlusTickService.postConstruct();
 
         tickEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        stubConsumer = new StubConsumer();
-        stubConsumer.postConstruct();
+        consumerStub = new ConsumerStub();
+        consumerStub.postConstruct();
     }
 
     @After
     public void afterTest() {
         xaPlusTickService.finish();
-        stubConsumer.finish();
+        consumerStub.finish();
     }
 
     @Test
@@ -49,10 +49,10 @@ public class XAPlusTickServiceTest extends XAPlusServiceTest {
         assertEquals(tick3.getIndex(), 3);
     }
 
-    private class StubConsumer extends Bolt implements XAPlusTickEvent.Handler {
+    private class ConsumerStub extends Bolt implements XAPlusTickEvent.Handler {
 
-        StubConsumer() {
-            super("stub-consumer", QUEUE_SIZE);
+        ConsumerStub() {
+            super("consumer-stub", QUEUE_SIZE);
         }
 
         @Override
