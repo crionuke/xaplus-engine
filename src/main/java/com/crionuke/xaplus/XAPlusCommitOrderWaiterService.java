@@ -37,7 +37,7 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
 
     XAPlusCommitOrderWaiterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
                                    XAPlusDispatcher dispatcher, XAPlusResources resources) {
-        super("subordinate-ready-status-reporter", properties.getQueueSize());
+        super("commit-order-waiter", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.resources = resources;

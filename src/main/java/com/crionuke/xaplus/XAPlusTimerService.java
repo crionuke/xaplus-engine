@@ -17,7 +17,7 @@ import java.util.*;
  * @since 1.0.0
  */
 @Service
-final class XAPlusTimerService extends Bolt implements
+class XAPlusTimerService extends Bolt implements
         XAPlus2pcRequestEvent.Handler,
         XAPlusRollbackRequestEvent.Handler,
         XAPlusTickEvent.Handler,
@@ -32,7 +32,7 @@ final class XAPlusTimerService extends Bolt implements
     private final State state;
 
     XAPlusTimerService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
-        super("xaplus-timer", properties.getQueueSize());
+        super("timer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         state = new State();

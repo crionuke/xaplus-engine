@@ -15,7 +15,8 @@ import java.util.Set;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Service final class XAPlusService extends Bolt implements
+@Service
+class XAPlusService extends Bolt implements
         XAPlusPrepareBranchRequestEvent.Handler,
         XAPlusCommitBranchRequestEvent.Handler,
         XAPlusRetryCommitBranchRequestEvent.Handler,

@@ -13,7 +13,7 @@ import javax.annotation.PostConstruct;
  * @since 1.0.0
  */
 @Service
-final class XAPlusTickService extends Worker {
+class XAPlusTickService extends Worker {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTickService.class);
 
     private final XAPlusThreadPool threadPool;

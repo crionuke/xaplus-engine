@@ -40,7 +40,7 @@ class XAPlusPreparerService extends Bolt implements
 
     XAPlusPreparerService(XAPlusProperties properties, XAPlusThreadPool threadPool,
                           XAPlusDispatcher dispatcher) {
-        super("xaplus-preparer", properties.getQueueSize());
+        super("preparer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         state = new State();

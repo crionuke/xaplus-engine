@@ -21,7 +21,7 @@ import java.util.*;
  * @since 1.0.0
  */
 @Service
-final class XAPlusRecoveryService extends Bolt implements
+class XAPlusRecoveryService extends Bolt implements
         XAPlusRecoveryRequestEvent.Handler,
         XAPlusResourceRecoveredEvent.Handler,
         XAPlusRecoveryResourceFailedEvent.Handler,

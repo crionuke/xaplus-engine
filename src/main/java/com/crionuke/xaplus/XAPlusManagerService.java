@@ -21,7 +21,8 @@ import java.util.Map;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Service final class XAPlusManagerService extends Bolt implements
+@Service
+class XAPlusManagerService extends Bolt implements
         XAPlusUserCommitRequestEvent.Handler,
         XAPlusUserRollbackRequestEvent.Handler,
         XAPlusRemoteSuperiorOrderToRollbackEvent.Handler,
@@ -38,7 +39,7 @@ import java.util.Map;
 
     XAPlusManagerService(XAPlusProperties XAPlusProperties, XAPlusThreadPool threadPool,
                          XAPlusDispatcher dispatcher) {
-        super("transaction-manager", XAPlusProperties.getQueueSize());
+        super("manager", XAPlusProperties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         state = new State();

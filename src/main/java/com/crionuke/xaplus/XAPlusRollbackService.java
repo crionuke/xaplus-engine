@@ -18,7 +18,8 @@ import java.util.Set;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Service final class XAPlusRollbackService extends Bolt implements
+@Service
+class XAPlusRollbackService extends Bolt implements
         XAPlusRollbackRequestEvent.Handler,
         XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
         XAPlusRollbackTransactionDecisionFailedEvent.Handler,
@@ -31,14 +32,12 @@ import java.util.Set;
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final XAPlusTracker tracker;
     private final State state;
 
     XAPlusRollbackService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
-        super("xaplus-rollback", properties.getQueueSize());
+        super("rollback", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        tracker = new XAPlusTracker();
         state = new State();
     }
 

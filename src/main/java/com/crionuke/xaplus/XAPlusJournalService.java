@@ -17,7 +17,8 @@ import java.util.Map;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Service final class XAPlusJournalService extends Bolt implements
+@Service
+class XAPlusJournalService extends Bolt implements
         XAPlusLogCommitTransactionDecisionEvent.Handler,
         XAPlusLogRollbackTransactionDecisionEvent.Handler,
         XAPlusLogCommitRecoveredXidDecisionEvent.Handler,
@@ -37,7 +38,7 @@ import java.util.Map;
 
     XAPlusJournalService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
                          XAPlusEngine engine) {
-        super("xaplus-journal", properties.getQueueSize());
+        super("journal", properties.getQueueSize());
         this.properties = properties;
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
