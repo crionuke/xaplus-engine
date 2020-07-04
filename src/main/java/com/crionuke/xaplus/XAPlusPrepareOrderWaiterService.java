@@ -121,7 +121,7 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
 
     private void check(XAPlusXid xid) throws InterruptedException {
         if (state.check(xid)) {
-            XAPlusTransaction transaction = state.getTransaction(xid);
+            XAPlusTransaction transaction = state.remove(xid);
             dispatcher.dispatch(new XAPlusPrepareTransactionEvent(transaction));
         }
     }

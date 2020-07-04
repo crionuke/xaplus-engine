@@ -118,7 +118,8 @@ class XAPlusPreparerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        if (state.remove(xid)) {
+        XAPlusTransaction transaction = state.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled for xid={} as transaction failed", xid);
             }
@@ -131,7 +132,8 @@ class XAPlusPreparerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        if (state.remove(xid)) {
+        XAPlusTransaction transaction = state.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled for xid={} as transaction timed out", xid);
             }
@@ -144,7 +146,8 @@ class XAPlusPreparerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        if (state.remove(xid)) {
+        XAPlusTransaction transaction = state.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled for xid={} as got order to rollback", xid);
             }
@@ -167,7 +170,7 @@ class XAPlusPreparerService extends Bolt implements
 
     private void check(XAPlusXid xid) throws InterruptedException {
         if (state.check(xid)) {
-            XAPlusTransaction transaction = state.getTransaction(xid);
+            XAPlusTransaction transaction = state.remove(xid);
             dispatcher.dispatch(new XAPlusTransactionPreparedEvent(transaction));
         }
     }
@@ -245,15 +248,15 @@ class XAPlusPreparerService extends Bolt implements
             }
         }
 
-        boolean remove(XAPlusXid xid) {
+        XAPlusTransaction remove(XAPlusXid xid) {
             XAPlusTransaction transaction = transactions.remove(xid);
             if (transaction != null) {
                 transaction.getXaPlusResources().forEach((x, r) -> branchToTransactionXids.remove(x));
                 preparing.remove(xid);
                 waiting.remove(xid);
-                return true;
+                return transaction;
             } else {
-                return false;
+                return null;
             }
         }
 

@@ -71,7 +71,7 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        XAPlusTransaction transaction = state.getTransaction(xid);
+        XAPlusTransaction transaction = state.remove(xid);
         if (transaction != null) {
             dispatcher.dispatch(new XAPlusCommitTransactionEvent(transaction));
         }
@@ -83,7 +83,8 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        if (state.remove(xid)) {
+        XAPlusTransaction transaction = state.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled for xid={} as transaction failed", xid);
             }
@@ -96,7 +97,8 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        if (state.remove(xid)) {
+        XAPlusTransaction transaction = state.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled for xid={} as transaction timed out", xid);
             }
@@ -109,7 +111,8 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        if (state.remove(xid)) {
+        XAPlusTransaction transaction = state.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled for xid={} as got order to rollback", xid);
             }
@@ -142,8 +145,8 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
             return transactions.get(xid);
         }
 
-        boolean remove(XAPlusXid xid) {
-            return transactions.remove(xid) != null;
+        XAPlusTransaction remove(XAPlusXid xid) {
+            return transactions.remove(xid);
         }
     }
 }
