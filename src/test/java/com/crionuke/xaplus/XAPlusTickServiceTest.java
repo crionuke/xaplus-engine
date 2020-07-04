@@ -16,7 +16,7 @@ public class XAPlusTickServiceTest extends XAPlusServiceTest {
     XAPlusTickService xaPlusTickService;
 
     BlockingQueue<XAPlusTickEvent> tickEvents;
-    TickEventConsumer tickEventConsumer;
+    StubConsumer stubConsumer;
 
     @Before
     public void beforeTest() {
@@ -26,14 +26,14 @@ public class XAPlusTickServiceTest extends XAPlusServiceTest {
         xaPlusTickService.postConstruct();
 
         tickEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        tickEventConsumer = new TickEventConsumer(tickEvents, threadPool, dispatcher);
-        tickEventConsumer.postConstruct();
+        stubConsumer = new StubConsumer();
+        stubConsumer.postConstruct();
     }
 
     @After
     public void afterTest() {
         xaPlusTickService.finish();
-        tickEventConsumer.finish();
+        stubConsumer.finish();
     }
 
     @Test
@@ -49,19 +49,10 @@ public class XAPlusTickServiceTest extends XAPlusServiceTest {
         assertEquals(tick3.getIndex(), 3);
     }
 
-    private class TickEventConsumer extends Bolt
-            implements XAPlusTickEvent.Handler {
+    private class StubConsumer extends Bolt implements XAPlusTickEvent.Handler {
 
-        private final BlockingQueue<XAPlusTickEvent> tickEvents;
-        private final XAPlusThreadPool xaPlusThreadPool;
-        private final XAPlusDispatcher xaPlusDispatcher;
-
-        TickEventConsumer(BlockingQueue<XAPlusTickEvent> tickEvents, XAPlusThreadPool xaPlusThreadPool,
-                          XAPlusDispatcher xaPlusDispatcher) {
-            super("tick-event-consumer", QUEUE_SIZE);
-            this.tickEvents = tickEvents;
-            this.xaPlusThreadPool = xaPlusThreadPool;
-            this.xaPlusDispatcher = xaPlusDispatcher;
+        StubConsumer() {
+            super("stub-consumer", QUEUE_SIZE);
         }
 
         @Override
@@ -70,8 +61,8 @@ public class XAPlusTickServiceTest extends XAPlusServiceTest {
         }
 
         void postConstruct() {
-            xaPlusThreadPool.execute(this);
-            xaPlusDispatcher.subscribe(this, XAPlusTickEvent.class);
+            threadPool.execute(this);
+            dispatcher.subscribe(this, XAPlusTickEvent.class);
         }
     }
 }
