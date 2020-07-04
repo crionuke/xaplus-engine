@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Component final class XAPlusThreadPool {
+@Component
+class XAPlusThreadPool {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusThreadPool.class);
     static private final int THREAD_POOL_SIZE = 32;
 

@@ -18,7 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Component final class XAPlusResources {
+@Component
+class XAPlusResources {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusEngine.class);
 
     // Key is uniqueName, value is wrapper for XADataSource, XAConnectionFactory or XAPlusFactory resources
@@ -66,7 +67,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
     void register(XAConnectionFactory factory, String uniqueName) {
         if (factory == null) {
-            throw new NullPointerException("Factory in null");
+            throw new NullPointerException("factory in null");
         }
         if (uniqueName == null) {
             throw new NullPointerException("uniqueName in null");
@@ -76,7 +77,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
     void register(XAPlusFactory factory, String serverId) {
         if (factory == null) {
-            throw new NullPointerException("Factory in null");
+            throw new NullPointerException("factory in null");
         }
         if (serverId == null) {
             throw new NullPointerException("serverId in null");
@@ -86,7 +87,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
     private void register(Wrapper xaWrapper, String uniqueName) {
         if (resources.containsKey(uniqueName)) {
-            throw new IllegalStateException("Resource with name " + uniqueName + " already registered");
+            throw new IllegalStateException("resource with name " + uniqueName + " already registered");
         }
         resources.put(uniqueName, xaWrapper);
         if (logger.isTraceEnabled()) {

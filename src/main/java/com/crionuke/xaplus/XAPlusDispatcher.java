@@ -11,7 +11,8 @@ import org.springframework.stereotype.Component;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Component final class XAPlusDispatcher {
+@Component
+class XAPlusDispatcher {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusDispatcher.class);
 
     private final Dispatcher dispatcher;

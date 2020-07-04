@@ -24,15 +24,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @since 1.0.0
  */
 @Component
-final class XAPlusUidGenerator {
+class XAPlusUidGenerator {
 
     static private final AtomicInteger sequenceGenerator = new AtomicInteger();
-
-    private final XAPlusProperties properties;
-
-    XAPlusUidGenerator(XAPlusProperties properties) {
-        this.properties = properties;
-    }
 
     /**
      * @return the generated UID based on {@code serverId}
