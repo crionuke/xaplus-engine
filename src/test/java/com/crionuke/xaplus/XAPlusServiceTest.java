@@ -42,13 +42,23 @@ public class XAPlusServiceTest extends Assert {
         dispatcher = new XAPlusDispatcher();
     }
 
+    protected XAPlusXid generateSuperiorXid() {
+        return new XAPlusXid(uidGenerator.generateUid(properties.getServerId()),
+                uidGenerator.generateUid(properties.getServerId()));
+    }
+
+
+    protected XAPlusXid createBranchXid(XAPlusTransaction transaction) {
+        return uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(), properties.getServerId());
+    }
+
+
     protected XAPlusTransaction createSuperiorTransaction() {
         return createSuperiorTransaction(properties.getDefaultTimeoutInSeconds());
     }
 
     protected XAPlusTransaction createSuperiorTransaction(int timeoutInSeconds) {
-        XAPlusXid xid = new XAPlusXid(uidGenerator.generateUid(properties.getServerId()),
-                uidGenerator.generateUid(properties.getServerId()));
+        XAPlusXid xid = generateSuperiorXid();
         XAPlusTransaction transaction = new XAPlusTransaction(xid, timeoutInSeconds, properties.getServerId());
         return transaction;
     }
