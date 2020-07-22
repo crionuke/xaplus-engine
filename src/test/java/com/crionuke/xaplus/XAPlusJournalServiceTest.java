@@ -3,33 +3,28 @@ package com.crionuke.xaplus;
 import com.crionuke.bolts.Bolt;
 import com.crionuke.xaplus.events.*;
 import com.crionuke.xaplus.stubs.XAResourceStub;
-import com.opentable.db.postgres.embedded.DatabaseConnectionPreparer;
-import com.opentable.db.postgres.junit.EmbeddedPostgresRules;
-import com.opentable.db.postgres.junit.PreparedDbRule;
-import org.h2.jdbcx.JdbcDataSource;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.test.context.junit4.SpringRunner;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+@RunWith(SpringRunner.class)
 public class XAPlusJournalServiceTest extends XAPlusServiceTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusJournalServiceTest.class);
-
-    @Rule
-    public PreparedDbRule dbRule = EmbeddedPostgresRules.preparedDatabase(new TlogPreparer());
 
     XAPlusJournalService xaPlusJournalService;
 
     BlockingQueue<XAPlusCommitTransactionDecisionLoggedEvent> commitTransactionDecisionLoggedEvents;
+    BlockingQueue<XAPlusCommitTransactionDecisionFailedEvent> commitTransactionDecisionFailedEvents;
     BlockingQueue<XAPlusRollbackTransactionDecisionLoggedEvent> rollbackTransactionDecisionLoggedEvents;
     BlockingQueue<XAPlusCommitRecoveredXidDecisionLoggedEvent> commitRecoveredXidDecisionLoggedEvents;
     BlockingQueue<XAPlusRollbackRecoveredXidDecisionLoggedEvent> rollbackRecoveredXidDecisionLoggedEvents;
@@ -38,14 +33,11 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
     ConsumerStub consumerStub;
 
     @Before
-    public void beforeTest() throws SQLException {
-        createXAPlusComponents(1);
-        engine.setTLogDataSource(dbRule.getTestDatabase());
-
-        xaPlusJournalService = new XAPlusJournalService(properties, threadPool, dispatcher, engine);
-        xaPlusJournalService.postConstruct();
+    public void beforeTest() {
+        createXAPlusComponents();
 
         commitTransactionDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        commitTransactionDecisionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         rollbackTransactionDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         commitRecoveredXidDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         rollbackRecoveredXidDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -57,32 +49,43 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
 
     @After
     public void afterTest() {
-        xaPlusJournalService.finish();
         consumerStub.finish();
+        xaPlusJournalService.finish();
     }
 
     @Test
-    public void testLogCommitTransactionDecision() throws InterruptedException, SQLException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
-        XAPlusXid bxid1 = createBranchXid(transaction);
-        transaction.enlist(bxid1, "db1", new XAResourceStub());
-        XAPlusXid bxid2 = createBranchXid(transaction);
-        transaction.enlist(bxid2, "db2", new XAResourceStub());
-        XAPlusXid bxid3 = createBranchXid(transaction);
-        transaction.enlist(bxid3, "db3", new XAResourceStub());
+    public void testLogCommitTransactionDecisionSuccessfully() throws InterruptedException {
+        XAPlusTLog tlog = Mockito.mock(XAPlusTLog.class);
+        xaPlusJournalService = new XAPlusJournalService(properties, threadPool, dispatcher, engine, tlog);
+        xaPlusJournalService.postConstruct();
+        XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction.getXid(),
                 transaction.getUniqueNames()));
         XAPlusCommitTransactionDecisionLoggedEvent event = commitTransactionDecisionLoggedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(event.getXid(), transaction.getXid());
     }
 
     @Test
-    public void test2() {
-        assertTrue(true);
+    public void testLogCommitTransactionDecisionFailed() throws InterruptedException, SQLException {
+        XAPlusTransaction transaction = createTestSuperiorTransaction();
+        XAPlusTLog tlog = Mockito.mock(XAPlusTLog.class);
+        Mockito.doThrow(new SQLException("log_exception")).when(tlog)
+                .log(transaction.getUniqueNames(), XAPlusTLog.TSTATUS.C);
+        xaPlusJournalService = new XAPlusJournalService(properties, threadPool, dispatcher, engine, tlog);
+        xaPlusJournalService.postConstruct();
+        dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction.getXid(),
+                transaction.getUniqueNames()));
+        XAPlusCommitTransactionDecisionFailedEvent event = commitTransactionDecisionFailedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(transaction.getXid(), event.getXid());
     }
 
     private class ConsumerStub extends Bolt implements
             XAPlusCommitTransactionDecisionLoggedEvent.Handler,
+            XAPlusCommitTransactionDecisionFailedEvent.Handler,
             XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
             XAPlusCommitRecoveredXidDecisionLoggedEvent.Handler,
             XAPlusRollbackRecoveredXidDecisionLoggedEvent.Handler,
@@ -96,6 +99,12 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
         public void handleCommitTransactionDecisionLogged(XAPlusCommitTransactionDecisionLoggedEvent event)
                 throws InterruptedException {
             commitTransactionDecisionLoggedEvents.put(event);
+        }
+
+        @Override
+        public void handleCommitTransactionDecisionFailed(XAPlusCommitTransactionDecisionFailedEvent event)
+                throws InterruptedException {
+            commitTransactionDecisionFailedEvents.put(event);
         }
 
         @Override
@@ -124,27 +133,11 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
         void postConstruct() {
             threadPool.execute(this);
             dispatcher.subscribe(this, XAPlusCommitTransactionDecisionLoggedEvent.class);
+            dispatcher.subscribe(this, XAPlusCommitTransactionDecisionFailedEvent.class);
             dispatcher.subscribe(this, XAPlusRollbackTransactionDecisionLoggedEvent.class);
             dispatcher.subscribe(this, XAPlusCommitRecoveredXidDecisionLoggedEvent.class);
             dispatcher.subscribe(this, XAPlusRollbackRecoveredXidDecisionLoggedEvent.class);
             dispatcher.subscribe(this, XAPlusDanglingTransactionsFoundEvent.class);
-        }
-    }
-
-    private class TlogPreparer implements DatabaseConnectionPreparer {
-
-        @Override
-        public void prepare(Connection conn) throws SQLException {
-            String sql = "CREATE TABLE tlog (t_id bigserial PRIMARY KEY, " +
-                    "t_timestamp timestamp NOT NULL, " +
-                    "t_server_id varchar(64) NOT NULL, " +
-                    "t_gtrid bytea, " +
-                    "t_bqual bytea, " +
-                    "t_unique_name varchar(64) NOT NULL, " +
-                    "t_status varchar(1) NOT NULL);";
-            try (PreparedStatement statement = conn.prepareStatement(sql)) {
-                statement.execute();
-            }
         }
     }
 }

@@ -64,7 +64,7 @@ class XAPlusJournalService extends Bolt implements
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
                 logger.warn("Log commit decision for transaction with xid={} and resources={} failed with {}",
-                        sqle.getMessage(), uniqueNames);
+                        xid, sqle.getMessage(), uniqueNames);
             }
             dispatcher.dispatch(new XAPlusCommitTransactionDecisionFailedEvent(xid, sqle));
         }
