@@ -35,14 +35,16 @@ class XAPlusJournalService extends Bolt implements
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
     private final XAPlusEngine engine;
+    private final XAPlusTLog tlog;
 
     XAPlusJournalService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
-                         XAPlusEngine engine) {
+                         XAPlusEngine engine, XAPlusTLog tlog) {
         super("journal", properties.getQueueSize());
         this.properties = properties;
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.engine = engine;
+        this.tlog = tlog;
     }
 
     @Override
@@ -54,7 +56,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         Map<XAPlusXid, String> uniqueNames = event.getUniqueNames();
         try {
-            tlog(uniqueNames, TSTATUS.C);
+            tlog.log(uniqueNames, XAPlusTLog.TSTATUS.C);
             if (logger.isDebugEnabled()) {
                 logger.debug("Commit decision for transaction with xid={} and resources={} logged", xid, uniqueNames);
             }
@@ -77,7 +79,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         Map<XAPlusXid, String> uniqueNames = event.getUniqueNames();
         try {
-            tlog(uniqueNames, TSTATUS.R);
+            tlog.log(uniqueNames, XAPlusTLog.TSTATUS.R);
             if (logger.isDebugEnabled()) {
                 logger.debug("Rollback decision for transaction with xid={} logged", xid);
             }
@@ -99,7 +101,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
         try {
-            tlog(event.getXid(), event.getUniqueName(), TSTATUS.C);
+            tlog.log(event.getXid(), event.getUniqueName(), XAPlusTLog.TSTATUS.C);
             if (logger.isDebugEnabled()) {
                 logger.debug("Commit decision for recovered xid={} logged", xid);
             }
@@ -121,7 +123,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
         try {
-            tlog(event.getXid(), event.getUniqueName(), TSTATUS.R);
+            tlog.log(event.getXid(), event.getUniqueName(), XAPlusTLog.TSTATUS.R);
             if (logger.isDebugEnabled()) {
                 logger.debug("Rollback decision for recovered xid={} logged", xid);
             }
@@ -142,7 +144,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
         try {
-            tlog(xid, uniqueName, TSTATUS.D);
+            tlog.log(xid, uniqueName, XAPlusTLog.TSTATUS.D);
             if (logger.isDebugEnabled()) {
                 logger.debug("Done status for committed recovered xid={} on resource={} logged", xid, uniqueName);
             }
@@ -162,7 +164,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
         try {
-            tlog(xid, uniqueName, TSTATUS.D);
+            tlog.log(xid, uniqueName, XAPlusTLog.TSTATUS.D);
             if (logger.isDebugEnabled()) {
                 logger.debug("Done status for rolled back recovered xid={} on resource={} logged", xid, uniqueName);
             }
@@ -182,7 +184,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
         try {
-            tlog(xid, uniqueName, TSTATUS.D);
+            tlog.log(xid, uniqueName, XAPlusTLog.TSTATUS.D);
             if (logger.isDebugEnabled()) {
                 logger.debug("Done status for dangling transaction with xid={} on resource={} logged",
                         xid, uniqueName);
@@ -204,7 +206,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = transaction.getXid();
         Map<XAPlusXid, String> uniqueNames = transaction.getUniqueNames();
         try {
-            tlog(uniqueNames, TSTATUS.D);
+            tlog.log(uniqueNames, XAPlusTLog.TSTATUS.D);
             if (logger.isDebugEnabled()) {
                 logger.debug("Done status for 2pc transaction with xid={} logged", xid);
             }
@@ -237,7 +239,7 @@ class XAPlusJournalService extends Bolt implements
                             XAPlusUid gtrid = new XAPlusUid(resultSet.getBytes(1));
                             XAPlusUid bqual = new XAPlusUid(resultSet.getBytes(2));
                             String uniqueName = resultSet.getString(3);
-                            TSTATUS tstatus = TSTATUS.valueOf(resultSet.getString(4));
+                            XAPlusTLog.TSTATUS tstatus = XAPlusTLog.TSTATUS.valueOf(resultSet.getString(4));
                             if (logger.isDebugEnabled()) {
                                 logger.debug("JOURNAL: retry uniqueName={}, bqual={} and gtrid={}, " +
                                         "status={} from tlog", uniqueName, bqual, gtrid, tstatus.name());
@@ -248,9 +250,9 @@ class XAPlusJournalService extends Bolt implements
                                 danglingTransactions.put(uniqueName, xids);
                             }
                             XAPlusXid xid = new XAPlusXid(gtrid, bqual);
-                            if (tstatus == TSTATUS.C) {
+                            if (tstatus == XAPlusTLog.TSTATUS.C) {
                                 xids.put(xid, true);
-                            } else if (tstatus == TSTATUS.R) {
+                            } else if (tstatus == XAPlusTLog.TSTATUS.R) {
                                 xids.put(xid, false);
                             } else {
                                 // TODO: wrong data in db ??
@@ -290,40 +292,5 @@ class XAPlusJournalService extends Bolt implements
         dispatcher.subscribe(this, XAPlusDanglingTransactionDoneEvent.class);
         dispatcher.subscribe(this, XAPlus2pcDoneEvent.class);
         dispatcher.subscribe(this, XAPlusFindDanglingTransactionsRequestEvent.class);
-    }
-
-    private void tlog(XAPlusXid xid, String uniqueName, TSTATUS tstatus) throws SQLException {
-        Map<XAPlusXid, String> uniqueNames = new HashMap<>();
-        uniqueNames.put(xid, uniqueName);
-        tlog(uniqueNames, tstatus);
-    }
-
-    private void tlog(Map<XAPlusXid, String> uniqueNames, TSTATUS tstatus) throws SQLException {
-        DataSource tlogDataSource = engine.getTlogDataSource();
-        try (Connection connection = tlogDataSource.getConnection()) {
-            String sql = "INSERT INTO tlog (t_timestamp, t_server_id, t_gtrid, t_bqual, t_unique_name, t_status) "
-                    + "VALUES(?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
-                statement.setString(2, properties.getServerId());
-                statement.setString(6, tstatus.name());
-                for (Map.Entry<XAPlusXid, String> entry : uniqueNames.entrySet()) {
-                    XAPlusXid branchXid = entry.getKey();
-                    XAPlusUid branchGtrid = branchXid.getGlobalTransactionIdUid();
-                    XAPlusUid branchBqual = branchXid.getBranchQualifierUid();
-                    String uniqueName = entry.getValue();
-                    statement.setBytes(3, branchGtrid.getArray());
-                    statement.setBytes(4, branchBqual.getArray());
-                    statement.setString(5, uniqueName);
-                    statement.addBatch();
-                }
-                statement.executeBatch();
-            }
-        }
-    }
-
-    // Commit, rollback and done statuses
-    private enum TSTATUS {
-        C, R, D
     }
 }
