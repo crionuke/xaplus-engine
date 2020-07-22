@@ -2,6 +2,7 @@ package com.crionuke.xaplus;
 
 import com.crionuke.xaplus.stubs.XADataSourceStub;
 import com.crionuke.xaplus.stubs.XAPlusFactoryStub;
+import com.crionuke.xaplus.stubs.XAResourceStub;
 import org.junit.Assert;
 
 public class XAPlusServiceTest extends Assert {
@@ -47,11 +48,20 @@ public class XAPlusServiceTest extends Assert {
                 uidGenerator.generateUid(properties.getServerId()));
     }
 
-
     protected XAPlusXid createBranchXid(XAPlusTransaction transaction) {
         return uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(), properties.getServerId());
     }
 
+    protected XAPlusTransaction createTestSuperiorTransaction() {
+        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusXid bxid1 = createBranchXid(transaction);
+        transaction.enlist(bxid1, XA_RESOURCE_1, new XAResourceStub());
+        XAPlusXid bxid2 = createBranchXid(transaction);
+        transaction.enlist(bxid2, XA_RESOURCE_2, new XAResourceStub());
+        XAPlusXid bxid3 = createBranchXid(transaction);
+        transaction.enlist(bxid3, XA_RESOURCE_3, new XAResourceStub());
+        return transaction;
+    }
 
     protected XAPlusTransaction createSuperiorTransaction() {
         return createSuperiorTransaction(properties.getDefaultTimeoutInSeconds());
