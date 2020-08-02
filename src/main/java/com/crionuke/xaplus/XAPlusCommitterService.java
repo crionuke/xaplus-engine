@@ -72,7 +72,7 @@ class XAPlusCommitterService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getXid();
+        XAPlusXid xid = event.getTransaction().getXid();
         XAPlusTransaction transaction = state.getTransaction(xid);
         if (transaction != null) {
             Map<XAPlusXid, XAResource> resources = new HashMap<>();
@@ -92,7 +92,7 @@ class XAPlusCommitterService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getXid();
+        XAPlusXid xid = event.getTransaction().getXid();
         XAPlusTransaction transaction = state.getTransaction(xid);
         if (transaction != null) {
             Exception exception = event.getException();
@@ -194,8 +194,7 @@ class XAPlusCommitterService extends Bolt implements
 
     private void fireCommitDecision(XAPlusTransaction transaction) throws InterruptedException {
         if (state.track(transaction)) {
-            XAPlusXid xid = transaction.getXid();
-            dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(xid, transaction.getUniqueNames()));
+            dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
         }
     }
 

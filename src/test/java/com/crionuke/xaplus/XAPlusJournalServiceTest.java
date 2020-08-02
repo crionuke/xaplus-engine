@@ -60,12 +60,11 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
     @Test
     public void testLogCommitTransactionDecisionSuccessfully() throws InterruptedException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
-        dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction.getXid(),
-                transaction.getUniqueNames()));
+        dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
         XAPlusCommitTransactionDecisionLoggedEvent event = commitTransactionDecisionLoggedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
-        assertEquals(event.getXid(), transaction.getXid());
+        assertEquals(transaction.getXid(), event.getTransaction().getXid());
     }
 
     @Test
@@ -73,12 +72,11 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         Mockito.doThrow(new SQLException("log_exception")).when(tlog)
                 .log(transaction.getUniqueNames(), XAPlusTLog.TSTATUS.C);
-        dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction.getXid(),
-                transaction.getUniqueNames()));
+        dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
         XAPlusCommitTransactionDecisionFailedEvent event = commitTransactionDecisionFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
-        assertEquals(transaction.getXid(), event.getXid());
+        assertEquals(transaction.getXid(), event.getTransaction().getXid());
     }
 
     private class ConsumerStub extends Bolt implements

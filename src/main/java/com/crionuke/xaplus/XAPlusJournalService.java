@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,20 +56,21 @@ class XAPlusJournalService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getXid();
-        Map<XAPlusXid, String> uniqueNames = event.getUniqueNames();
+        XAPlusTransaction transaction = event.getTransaction();
+        XAPlusXid xid = transaction.getXid();
+        Map<XAPlusXid, String> uniqueNames = transaction.getUniqueNames();
         try {
             tlog.log(uniqueNames, XAPlusTLog.TSTATUS.C);
             if (logger.isDebugEnabled()) {
                 logger.debug("Commit decision for transaction with xid={} and resources={} logged", xid, uniqueNames);
             }
-            dispatcher.dispatch(new XAPlusCommitTransactionDecisionLoggedEvent(xid));
+            dispatcher.dispatch(new XAPlusCommitTransactionDecisionLoggedEvent(transaction));
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
                 logger.warn("Log commit decision for transaction with xid={} and resources={} failed with {}",
                         xid, sqle.getMessage(), uniqueNames);
             }
-            dispatcher.dispatch(new XAPlusCommitTransactionDecisionFailedEvent(xid, sqle));
+            dispatcher.dispatch(new XAPlusCommitTransactionDecisionFailedEvent(transaction, sqle));
         }
     }
 
