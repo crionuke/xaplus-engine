@@ -70,7 +70,7 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
     public void testLogCommitTransactionDecisionFailed() throws InterruptedException, SQLException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         Mockito.doThrow(new SQLException("log_exception")).when(tlog)
-                .log(transaction.getUniqueNames(), XAPlusTLog.TSTATUS.C);
+                .log(transaction, XAPlusTLog.TSTATUS.C);
         dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
         XAPlusCommitTransactionDecisionFailedEvent event = commitTransactionDecisionFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -92,7 +92,7 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
     public void testLogRollbackTransactionDecisionFailed() throws InterruptedException, SQLException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         Mockito.doThrow(new SQLException("log_exception")).when(tlog)
-                .log(transaction.getUniqueNames(), XAPlusTLog.TSTATUS.R);
+                .log(transaction, XAPlusTLog.TSTATUS.R);
         dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
         XAPlusRollbackTransactionDecisionFailedEvent event = rollbackTransactionDecisionFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);

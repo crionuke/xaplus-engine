@@ -32,7 +32,11 @@ class XAPlusTLog {
         log(uniqueNames, tstatus);
     }
 
-    void log(Map<XAPlusXid, String> uniqueNames, TSTATUS tstatus) throws SQLException {
+    void log(XAPlusTransaction transaction, TSTATUS tstatus) throws SQLException {
+        log(transaction.getUniqueNames(), tstatus);
+    }
+
+    private void log(Map<XAPlusXid, String> uniqueNames, TSTATUS tstatus) throws SQLException {
         DataSource tlogDataSource = engine.getTlogDataSource();
         try (Connection connection = tlogDataSource.getConnection()) {
             String sql = "INSERT INTO tlog (t_timestamp, t_server_id, t_gtrid, t_bqual, t_unique_name, t_status) "

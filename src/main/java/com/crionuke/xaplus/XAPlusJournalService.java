@@ -58,17 +58,17 @@ class XAPlusJournalService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         XAPlusXid xid = transaction.getXid();
-        Map<XAPlusXid, String> uniqueNames = transaction.getUniqueNames();
         try {
-            tlog.log(uniqueNames, XAPlusTLog.TSTATUS.C);
+            tlog.log(transaction, XAPlusTLog.TSTATUS.C);
             if (logger.isDebugEnabled()) {
-                logger.debug("Commit decision for transaction with xid={} and resources={} logged", xid, uniqueNames);
+                logger.debug("Commit decision for transaction with xid={} and resources={} logged",
+                        xid, transaction.getUniqueNames());
             }
             dispatcher.dispatch(new XAPlusCommitTransactionDecisionLoggedEvent(transaction));
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
                 logger.warn("Log commit decision for transaction with xid={} and resources={} failed with {}",
-                        xid, sqle.getMessage(), uniqueNames);
+                        xid, sqle.getMessage(), transaction.getUniqueNames());
             }
             dispatcher.dispatch(new XAPlusCommitTransactionDecisionFailedEvent(transaction, sqle));
         }
@@ -82,9 +82,8 @@ class XAPlusJournalService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         XAPlusXid xid = transaction.getXid();
-        Map<XAPlusXid, String> uniqueNames = transaction.getUniqueNames();
         try {
-            tlog.log(uniqueNames, XAPlusTLog.TSTATUS.R);
+            tlog.log(transaction, XAPlusTLog.TSTATUS.R);
             if (logger.isDebugEnabled()) {
                 logger.debug("Rollback decision for transaction with xid={} logged", xid);
             }
@@ -209,9 +208,8 @@ class XAPlusJournalService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         XAPlusXid xid = transaction.getXid();
-        Map<XAPlusXid, String> uniqueNames = transaction.getUniqueNames();
         try {
-            tlog.log(uniqueNames, XAPlusTLog.TSTATUS.D);
+            tlog.log(transaction, XAPlusTLog.TSTATUS.D);
             if (logger.isDebugEnabled()) {
                 logger.debug("Done status for 2pc transaction with xid={} logged", xid);
             }
