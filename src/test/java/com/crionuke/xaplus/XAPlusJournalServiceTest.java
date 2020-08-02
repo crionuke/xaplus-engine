@@ -2,7 +2,6 @@ package com.crionuke.xaplus;
 
 import com.crionuke.bolts.Bolt;
 import com.crionuke.xaplus.events.*;
-import com.crionuke.xaplus.stubs.XAResourceStub;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 public class XAPlusJournalServiceTest extends XAPlusServiceTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusJournalServiceTest.class);
 
+    XAPlusTLog tlog;
     XAPlusJournalService xaPlusJournalService;
 
     BlockingQueue<XAPlusCommitTransactionDecisionLoggedEvent> commitTransactionDecisionLoggedEvents;
@@ -35,6 +35,10 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
     @Before
     public void beforeTest() {
         createXAPlusComponents();
+
+        tlog = Mockito.mock(XAPlusTLog.class);
+        xaPlusJournalService = new XAPlusJournalService(properties, threadPool, dispatcher, engine, tlog);
+        xaPlusJournalService.postConstruct();
 
         commitTransactionDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         commitTransactionDecisionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -55,9 +59,6 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
 
     @Test
     public void testLogCommitTransactionDecisionSuccessfully() throws InterruptedException {
-        XAPlusTLog tlog = Mockito.mock(XAPlusTLog.class);
-        xaPlusJournalService = new XAPlusJournalService(properties, threadPool, dispatcher, engine, tlog);
-        xaPlusJournalService.postConstruct();
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction.getXid(),
                 transaction.getUniqueNames()));
@@ -70,11 +71,8 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
     @Test
     public void testLogCommitTransactionDecisionFailed() throws InterruptedException, SQLException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
-        XAPlusTLog tlog = Mockito.mock(XAPlusTLog.class);
         Mockito.doThrow(new SQLException("log_exception")).when(tlog)
                 .log(transaction.getUniqueNames(), XAPlusTLog.TSTATUS.C);
-        xaPlusJournalService = new XAPlusJournalService(properties, threadPool, dispatcher, engine, tlog);
-        xaPlusJournalService.postConstruct();
         dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction.getXid(),
                 transaction.getUniqueNames()));
         XAPlusCommitTransactionDecisionFailedEvent event = commitTransactionDecisionFailedEvents
