@@ -1,6 +1,7 @@
 package com.crionuke.xaplus.events;
 
 import com.crionuke.bolts.Event;
+import com.crionuke.xaplus.XAPlusTransaction;
 import com.crionuke.xaplus.XAPlusXid;
 
 import java.util.Collections;
@@ -12,19 +13,14 @@ import java.util.Map;
  */
 public final class XAPlusLogRollbackTransactionDecisionEvent extends Event<XAPlusLogRollbackTransactionDecisionEvent.Handler> {
 
-    private final XAPlusXid xid;
-    private final Map<XAPlusXid, String> uniqueNames;
+    private final XAPlusTransaction transaction;
 
-    public XAPlusLogRollbackTransactionDecisionEvent(XAPlusXid xid, Map<XAPlusXid, String> uniqueNames) {
+    public XAPlusLogRollbackTransactionDecisionEvent(XAPlusTransaction transaction) {
         super();
-        if (xid == null) {
-            throw new NullPointerException("xid is null");
+        if (transaction == null) {
+            throw new NullPointerException("transaction is null");
         }
-        if (uniqueNames == null) {
-            throw new NullPointerException("uniqueNames is null");
-        }
-        this.xid = xid;
-        this.uniqueNames = uniqueNames;
+        this.transaction = transaction;
     }
 
     @Override
@@ -32,12 +28,8 @@ public final class XAPlusLogRollbackTransactionDecisionEvent extends Event<XAPlu
         handler.handleLogRollbackTransactionDecision(this);
     }
 
-    public XAPlusXid getXid() {
-        return xid;
-    }
-
-    public Map<XAPlusXid, String> getUniqueNames() {
-        return Collections.unmodifiableMap(uniqueNames);
+    public XAPlusTransaction getTransaction() {
+        return transaction;
     }
 
     public interface Handler {

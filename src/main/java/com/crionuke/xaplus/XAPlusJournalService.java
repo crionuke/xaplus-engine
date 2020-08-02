@@ -80,19 +80,20 @@ class XAPlusJournalService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getXid();
-        Map<XAPlusXid, String> uniqueNames = event.getUniqueNames();
+        XAPlusTransaction transaction = event.getTransaction();
+        XAPlusXid xid = transaction.getXid();
+        Map<XAPlusXid, String> uniqueNames = transaction.getUniqueNames();
         try {
             tlog.log(uniqueNames, XAPlusTLog.TSTATUS.R);
             if (logger.isDebugEnabled()) {
                 logger.debug("Rollback decision for transaction with xid={} logged", xid);
             }
-            dispatcher.dispatch(new XAPlusRollbackTransactionDecisionLoggedEvent(xid));
+            dispatcher.dispatch(new XAPlusRollbackTransactionDecisionLoggedEvent(transaction));
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
                 logger.warn("Log rollback decision for transaction with xid={} failed with {}", sqle.getMessage());
             }
-            dispatcher.dispatch(new XAPlusRollbackTransactionDecisionFailedEvent(xid, sqle));
+            dispatcher.dispatch(new XAPlusRollbackTransactionDecisionFailedEvent(transaction, sqle));
         }
     }
 

@@ -1,6 +1,7 @@
 package com.crionuke.xaplus.events;
 
 import com.crionuke.bolts.Event;
+import com.crionuke.xaplus.XAPlusTransaction;
 import com.crionuke.xaplus.XAPlusXid;
 
 /**
@@ -9,14 +10,14 @@ import com.crionuke.xaplus.XAPlusXid;
  */
 public final class XAPlusRollbackTransactionDecisionLoggedEvent extends Event<XAPlusRollbackTransactionDecisionLoggedEvent.Handler> {
 
-    private final XAPlusXid xid;
+    private final XAPlusTransaction transaction;
 
-    public XAPlusRollbackTransactionDecisionLoggedEvent(XAPlusXid xid) {
+    public XAPlusRollbackTransactionDecisionLoggedEvent(XAPlusTransaction transaction) {
         super();
-        if (xid == null) {
-            throw new NullPointerException("xid is null");
+        if (transaction == null) {
+            throw new NullPointerException("transaction is null");
         }
-        this.xid = xid;
+        this.transaction = transaction;
     }
 
     @Override
@@ -24,8 +25,8 @@ public final class XAPlusRollbackTransactionDecisionLoggedEvent extends Event<XA
         handler.handleRollbackTransactionDecisionLogged(this);
     }
 
-    public XAPlusXid getXid() {
-        return xid;
+    public XAPlusTransaction getTransaction() {
+        return transaction;
     }
 
     public interface Handler {
