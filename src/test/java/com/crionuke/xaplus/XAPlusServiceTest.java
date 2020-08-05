@@ -10,6 +10,8 @@ public class XAPlusServiceTest extends Assert {
     protected final int DEFAULT_TIMEOUT_S = 10;
     protected final int POLL_TIMIOUT_MS = 2000;
 
+    protected final String SERVER_ID = "server-stub";
+
     protected final String XA_RESOURCE_1 = "db1";
     protected final String XA_RESOURCE_2 = "db2";
     protected final String XA_RESOURCE_3 = "db3";
@@ -31,7 +33,7 @@ public class XAPlusServiceTest extends Assert {
 
     protected void createXAPlusComponents(int defaultTimeoutInSeconds) {
         properties = new XAPlusProperties();
-        properties.setServerId("server-stub");
+        properties.setServerId(SERVER_ID);
         properties.setQueueSize(QUEUE_SIZE);
         properties.setDefaultTimeoutInSeconds(defaultTimeoutInSeconds);
         resources = new XAPlusResources();
