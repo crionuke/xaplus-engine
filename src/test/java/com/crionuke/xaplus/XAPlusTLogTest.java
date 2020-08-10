@@ -45,14 +45,15 @@ public class XAPlusTLogTest extends XAPlusServiceTest {
                     byte[] bqualBytes = resultSet.getBytes(3);
                     XAPlusUid bqualUid = new XAPlusUid(bqualBytes);
                     String uniqueName = resultSet.getString(4);
-                    String status = resultSet.getString(5);
-                    logger.info("serverId={}, uniqueName={}, status={}", serverId, uniqueName, status);
+                    int status = resultSet.getInt(5);
+                    logger.info("serverId={}, uniqueName={}, status={}",
+                            serverId, uniqueName, XAPlusTLog.TSTATUS.values()[status]);
                     // Check
                     assertEquals(SERVER_ID, serverId);
                     assertEquals(xid.getGlobalTransactionIdUid(), gtridUid);
                     assertEquals(xid.getBranchQualifierUid(), bqualUid);
                     assertEquals(XA_RESOURCE_1, uniqueName);
-                    assertEquals(XAPlusTLog.TSTATUS.C.toString(), status);
+                    assertEquals(XAPlusTLog.TSTATUS.C.ordinal(), status);
                 }
             }
         }
@@ -75,20 +76,41 @@ public class XAPlusTLogTest extends XAPlusServiceTest {
                         byte[] bqualBytes = resultSet.getBytes(3);
                         XAPlusUid bqualUid = new XAPlusUid(bqualBytes);
                         String uniqueName = resultSet.getString(4);
-                        String status = resultSet.getString(5);
+                        int status = resultSet.getInt(5);
                         count++;
-                        logger.info("serverId={}, uniqueName={}, status={}", serverId, uniqueName, status);
+                        logger.info("serverId={}, uniqueName={}, status={}",
+                                serverId, uniqueName, XAPlusTLog.TSTATUS.values()[status]);
                         // Checks
                         assertEquals(SERVER_ID, serverId);
                         XAPlusXid xid = new XAPlusXid(gtridUid, bqualUid);
                         assertTrue(uniqueNames.containsKey(xid));
                         assertTrue(uniqueNames.containsValue(uniqueName));
-                        assertEquals(XAPlusTLog.TSTATUS.C.toString(), status);
+                        assertEquals(XAPlusTLog.TSTATUS.C.ordinal(), status);
                     }
                     assertEquals(uniqueNames.size(), count);
                 }
             }
         }
+    }
+
+    @Test
+    public void testFindDanglingTransactions() throws SQLException {
+        XAPlusTransaction transaction1 = createTestSuperiorTransaction();
+        XAPlusTransaction transaction2 = createTestSuperiorTransaction();
+        Map<XAPlusXid, String> uniqueNames2 = transaction2.getUniqueNames();
+        tLog.log(transaction1, XAPlusTLog.TSTATUS.C);
+        tLog.log(transaction2, XAPlusTLog.TSTATUS.R);
+        tLog.log(transaction1, XAPlusTLog.TSTATUS.D);
+        Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = tLog.findDanglingTransactions();
+        for (Map.Entry<String, Map<XAPlusXid, Boolean>> entry : danglingTransactions.entrySet()) {
+            String uniqueName = entry.getKey();
+            Map<XAPlusXid, Boolean> branches = entry.getValue();
+            assertTrue(uniqueNames2.containsValue(uniqueName));
+            for (XAPlusXid branchXid : branches.keySet()) {
+                assertTrue(uniqueNames2.containsKey(branchXid));
+            }
+        }
+        assertEquals(uniqueNames2.size(), danglingTransactions.size());
     }
 
     private class TlogPreparer implements DatabaseConnectionPreparer {
@@ -101,7 +123,7 @@ public class XAPlusTLogTest extends XAPlusServiceTest {
                     "t_gtrid bytea, " +
                     "t_bqual bytea, " +
                     "t_unique_name varchar(64) NOT NULL, " +
-                    "t_status varchar(1) NOT NULL);";
+                    "t_status int NOT NULL);";
             try (PreparedStatement statement = conn.prepareStatement(sql)) {
                 statement.execute();
             }

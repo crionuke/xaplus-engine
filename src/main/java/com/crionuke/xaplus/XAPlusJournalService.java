@@ -228,58 +228,13 @@ class XAPlusJournalService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         try {
-            DataSource tlogDataSource = engine.getTlogDataSource();
-            try (Connection connection = tlogDataSource.getConnection()) {
-                connection.setAutoCommit(false);
-                Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = new HashMap<>();
-                String sql = "SELECT t_gtrid, t_bqual, t_unique_name, t_status FROM tlog " +
-                        "WHERE t_server_id=? GROUP BY t_bqual, t_gtrid, t_unique_name, t_status HAVING COUNT(*) = 1;";
-                try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                    statement.setFetchSize(FETCH_SIZE);
-                    statement.setString(1, properties.getServerId());
-                    try (ResultSet resultSet = statement.executeQuery()) {
-                        while (resultSet.next()) {
-                            XAPlusUid gtrid = new XAPlusUid(resultSet.getBytes(1));
-                            XAPlusUid bqual = new XAPlusUid(resultSet.getBytes(2));
-                            String uniqueName = resultSet.getString(3);
-                            XAPlusTLog.TSTATUS tstatus = XAPlusTLog.TSTATUS.valueOf(resultSet.getString(4));
-                            if (logger.isDebugEnabled()) {
-                                logger.debug("JOURNAL: retry uniqueName={}, bqual={} and gtrid={}, " +
-                                        "status={} from tlog", uniqueName, bqual, gtrid, tstatus.name());
-                            }
-                            Map<XAPlusXid, Boolean> xids = danglingTransactions.get(uniqueName);
-                            if (xids == null) {
-                                xids = new HashMap<>();
-                                danglingTransactions.put(uniqueName, xids);
-                            }
-                            XAPlusXid xid = new XAPlusXid(gtrid, bqual);
-                            if (tstatus == XAPlusTLog.TSTATUS.C) {
-                                xids.put(xid, true);
-                            } else if (tstatus == XAPlusTLog.TSTATUS.R) {
-                                xids.put(xid, false);
-                            } else {
-                                // TODO: wrong data in db ??
-                            }
-                        }
-                    }
-                }
-                if (logger.isDebugEnabled()) {
-                    StringBuilder debugMessage = new StringBuilder();
-                    debugMessage.append("Dangling transaction found on " +
-                            danglingTransactions.size() + " resources:\n");
-                    for (String uniqueName : danglingTransactions.keySet()) {
-                        debugMessage.append("Resource " + uniqueName + " has " +
-                                danglingTransactions.get(uniqueName).size() + " dangling transactions");
-                    }
-                    logger.debug(debugMessage.toString());
-                }
-                dispatcher.dispatch(new XAPlusDanglingTransactionsFoundEvent(danglingTransactions));
-            }
-        } catch (SQLException sqle) {
+            Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = tlog.findDanglingTransactions();
+            dispatcher.dispatch(new XAPlusDanglingTransactionsFoundEvent(danglingTransactions));
+        } catch (SQLException e) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Recovery dangling transaction from journal failed with {}", sqle.getMessage());
+                logger.warn("Recovery dangling transaction from journal failed with {}", e.getMessage());
             }
-            dispatcher.dispatch(new XAPlusFindDanglingTransactionsFailedEvent(sqle));
+            dispatcher.dispatch(new XAPlusFindDanglingTransactionsFailedEvent(e));
         }
     }
 
