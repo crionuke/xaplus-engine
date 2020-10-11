@@ -9,6 +9,7 @@ public class XAPlusServiceTest extends Assert {
     protected final int QUEUE_SIZE = 128;
     protected final int DEFAULT_TIMEOUT_S = 10;
     protected final int POLL_TIMIOUT_MS = 2000;
+    protected final int VERIFY_MS = 1000;
 
     protected final String SERVER_ID = "server-stub";
 

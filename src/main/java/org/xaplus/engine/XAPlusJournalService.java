@@ -29,7 +29,6 @@ class XAPlusJournalService extends Bolt implements
         XAPlusFindDanglingTransactionsRequestEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusJournalService.class);
 
-    static private final int FETCH_SIZE = 50;
     private final XAPlusProperties properties;
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
@@ -249,7 +248,7 @@ class XAPlusJournalService extends Bolt implements
             dispatcher.dispatch(new XAPlusDanglingTransactionsFoundEvent(danglingTransactions));
         } catch (SQLException e) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Recovery dangling transaction from journal failed with {}", e.getMessage());
+                logger.warn("Find dangling transaction from journal failed with {}", e.getMessage());
             }
             dispatcher.dispatch(new XAPlusFindDanglingTransactionsFailedEvent(e));
         }
