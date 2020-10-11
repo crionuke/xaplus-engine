@@ -76,13 +76,13 @@ public class XAPlusServiceTest extends Assert {
         return transaction;
     }
 
-    protected XAPlusTransaction createSubordinateTransaction() {
-        return createSubordinateTransaction(properties.getDefaultTimeoutInSeconds());
+    protected XAPlusTransaction createSubordinateTransaction(String uniqueName) {
+        return createSubordinateTransaction(uniqueName, properties.getDefaultTimeoutInSeconds());
     }
 
-    protected XAPlusTransaction createSubordinateTransaction(int timeoutInSeconds) {
-        XAPlusXid xid = new XAPlusXid(uidGenerator.generateUid("remote-server"),
-                uidGenerator.generateUid("remote-server"));
+    protected XAPlusTransaction createSubordinateTransaction(String uniqueName, int timeoutInSeconds) {
+        XAPlusXid xid = new XAPlusXid(uidGenerator.generateUid(uniqueName),
+                uidGenerator.generateUid(uniqueName));
         XAPlusTransaction transaction = new XAPlusTransaction(xid, timeoutInSeconds, properties.getServerId());
         return transaction;
     }

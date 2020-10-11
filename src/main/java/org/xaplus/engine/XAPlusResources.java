@@ -43,7 +43,7 @@ class XAPlusResources {
             if (wrapper != null) {
                 return wrapper.get();
             } else {
-                throw new XAPlusSystemException(new IllegalArgumentException("resource " + uniqueName + " not found"));
+                throw new XAPlusSystemException("resource " + uniqueName + " not found");
             }
         } catch (ClassCastException | XAPlusException e) {
             throw new XAPlusSystemException(e);

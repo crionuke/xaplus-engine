@@ -43,13 +43,11 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusServiceTest {
 
     @Test
     public void testFirst2pcRequestAfterPrepareOrder() throws InterruptedException {
-        XAPlusTransaction transaction1 = createSubordinateTransaction();
-        XAPlusTransaction transaction2 = createSubordinateTransaction();
-        XAPlusTransaction transaction3 = createSubordinateTransaction();
+        XAPlusTransaction transaction1 = createSubordinateTransaction(XA_PLUS_RESOURCE_1);
+        XAPlusTransaction transaction2 = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
         // Send 2pc request
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction1));
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction2));
-        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction3));
         // Send order to prepare only for one transaction
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(transaction2.getXid()));
         // Wating
@@ -60,15 +58,13 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusServiceTest {
 
     @Test
     public void testFirstPrepareOrderAfter2pcRequest() throws InterruptedException {
-        XAPlusTransaction transaction1 = createSubordinateTransaction();
-        XAPlusTransaction transaction2 = createSubordinateTransaction();
-        XAPlusTransaction transaction3 = createSubordinateTransaction();
+        XAPlusTransaction transaction1 = createSubordinateTransaction(XA_PLUS_RESOURCE_1);
+        XAPlusTransaction transaction2 = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
         // Send order to prepare only for one transaction
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(transaction2.getXid()));
         // Send 2pc request
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction1));
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction2));
-        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction3));
         // Wating
         XAPlusPrepareTransactionEvent event = waiterEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);

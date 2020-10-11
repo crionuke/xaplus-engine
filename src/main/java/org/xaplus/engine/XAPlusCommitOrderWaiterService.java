@@ -58,6 +58,10 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
                     XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
                     dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(xid, resource));
                 } catch (XAPlusSystemException readyException) {
+                    if (logger.isWarnEnabled()) {
+                        logger.warn("Subordinate transaction with xid={} failed as {}",
+                                transaction.getXid(), readyException.getMessage());
+                    }
                     dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, readyException));
                 }
             }

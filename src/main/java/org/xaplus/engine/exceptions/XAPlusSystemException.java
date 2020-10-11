@@ -6,6 +6,10 @@ package org.xaplus.engine.exceptions;
  */
 public class XAPlusSystemException extends Exception {
 
+    public XAPlusSystemException(String message) {
+        super(message);
+    }
+
     public XAPlusSystemException(Throwable cause) {
         super(cause);
     }
