@@ -4,7 +4,8 @@ import org.xaplus.engine.exceptions.XAPlusCommitException;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
 import org.xaplus.engine.exceptions.XAPlusTimeoutException;
 
-import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -13,21 +14,21 @@ import java.util.concurrent.TimeUnit;
  */
 public final class XAPlusFuture {
 
-    private final SynchronousQueue<XAPlusResult> container;
+    private final BlockingQueue<XAPlusResult> container;
 
     XAPlusFuture() {
-        container = new SynchronousQueue<>();
+        container = new ArrayBlockingQueue<>(1);
     }
 
     public boolean get()
             throws InterruptedException, XAPlusCommitException, XAPlusRollbackException, XAPlusTimeoutException {
-        XAPlusResult result = container.poll();
+        XAPlusResult result = container.take();
         return result.get();
     }
 
     public boolean get(long timeout, TimeUnit unit)
             throws InterruptedException, XAPlusCommitException, XAPlusRollbackException, XAPlusTimeoutException {
-        XAPlusResult result = container.poll();
+        XAPlusResult result = container.poll(timeout, unit);
         return result.get();
     }
 

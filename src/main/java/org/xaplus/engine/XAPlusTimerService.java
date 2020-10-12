@@ -29,13 +29,13 @@ class XAPlusTimerService extends Bolt implements
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final State state;
+    private final XAPlusTimerState state;
 
     XAPlusTimerService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
         super("timer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        state = new State();
+        state = new XAPlusTimerState();
     }
 
     @Override
@@ -141,38 +141,5 @@ class XAPlusTimerService extends Bolt implements
         dispatcher.subscribe(this, XAPlusRollbackDoneEvent.class);
         dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackFailedEvent.class);
-    }
-
-    private final class State {
-
-        private final Map<XAPlusXid, XAPlusTransaction> transactions;
-
-        State() {
-            transactions = new HashMap<>();
-        }
-
-        boolean track(XAPlusTransaction transaction) {
-            return transactions.put(transaction.getXid(), transaction) == null;
-        }
-
-        boolean remove(XAPlusXid xid) {
-            return transactions.remove(xid) != null;
-        }
-
-        List<XAPlusTransaction> removeExpiredTransactions() {
-            List<XAPlusTransaction> expired = new ArrayList<>();
-            long time = System.currentTimeMillis();
-            Iterator<Map.Entry<XAPlusXid, XAPlusTransaction>> iterator = transactions.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<XAPlusXid, XAPlusTransaction> entry = iterator.next();
-                XAPlusXid xid = entry.getKey();
-                XAPlusTransaction transaction = entry.getValue();
-                if (time >= transaction.getExpireTimeInMillis()) {
-                    expired.add(transaction);
-                    iterator.remove();
-                }
-            }
-            return expired;
-        }
     }
 }

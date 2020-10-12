@@ -9,27 +9,23 @@ import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * @author Kirill Byvshev (k@byv.sh)
+ * @since 1.0.0
+ */
 @Component
 class XAPlusTLog {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTLog.class);
 
-    static final String CREATE_SQL = "CREATE TABLE tlog (" +
-            "t_id bigserial PRIMARY KEY, " +
-            "t_timestamp timestamp NOT NULL, " +
-            "t_server_id varchar(64) NOT NULL, " +
-            "t_unique_name varchar(64) NOT NULL, " +
-            "t_gtrid bytea, " +
-            "t_bqual bytea, " +
-            "t_status boolean NOT NULL" +
-            "t_complete boolean NOT NULL" +
-            ");";
-
-    static private final String SELECT_SQL = "SELECT t_gtrid, t_bqual, t_unique_name, t_status " +
+    static final String DANGLING_SQL = "SELECT t_gtrid, t_bqual, t_unique_name, t_status " +
             "FROM tlog WHERE t_server_id=? " +
             "GROUP BY t_bqual, t_gtrid, t_unique_name, t_status " +
             "HAVING COUNT(*) = 1;";
 
-    static private final String INSERT_SQL = "INSERT INTO tlog " +
+    static final String SELECT_SQL = "SELECT t_server_id, t_gtrid, t_bqual, t_unique_name, t_status, t_complete " +
+            "FROM tlog";
+
+    static final String INSERT_SQL = "INSERT INTO tlog " +
             "(t_timestamp, t_server_id, t_gtrid, t_bqual, t_unique_name, t_status, t_complete) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
@@ -48,7 +44,7 @@ class XAPlusTLog {
         try (Connection connection = tlogDataSource.getConnection()) {
             connection.setAutoCommit(false);
             Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = new HashMap<>();
-            try (PreparedStatement statement = connection.prepareStatement(SELECT_SQL)) {
+            try (PreparedStatement statement = connection.prepareStatement(DANGLING_SQL)) {
                 statement.setFetchSize(FETCH_SIZE);
                 statement.setString(1, properties.getServerId());
                 try (ResultSet resultSet = statement.executeQuery()) {

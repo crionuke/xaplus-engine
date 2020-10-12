@@ -1,4 +1,4 @@
-package org.xaplus.engine.events;
+package org.xaplus.engine.events.journal;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusXid;
@@ -7,12 +7,12 @@ import org.xaplus.engine.XAPlusXid;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusLogCommitRecoveredXidDecisionEvent extends Event<XAPlusLogCommitRecoveredXidDecisionEvent.Handler> {
+public final class XAPlusRollbackRecoveredXidDecisionLoggedEvent extends Event<XAPlusRollbackRecoveredXidDecisionLoggedEvent.Handler> {
 
     private final XAPlusXid xid;
     private final String uniqueName;
 
-    public XAPlusLogCommitRecoveredXidDecisionEvent(XAPlusXid xid, String uniqueName) {
+    public XAPlusRollbackRecoveredXidDecisionLoggedEvent(XAPlusXid xid, String uniqueName) {
         super();
         if (xid == null) {
             throw new NullPointerException("xid is null");
@@ -26,7 +26,7 @@ public final class XAPlusLogCommitRecoveredXidDecisionEvent extends Event<XAPlus
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleLogCommitRecoveredXidDecision(this);
+        handler.handleRollbackRecoveredXidDecisionLogged(this);
     }
 
     public XAPlusXid getXid() {
@@ -38,6 +38,6 @@ public final class XAPlusLogCommitRecoveredXidDecisionEvent extends Event<XAPlus
     }
 
     public interface Handler {
-        void handleLogCommitRecoveredXidDecision(XAPlusLogCommitRecoveredXidDecisionEvent event) throws InterruptedException;
+        void handleRollbackRecoveredXidDecisionLogged(XAPlusRollbackRecoveredXidDecisionLoggedEvent event) throws InterruptedException;
     }
 }

@@ -1,4 +1,4 @@
-package org.xaplus.engine.events;
+package org.xaplus.engine.events.journal;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusTransaction;
@@ -7,11 +7,11 @@ import org.xaplus.engine.XAPlusTransaction;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusLogCommitTransactionDecisionEvent extends Event<XAPlusLogCommitTransactionDecisionEvent.Handler> {
+public final class XAPlusLogRollbackTransactionDecisionEvent extends Event<XAPlusLogRollbackTransactionDecisionEvent.Handler> {
 
     private final XAPlusTransaction transaction;
 
-    public XAPlusLogCommitTransactionDecisionEvent(XAPlusTransaction transaction) {
+    public XAPlusLogRollbackTransactionDecisionEvent(XAPlusTransaction transaction) {
         super();
         if (transaction == null) {
             throw new NullPointerException("transaction is null");
@@ -21,7 +21,7 @@ public final class XAPlusLogCommitTransactionDecisionEvent extends Event<XAPlusL
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleLogCommitTransactionDecision(this);
+        handler.handleLogRollbackTransactionDecision(this);
     }
 
     public XAPlusTransaction getTransaction() {
@@ -29,6 +29,6 @@ public final class XAPlusLogCommitTransactionDecisionEvent extends Event<XAPlusL
     }
 
     public interface Handler {
-        void handleLogCommitTransactionDecision(XAPlusLogCommitTransactionDecisionEvent event) throws InterruptedException;
+        void handleLogRollbackTransactionDecision(XAPlusLogRollbackTransactionDecisionEvent event) throws InterruptedException;
     }
 }

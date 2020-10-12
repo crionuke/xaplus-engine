@@ -3,9 +3,9 @@ package org.xaplus.engine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.xaplus.engine.events.XAPlusUserRollbackRequestEvent;
 import org.xaplus.engine.events.XAPlusRecoveryRequestEvent;
-import org.xaplus.engine.events.XAPlusUserCommitRequestEvent;
+import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
+import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 
 import javax.jms.JMSException;
 import javax.jms.Session;
@@ -46,7 +46,7 @@ public final class XAPlusEngine {
     public void setTLogDataSource(DataSource dataSource) {
         this.tlogDataSource = dataSource;
         if (logger.isTraceEnabled()) {
-            logger.trace("Set tlog dataSource={}", dataSource);
+            logger.trace("Set journal dataSource={}", dataSource);
         }
     }
 

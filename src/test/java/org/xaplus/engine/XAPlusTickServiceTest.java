@@ -1,10 +1,12 @@
 package org.xaplus.engine;
 
 import com.crionuke.bolts.Bolt;
-import org.xaplus.engine.events.XAPlusTickEvent;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xaplus.engine.events.XAPlusTickEvent;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -42,11 +44,10 @@ public class XAPlusTickServiceTest extends XAPlusServiceTest {
         XAPlusTickEvent tick2 = tickEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         XAPlusTickEvent tick3 = tickEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(tick1);
-        assertEquals(tick1.getIndex(), 1);
+        assertTrue(tick1.getIndex() < tick2.getIndex());
         assertNotNull(tick2);
-        assertEquals(tick2.getIndex(), 2);
+        assertTrue(tick2.getIndex() < tick3.getIndex());
         assertNotNull(tick3);
-        assertEquals(tick3.getIndex(), 3);
     }
 
     private class ConsumerStub extends Bolt implements XAPlusTickEvent.Handler {

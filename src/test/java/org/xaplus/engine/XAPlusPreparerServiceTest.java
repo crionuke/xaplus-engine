@@ -7,11 +7,12 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.*;
-import org.xaplus.engine.stubs.XAResourceStub;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateReadyEvent;
+import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
 import org.xaplus.engine.stubs.XAPlusResourceStub;
+import org.xaplus.engine.stubs.XAResourceStub;
 
 import javax.transaction.xa.XAException;
 import java.sql.SQLException;
@@ -29,6 +30,7 @@ public class XAPlusPreparerServiceTest extends XAPlusServiceTest {
     BlockingQueue<XAPlusPrepareBranchRequestEvent> prepareBranchRequestEvents;
     BlockingQueue<XAPlusTransactionPreparedEvent> transactionPreparedEvents;
     BlockingQueue<XAPlus2pcFailedEvent> twoPcFailedEvents;
+    BlockingQueue<XAPlusRollbackRequestEvent> rollbackRequestEvents;
 
     ConsumerStub consumerStub;
 
@@ -42,6 +44,7 @@ public class XAPlusPreparerServiceTest extends XAPlusServiceTest {
         prepareBranchRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         transactionPreparedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         twoPcFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        rollbackRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
         consumerStub = new ConsumerStub();
         consumerStub.postConstruct();
@@ -172,10 +175,21 @@ public class XAPlusPreparerServiceTest extends XAPlusServiceTest {
         assertEquals(event.getTransaction().getXid(), transaction.getXid());
     }
 
+    @Test
+    public void testRemoteSuperiorOrderToRollback() throws InterruptedException {
+        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_1);
+        dispatcher.dispatch(new XAPlusPrepareTransactionEvent(transaction));
+        dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(transaction.getXid()));
+        XAPlusRollbackRequestEvent event = rollbackRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(transaction, event.getTransaction());
+    }
+
     private class ConsumerStub extends Bolt implements
             XAPlusPrepareBranchRequestEvent.Handler,
             XAPlusTransactionPreparedEvent.Handler,
-            XAPlus2pcFailedEvent.Handler {
+            XAPlus2pcFailedEvent.Handler,
+            XAPlusRollbackRequestEvent.Handler {
 
         ConsumerStub() {
             super("stub-consumer", QUEUE_SIZE);
@@ -196,11 +210,17 @@ public class XAPlusPreparerServiceTest extends XAPlusServiceTest {
             twoPcFailedEvents.put(event);
         }
 
+        @Override
+        public void handleRollbackRequest(XAPlusRollbackRequestEvent event) throws InterruptedException {
+            rollbackRequestEvents.put(event);
+        }
+
         void postConstruct() {
             threadPool.execute(this);
             dispatcher.subscribe(this, XAPlusPrepareBranchRequestEvent.class);
             dispatcher.subscribe(this, XAPlusTransactionPreparedEvent.class);
             dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);
+            dispatcher.subscribe(this, XAPlusRollbackRequestEvent.class);
         }
     }
 }

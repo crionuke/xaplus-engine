@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.XAPlusPrepareTransactionEvent;
+import org.xaplus.engine.events.XAPlusRollbackRequestEvent;
 import org.xaplus.engine.events.XAPlusTimeoutEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
@@ -32,14 +33,14 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final State state;
+    private final XAPlusPrepareOrderWaiterState state;
 
     XAPlusPrepareOrderWaiterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
                                     XAPlusDispatcher dispatcher) {
         super("prepare-order-waiter", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        this.state = new State();
+        this.state = new XAPlusPrepareOrderWaiterState();
     }
 
     @Override
@@ -96,7 +97,8 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
     }
 
     @Override
-    public void handleRemoteSuperiorOrderToRollback(XAPlusRemoteSuperiorOrderToRollbackEvent event) {
+    public void handleRemoteSuperiorOrderToRollback(XAPlusRemoteSuperiorOrderToRollbackEvent event)
+            throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -106,6 +108,7 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled for xid={} as got order to rollback", xid);
             }
+            dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
         }
     }
 
@@ -123,38 +126,6 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         if (state.check(xid)) {
             XAPlusTransaction transaction = state.remove(xid);
             dispatcher.dispatch(new XAPlusPrepareTransactionEvent(transaction));
-        }
-    }
-
-    private class State {
-        private final Map<XAPlusXid, XAPlusTransaction> transactions;
-        private final Set<XAPlusXid> prepareOrders;
-
-        State() {
-            transactions = new HashMap<>();
-            prepareOrders = new HashSet<>();
-        }
-
-        boolean track(XAPlusTransaction transaction) {
-            return transactions.put(transaction.getXid(), transaction) == null;
-        }
-
-        void addPrepareOrder(XAPlusXid xid) {
-            prepareOrders.add(xid);
-        }
-
-        XAPlusTransaction getTransaction(XAPlusXid xid) {
-            return transactions.get(xid);
-        }
-
-        XAPlusTransaction remove(XAPlusXid xid) {
-            XAPlusTransaction transaction = transactions.remove(xid);
-            prepareOrders.remove(xid);
-            return transaction;
-        }
-
-        Boolean check(XAPlusXid xid) {
-            return prepareOrders.contains(xid) && transactions.containsKey(xid);
         }
     }
 }

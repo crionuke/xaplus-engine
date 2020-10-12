@@ -8,6 +8,7 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.journal.*;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 
 import java.sql.SQLException;
@@ -24,9 +25,9 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
     XAPlusJournalService xaPlusJournalService;
 
     BlockingQueue<XAPlusCommitTransactionDecisionLoggedEvent> commitTransactionDecisionLoggedEvents;
-    BlockingQueue<XAPlusCommitTransactionDecisionFailedEvent> commitTransactionDecisionFailedEvents;
+    BlockingQueue<XAPlusLogCommitTransactionDecisionFailedEvent> commitTransactionDecisionFailedEvents;
     BlockingQueue<XAPlusRollbackTransactionDecisionLoggedEvent> rollbackTransactionDecisionLoggedEvents;
-    BlockingQueue<XAPlusRollbackTransactionDecisionFailedEvent> rollbackTransactionDecisionFailedEvents;
+    BlockingQueue<XAPlusLogRollbackTransactionDecisionFailedEvent> rollbackTransactionDecisionFailedEvents;
     BlockingQueue<XAPlusCommitRecoveredXidDecisionLoggedEvent> commitRecoveredXidDecisionLoggedEvents;
     BlockingQueue<XAPlusRollbackRecoveredXidDecisionLoggedEvent> rollbackRecoveredXidDecisionLoggedEvents;
     BlockingQueue<XAPlusDanglingTransactionsFoundEvent> danglingTransactionsFoundEvents;
@@ -77,7 +78,7 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
         Mockito.doThrow(new SQLException("log_exception")).when(tlogMock)
                 .logCommitTransactionDecision(transaction);
         dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
-        XAPlusCommitTransactionDecisionFailedEvent event = commitTransactionDecisionFailedEvents
+        XAPlusLogCommitTransactionDecisionFailedEvent event = commitTransactionDecisionFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getTransaction().getXid());
@@ -99,7 +100,7 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
         Mockito.doThrow(new SQLException("log_exception")).when(tlogMock)
                 .logRollbackTransactionDecision(transaction);
         dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
-        XAPlusRollbackTransactionDecisionFailedEvent event = rollbackTransactionDecisionFailedEvents
+        XAPlusLogRollbackTransactionDecisionFailedEvent event = rollbackTransactionDecisionFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getTransaction().getXid());
@@ -191,9 +192,9 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
 
     private class ConsumerStub extends Bolt implements
             XAPlusCommitTransactionDecisionLoggedEvent.Handler,
-            XAPlusCommitTransactionDecisionFailedEvent.Handler,
+            XAPlusLogCommitTransactionDecisionFailedEvent.Handler,
             XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
-            XAPlusRollbackTransactionDecisionFailedEvent.Handler,
+            XAPlusLogRollbackTransactionDecisionFailedEvent.Handler,
             XAPlusCommitRecoveredXidDecisionLoggedEvent.Handler,
             XAPlusRollbackRecoveredXidDecisionLoggedEvent.Handler,
             XAPlusDanglingTransactionsFoundEvent.Handler,
@@ -210,7 +211,7 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
         }
 
         @Override
-        public void handleCommitTransactionDecisionFailed(XAPlusCommitTransactionDecisionFailedEvent event)
+        public void handleLogCommitTransactionDecisionFailed(XAPlusLogCommitTransactionDecisionFailedEvent event)
                 throws InterruptedException {
             commitTransactionDecisionFailedEvents.put(event);
         }
@@ -222,7 +223,7 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
         }
 
         @Override
-        public void handleRollbackTransactionDecisionFailed(XAPlusRollbackTransactionDecisionFailedEvent event) throws InterruptedException {
+        public void handleLogRollbackTransactionDecisionFailed(XAPlusLogRollbackTransactionDecisionFailedEvent event) throws InterruptedException {
             rollbackTransactionDecisionFailedEvents.put(event);
         }
 
@@ -251,9 +252,9 @@ public class XAPlusJournalServiceTest extends XAPlusServiceTest {
         void postConstruct() {
             threadPool.execute(this);
             dispatcher.subscribe(this, XAPlusCommitTransactionDecisionLoggedEvent.class);
-            dispatcher.subscribe(this, XAPlusCommitTransactionDecisionFailedEvent.class);
+            dispatcher.subscribe(this, XAPlusLogCommitTransactionDecisionFailedEvent.class);
             dispatcher.subscribe(this, XAPlusRollbackTransactionDecisionLoggedEvent.class);
-            dispatcher.subscribe(this, XAPlusRollbackTransactionDecisionFailedEvent.class);
+            dispatcher.subscribe(this, XAPlusLogRollbackTransactionDecisionFailedEvent.class);
             dispatcher.subscribe(this, XAPlusCommitRecoveredXidDecisionLoggedEvent.class);
             dispatcher.subscribe(this, XAPlusRollbackRecoveredXidDecisionLoggedEvent.class);
             dispatcher.subscribe(this, XAPlusDanglingTransactionsFoundEvent.class);

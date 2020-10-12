@@ -5,6 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.journal.XAPlusLogRollbackTransactionDecisionEvent;
+import org.xaplus.engine.events.journal.XAPlusLogRollbackTransactionDecisionFailedEvent;
+import org.xaplus.engine.events.journal.XAPlusRollbackTransactionDecisionLoggedEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
 
 import javax.annotation.PostConstruct;
@@ -22,7 +25,7 @@ import java.util.Set;
 class XAPlusRollbackService extends Bolt implements
         XAPlusRollbackRequestEvent.Handler,
         XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
-        XAPlusRollbackTransactionDecisionFailedEvent.Handler,
+        XAPlusLogRollbackTransactionDecisionFailedEvent.Handler,
         XAPlusBranchRolledBackEvent.Handler,
         XAPlusRollbackBranchFailedEvent.Handler,
         XAPlusRemoteSubordinateDoneEvent.Handler,
@@ -32,13 +35,13 @@ class XAPlusRollbackService extends Bolt implements
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final State state;
+    private final XAPlusRollbackState state;
 
     XAPlusRollbackService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
         super("rollback", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        state = new State();
+        state = new XAPlusRollbackState();
     }
 
     @Override
@@ -73,7 +76,7 @@ class XAPlusRollbackService extends Bolt implements
     }
 
     @Override
-    public void handleRollbackTransactionDecisionFailed(XAPlusRollbackTransactionDecisionFailedEvent event)
+    public void handleLogRollbackTransactionDecisionFailed(XAPlusLogRollbackTransactionDecisionFailedEvent event)
             throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
@@ -91,6 +94,7 @@ class XAPlusRollbackService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
+        logger.info("XAPlusBranchRolledBackEvent");
         XAPlusXid xid = event.getXid();
         XAPlusXid branchXid = event.getBranchXid();
         state.setRolledBack(xid, branchXid);
@@ -113,10 +117,15 @@ class XAPlusRollbackService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
+        logger.info("XAPlusRemoteSubordinateDoneEvent");
         XAPlusXid branchXid = event.getXid();
         state.setDone(branchXid);
         XAPlusXid xid = state.getTransactionXid(branchXid);
-        check(xid);
+        if (xid != null) {
+            check(xid);
+        } else {
+            logger.debug("Unknown done xid={} from remote subordinate", xid);
+        }
     }
 
     @Override
@@ -142,7 +151,7 @@ class XAPlusRollbackService extends Bolt implements
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusRollbackRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackTransactionDecisionLoggedEvent.class);
-        dispatcher.subscribe(this, XAPlusRollbackTransactionDecisionFailedEvent.class);
+        dispatcher.subscribe(this, XAPlusLogRollbackTransactionDecisionFailedEvent.class);
         dispatcher.subscribe(this, XAPlusBranchRolledBackEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackBranchFailedEvent.class);
         dispatcher.subscribe(this, XAPlusRemoteSubordinateDoneEvent.class);
@@ -154,82 +163,6 @@ class XAPlusRollbackService extends Bolt implements
         if (state.check(xid)) {
             XAPlusTransaction transaction = state.getTransaction(xid);
             dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
-        }
-    }
-
-    private class State {
-        private final Map<XAPlusXid, XAPlusTransaction> transactions;
-        private final Map<XAPlusXid, XAPlusXid> branchToTransactionXids;
-        private final Map<XAPlusXid, Set<XAPlusXid>> waiting;
-
-        State() {
-            transactions = new HashMap<>();
-            branchToTransactionXids = new HashMap<>();
-            waiting = new HashMap<>();
-        }
-
-        boolean track(XAPlusTransaction transaction) {
-            XAPlusXid xid = transaction.getXid();
-            if (transactions.put(xid, transaction) == null) {
-                HashSet branches = new HashSet();
-                transaction.getXaResources().forEach((x, r) -> {
-                    branches.add(x);
-                });
-                transaction.getXaPlusResources().forEach((x, r) -> {
-                    branches.add(x);
-                    branchToTransactionXids.put(x, xid);
-                });
-                waiting.put(xid, branches);
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        XAPlusTransaction getTransaction(XAPlusXid xid) {
-            return transactions.get(xid);
-        }
-
-        XAPlusXid getTransactionXid(XAPlusXid branchXid) {
-            return branchToTransactionXids.get(branchXid);
-        }
-
-        void setRolledBack(XAPlusXid xid, XAPlusXid branchXid) {
-            Set<XAPlusXid> remaining = waiting.get(xid);
-            if (remaining != null) {
-                remaining.remove(branchXid);
-            }
-        }
-
-        void setRollbackAsFailed(XAPlusXid xid, XAPlusXid branchXid) {
-            Set<XAPlusXid> remaining = waiting.get(xid);
-            if (remaining != null) {
-                remaining.remove(branchXid);
-            }
-        }
-
-        void setDone(XAPlusXid branchXid) {
-            XAPlusXid xid = branchToTransactionXids.get(branchXid);
-            if (xid != null) {
-                Set<XAPlusXid> remaining = waiting.get(xid);
-                if (remaining != null) {
-                    remaining.remove(branchXid);
-                }
-            }
-        }
-
-        void remove(XAPlusXid xid) {
-            XAPlusTransaction transaction = transactions.remove(xid);
-            transaction.getXaPlusResources().forEach((x, r) -> branchToTransactionXids.remove(x));
-            waiting.remove(xid);
-        }
-
-        Boolean check(XAPlusXid xid) {
-            if (transactions.containsKey(xid) && waiting.containsKey(xid)) {
-                return waiting.get(xid).isEmpty();
-            } else {
-                return false;
-            }
         }
     }
 }

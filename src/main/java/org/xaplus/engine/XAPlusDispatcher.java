@@ -25,7 +25,7 @@ class XAPlusDispatcher {
         dispatcher.subscribe(bolt, topic);
     }
 
-    void dispatch(Event event) throws InterruptedException {
-        dispatcher.dispatch(event);
+    boolean dispatch(Event event) throws InterruptedException {
+        return dispatcher.dispatch(event);
     }
 }

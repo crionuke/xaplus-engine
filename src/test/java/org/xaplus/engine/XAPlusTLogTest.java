@@ -178,8 +178,7 @@ public class XAPlusTLogTest extends XAPlusServiceTest {
     List<TLogRecord> selectTLogRecords() throws SQLException {
         List<TLogRecord> records = new ArrayList<>();
         try (Connection connection = engine.getTlogDataSource().getConnection()) {
-            String sql = "SELECT t_server_id, t_gtrid, t_bqual, t_unique_name, t_status, t_complete FROM tlog";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            try (PreparedStatement statement = connection.prepareStatement(XAPlusTLog.SELECT_SQL)) {
                 try (ResultSet resultSet = statement.executeQuery()) {
                     while(resultSet.next()) {
                         String serverId = resultSet.getString(1);

@@ -3,6 +3,7 @@ package org.xaplus.engine;
 import org.junit.Assert;
 import org.xaplus.engine.stubs.XADataSourceStub;
 import org.xaplus.engine.stubs.XAPlusFactoryStub;
+import org.xaplus.engine.stubs.XAPlusResourceStub;
 import org.xaplus.engine.stubs.XAResourceStub;
 
 public class XAPlusServiceTest extends Assert {
@@ -63,6 +64,10 @@ public class XAPlusServiceTest extends Assert {
         transaction.enlist(bxid2, XA_RESOURCE_2, new XAResourceStub());
         XAPlusXid bxid3 = createBranchXid(transaction);
         transaction.enlist(bxid3, XA_RESOURCE_3, new XAResourceStub());
+        XAPlusXid bxid4 = createBranchXid(transaction);
+        transaction.enlist(bxid4, XA_PLUS_RESOURCE_1, new XAPlusResourceStub());
+        XAPlusXid bxid5 = createBranchXid(transaction);
+        transaction.enlist(bxid5, XA_PLUS_RESOURCE_2, new XAPlusResourceStub());
         return transaction;
     }
 

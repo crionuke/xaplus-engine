@@ -5,6 +5,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.journal.XAPlusCommitRecoveredXidDecisionLoggedEvent;
+import org.xaplus.engine.events.journal.XAPlusLogCommitRecoveredXidDecisionEvent;
+import org.xaplus.engine.events.journal.XAPlusLogRollbackRecoveredXidDecisionEvent;
+import org.xaplus.engine.events.journal.XAPlusRollbackRecoveredXidDecisionLoggedEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToCommitEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
@@ -38,9 +42,9 @@ class XAPlusRecoveryService extends Bolt implements
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
     private final XAPlusResources resources;
-    private final RecoveryTracker recoveryTracker;
-    private final SuperiorTracker superiorTracker;
-    private final SubordinateTracker subordinateTracker;
+    private final XAPlusRecoveryState state;
+    private final XAPlusRecoverySuperiorTracker superiorTracker;
+    private final XAPlusRecoverySubordinateTracker subordinateTracker;
 
     XAPlusRecoveryService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
                           XAPlusResources resources) {
@@ -49,9 +53,9 @@ class XAPlusRecoveryService extends Bolt implements
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.resources = resources;
-        recoveryTracker = new RecoveryTracker();
-        superiorTracker = new SuperiorTracker();
-        subordinateTracker = new SubordinateTracker();
+        state = new XAPlusRecoveryState();
+        superiorTracker = new XAPlusRecoverySuperiorTracker();
+        subordinateTracker = new XAPlusRecoverySubordinateTracker();
     }
 
     @Override
@@ -59,7 +63,7 @@ class XAPlusRecoveryService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        if (recoveryTracker.isStarted()) {
+        if (state.isStarted()) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Recovery already started");
             }
@@ -67,7 +71,7 @@ class XAPlusRecoveryService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Recovery started");
             }
-            recoveryTracker.setStarted();
+            state.setStarted();
             dispatcher.dispatch(new XAPlusFindDanglingTransactionsRequestEvent());
             // Recovery all registered resources
             Map<String, XAPlusResources.Wrapper> wrappers = resources.getResources();
@@ -78,12 +82,12 @@ class XAPlusRecoveryService extends Bolt implements
                     XAResource resource = null;
                     if (wrapper instanceof XAPlusResources.XADataSourceWrapper) {
                         javax.sql.XAConnection connection = ((XAPlusResources.XADataSourceWrapper) wrapper).get();
-                        recoveryTracker.track(uniqueName, connection);
+                        state.track(uniqueName, connection);
                         resource = connection.getXAResource();
                     } else if (wrapper instanceof XAPlusResources.XAConnectionFactoryWrapper) {
                         javax.jms.XAConnection connection =
                                 ((XAPlusResources.XAConnectionFactoryWrapper) wrapper).get();
-                        recoveryTracker.track(uniqueName, connection);
+                        state.track(uniqueName, connection);
                         resource = connection.createXASession().getXAResource();
                     }
                     if (resource != null) {
@@ -103,8 +107,8 @@ class XAPlusRecoveryService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        if (recoveryTracker.isStarted()) {
-            recoveryTracker.setRecoveredXids(event.getUniqueName(), event.getRecoveredXids());
+        if (state.isStarted()) {
+            state.setRecoveredXids(event.getUniqueName(), event.getRecoveredXids());
             checkTracker();
         } else {
             if (logger.isDebugEnabled()) {
@@ -118,8 +122,8 @@ class XAPlusRecoveryService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        if (recoveryTracker.isStarted()) {
-            recoveryTracker.setRecoveryFailed(event.getUniqueName());
+        if (state.isStarted()) {
+            state.setRecoveryFailed(event.getUniqueName());
             checkTracker();
         } else {
             if (logger.isDebugEnabled()) {
@@ -134,8 +138,8 @@ class XAPlusRecoveryService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        if (recoveryTracker.isStarted()) {
-            recoveryTracker.setDanglingTransactions(event.getDanglingTransactions());
+        if (state.isStarted()) {
+            state.setDanglingTransactions(event.getDanglingTransactions());
             checkTracker();
         } else {
             if (logger.isDebugEnabled()) {
@@ -150,8 +154,8 @@ class XAPlusRecoveryService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        if (recoveryTracker.isStarted()) {
-            recoveryTracker.setFailed();
+        if (state.isStarted()) {
+            state.setFailed();
             checkTracker();
         } else {
             if (logger.isDebugEnabled()) {
@@ -186,7 +190,7 @@ class XAPlusRecoveryService extends Bolt implements
             for (Map.Entry<String, XAPlusXid> entry : branches.entrySet()) {
                 String uniqueName = entry.getKey();
                 XAPlusXid branchXid = entry.getValue();
-                XAResource resource = recoveryTracker.getXAResource(uniqueName);
+                XAResource resource = state.getXAResource(uniqueName);
                 if (resource != null) {
                     dispatcher.dispatch(new XAPlusLogCommitRecoveredXidDecisionEvent(branchXid, uniqueName));
                 } else {
@@ -211,7 +215,7 @@ class XAPlusRecoveryService extends Bolt implements
             for (Map.Entry<String, XAPlusXid> entry : branches.entrySet()) {
                 String uniqueName = entry.getKey();
                 XAPlusXid branchXid = entry.getValue();
-                XAResource resource = recoveryTracker.getXAResource(uniqueName);
+                XAResource resource = state.getXAResource(uniqueName);
                 if (resource != null) {
                     dispatcher.dispatch(new XAPlusLogRollbackRecoveredXidDecisionEvent(branchXid, uniqueName));
                 } else {
@@ -232,7 +236,7 @@ class XAPlusRecoveryService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
-        XAResource xaResource = recoveryTracker.getXAResource(uniqueName);
+        XAResource xaResource = state.getXAResource(uniqueName);
         if (xaResource != null) {
             dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, xaResource, uniqueName));
         } else {
@@ -250,7 +254,7 @@ class XAPlusRecoveryService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
-        XAResource xaResource = recoveryTracker.getXAResource(uniqueName);
+        XAResource xaResource = state.getXAResource(uniqueName);
         if (xaResource != null) {
             dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, xaResource, uniqueName));
         } else {
@@ -277,23 +281,23 @@ class XAPlusRecoveryService extends Bolt implements
 
     private void checkTracker() throws InterruptedException {
         //TODO: waiting while all XA operation finished to closed connections
-        if (recoveryTracker.isReady()) {
+        if (state.isReady()) {
             retry();
             recovery();
             reset();
-        } else if (recoveryTracker.isRecovered() && recoveryTracker.isFailed()) {
+        } else if (state.isRecovered() && state.isFailed()) {
             reset();
         }
     }
 
     private void reset() {
-        recoveryTracker.reset();
+        state.reset();
         superiorTracker.reset();
         subordinateTracker.reset();
     }
 
     private void retry() throws InterruptedException {
-        Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = recoveryTracker.getDanglingTransactions();
+        Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = state.getDanglingTransactions();
         for (Map.Entry<String, Map<XAPlusXid, Boolean>> entry : danglingTransactions.entrySet()) {
             String uniqueName = entry.getKey();
             Map<XAPlusXid, Boolean> transactions = entry.getValue();
@@ -324,13 +328,13 @@ class XAPlusRecoveryService extends Bolt implements
 
     private void recovery() throws InterruptedException {
         Set<String> superiorServers = new HashSet<>();
-        for (Map.Entry<String, Set<XAPlusXid>> entry : recoveryTracker.getRecoveredXids().entrySet()) {
+        for (Map.Entry<String, Set<XAPlusXid>> entry : state.getRecoveredXids().entrySet()) {
             String uniqueName = entry.getKey();
-            XAResource xaResource = recoveryTracker.getXAResource(uniqueName);
+            XAResource xaResource = state.getXAResource(uniqueName);
             if (xaResource != null) {
                 Set<XAPlusXid> xids = entry.getValue();
                 for (XAPlusXid xid : xids) {
-                    Map<XAPlusXid, Boolean> resourceXids = recoveryTracker.getDanglingTransactions().get(uniqueName);
+                    Map<XAPlusXid, Boolean> resourceXids = state.getDanglingTransactions().get(uniqueName);
                     if (resourceXids != null && resourceXids.containsKey(xid)) {
                         boolean status = resourceXids.get(xid);
                         if (status) {
@@ -367,158 +371,6 @@ class XAPlusRecoveryService extends Bolt implements
                     logger.warn("Unknown XA resource with uniqueName={} to recovery", uniqueName);
                 }
             }
-        }
-    }
-
-    private class RecoveryTracker {
-
-        private boolean started;
-        private boolean failed;
-        private Map<String, javax.sql.XAConnection> jdbcConnections;
-        private Map<String, javax.jms.XAConnection> jmsConnections;
-        private Map<String, XAResource> xaResources;
-        private Map<String, Set<XAPlusXid>> recoveredXids;
-        private Set<String> recovering;
-        private Map<String, Map<XAPlusXid, Boolean>> danglingTransactions;
-
-        RecoveryTracker() {
-            started = false;
-            failed = false;
-            jdbcConnections = new HashMap<>();
-            jmsConnections = new HashMap<>();
-            xaResources = new HashMap<>();
-            recoveredXids = new HashMap<>();
-            recovering = new HashSet<>();
-            danglingTransactions = null;
-        }
-
-        void track(String uniqueName, javax.sql.XAConnection xaConnection) throws SQLException {
-            jdbcConnections.put(uniqueName, xaConnection);
-            xaResources.put(uniqueName, xaConnection.getXAResource());
-            recovering.add(uniqueName);
-        }
-
-        void track(String uniqueName, javax.jms.XAConnection xaConnection) throws JMSException {
-            jmsConnections.put(uniqueName, xaConnection);
-            xaResources.put(uniqueName, xaConnection.createXASession().getXAResource());
-            recovering.add(uniqueName);
-        }
-
-        void setStarted() {
-            this.started = true;
-        }
-
-        void setFailed() {
-            this.failed = true;
-        }
-
-        void setRecoveredXids(String uniqueName, Set<XAPlusXid> xids) {
-            recovering.remove(uniqueName);
-            recoveredXids.put(uniqueName, xids);
-        }
-
-        void setRecoveryFailed(String uniqueName) {
-            recovering.remove(uniqueName);
-        }
-
-        boolean isStarted() {
-            return started;
-        }
-
-        boolean isFailed() {
-            return failed;
-        }
-
-        boolean isRecovered() {
-            return recovering.isEmpty();
-        }
-
-        boolean isReady() {
-            return recovering.isEmpty() && danglingTransactions != null;
-        }
-
-        Map<String, Set<XAPlusXid>> getRecoveredXids() {
-            return recoveredXids;
-        }
-
-        Map<String, Map<XAPlusXid, Boolean>> getDanglingTransactions() {
-            return danglingTransactions;
-        }
-
-        void setDanglingTransactions(Map<String, Map<XAPlusXid, Boolean>> danglingTransactions) {
-            this.danglingTransactions = danglingTransactions;
-        }
-
-        XAResource getXAResource(String uniqueName) {
-            return xaResources.get(uniqueName);
-        }
-
-        void reset() {
-            started = false;
-            //TODO: close all connections
-            jdbcConnections.clear();
-            jmsConnections.clear();
-            xaResources.clear();
-            recoveredXids.clear();
-            recovering.clear();
-            danglingTransactions.clear();
-        }
-    }
-
-    private class SuperiorTracker {
-        private final Map<XAPlusXid, String> doing;
-
-        SuperiorTracker() {
-            doing = new HashMap<>();
-        }
-
-        void track(XAPlusXid xid, String uniqueName) {
-            doing.put(xid, uniqueName);
-        }
-
-        void clear(String uniqueName) {
-            Iterator<Map.Entry<XAPlusXid, String>> iterator = doing.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<XAPlusXid, String> entry = iterator.next();
-                String entryValue = entry.getValue();
-                if (entryValue.equals(uniqueName)) {
-                    iterator.remove();
-                }
-            }
-        }
-
-        String remove(XAPlusXid xid) {
-            return doing.remove(xid);
-        }
-
-        void reset() {
-            doing.clear();
-        }
-    }
-
-    private class SubordinateTracker {
-        private Map<XAPlusUid, Map<String, XAPlusXid>> waiting;
-
-        SubordinateTracker() {
-            waiting = new HashMap<>();
-        }
-
-        void track(XAPlusXid xid, String uniqueName) {
-            XAPlusUid gtrid = xid.getGlobalTransactionIdUid();
-            Map<String, XAPlusXid> xids = waiting.get(gtrid);
-            if (xids == null) {
-                xids = new HashMap<>();
-                waiting.put(gtrid, xids);
-            }
-            xids.put(uniqueName, xid);
-        }
-
-        Map<String, XAPlusXid> remove(XAPlusXid xid) {
-            return waiting.remove(xid.getGlobalTransactionIdUid());
-        }
-
-        void reset() {
-            waiting.clear();
         }
     }
 }

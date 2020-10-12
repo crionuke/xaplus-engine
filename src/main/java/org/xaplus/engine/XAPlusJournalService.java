@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.journal.*;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 
 import javax.annotation.PostConstruct;
@@ -65,7 +66,7 @@ class XAPlusJournalService extends Bolt implements
                 logger.warn("Log commit decision for transaction with xid={} and resources={} failed with {}",
                         xid, sqle.getMessage(), transaction.getUniqueNames());
             }
-            dispatcher.dispatch(new XAPlusCommitTransactionDecisionFailedEvent(transaction, sqle));
+            dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionFailedEvent(transaction, sqle));
         }
     }
 
@@ -87,7 +88,7 @@ class XAPlusJournalService extends Bolt implements
             if (logger.isWarnEnabled()) {
                 logger.warn("Log rollback decision for transaction with xid={} failed with {}", sqle.getMessage());
             }
-            dispatcher.dispatch(new XAPlusRollbackTransactionDecisionFailedEvent(transaction, sqle));
+            dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionFailedEvent(transaction, sqle));
         }
     }
 
