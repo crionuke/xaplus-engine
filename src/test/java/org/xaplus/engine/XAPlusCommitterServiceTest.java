@@ -20,7 +20,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusCommitterServiceTest extends XAPlusServiceTest {
+public class XAPlusCommitterServiceTest extends XAPlusTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusCommitterServiceTest.class);
 
     XAPlusCommitterService xaPlusCommitterService;

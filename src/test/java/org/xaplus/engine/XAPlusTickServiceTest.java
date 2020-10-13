@@ -12,7 +12,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusTickServiceTest extends XAPlusServiceTest {
+public class XAPlusTickServiceTest extends XAPlusTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTickServiceTest.class);
 
     XAPlusTickService xaPlusTickService;

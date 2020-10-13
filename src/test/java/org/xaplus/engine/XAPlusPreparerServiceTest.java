@@ -22,7 +22,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusPreparerServiceTest extends XAPlusServiceTest {
+public class XAPlusPreparerServiceTest extends XAPlusTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusPreparerServiceTest.class);
 
     XAPlusPreparerService xaPlusPreparerService;
@@ -148,7 +148,7 @@ public class XAPlusPreparerServiceTest extends XAPlusServiceTest {
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
         // Emulate branch preparation
         dispatcher.dispatch(new XAPlusBranchPreparedEvent(transaction.getXid(), bxid1));
-        dispatcher.dispatch(new XAPlusBranchReadOnlyEvent(transaction.getXid(), bxid2));
+        dispatcher.dispatch(new XAPlusBranchPreparedEvent(transaction.getXid(), bxid2));
         dispatcher.dispatch(new XAPlusRemoteSubordinateReadyEvent(bxid3));
         // Wait transaction prepared event
         XAPlusTransactionPreparedEvent event = transactionPreparedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);

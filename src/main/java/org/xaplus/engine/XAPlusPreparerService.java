@@ -26,7 +26,6 @@ class XAPlusPreparerService extends Bolt implements
         XAPlus2pcRequestEvent.Handler,
         XAPlusPrepareTransactionEvent.Handler,
         XAPlusBranchPreparedEvent.Handler,
-        XAPlusBranchReadOnlyEvent.Handler,
         XAPlusPrepareBranchFailedEvent.Handler,
         XAPlusRemoteSubordinateReadyEvent.Handler,
         XAPlus2pcFailedEvent.Handler,
@@ -67,17 +66,6 @@ class XAPlusPreparerService extends Bolt implements
 
     @Override
     public void handleBranchPrepared(XAPlusBranchPreparedEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid xid = event.getXid();
-        XAPlusXid branchXid = event.getBranchXid();
-        state.setPrepared(xid, branchXid);
-        check(xid);
-    }
-
-    @Override
-    public void handleBranchReadOnly(XAPlusBranchReadOnlyEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -182,7 +170,6 @@ class XAPlusPreparerService extends Bolt implements
         dispatcher.subscribe(this, XAPlus2pcRequestEvent.class);
         dispatcher.subscribe(this, XAPlusPrepareTransactionEvent.class);
         dispatcher.subscribe(this, XAPlusBranchPreparedEvent.class);
-        dispatcher.subscribe(this, XAPlusBranchReadOnlyEvent.class);
         dispatcher.subscribe(this, XAPlusPrepareBranchFailedEvent.class);
         dispatcher.subscribe(this, XAPlusRemoteSubordinateReadyEvent.class);
         dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);

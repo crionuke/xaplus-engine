@@ -18,7 +18,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusJournalServiceTest extends XAPlusServiceTest {
+public class XAPlusJournalServiceTest extends XAPlusTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusJournalServiceTest.class);
 
     XAPlusTLog tlogMock;

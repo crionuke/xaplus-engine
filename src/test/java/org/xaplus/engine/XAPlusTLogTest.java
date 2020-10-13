@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class XAPlusTLogTest extends XAPlusServiceTest {
+public class XAPlusTLogTest extends XAPlusTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTLogTest.class);
 
     @Rule

@@ -19,18 +19,18 @@ import java.util.Set;
 class XAPlusService extends Bolt implements
         XAPlusPrepareBranchRequestEvent.Handler,
         XAPlusCommitBranchRequestEvent.Handler,
+        XAPlusRollbackBranchRequestEvent.Handler,
         XAPlusRetryCommitBranchRequestEvent.Handler,
         XAPlusRetryRollbackBranchRequestEvent.Handler,
-        XAPlusRollbackBranchRequestEvent.Handler,
         XAPlusRetryCommitOrderRequestEvent.Handler,
         XAPlusRetryRollbackOrderRequestEvent.Handler,
         XAPlusCommitRecoveredXidRequestEvent.Handler,
         XAPlusRollbackRecoveredXidRequestEvent.Handler,
         XAPlusForgetRecoveredXidRequestEvent.Handler,
         XAPlusReportReadyStatusRequestEvent.Handler,
-        XAPlusRecoveryResourceRequestEvent.Handler,
         XAPlusReportDoneStatusRequestEvent.Handler,
-        XAPlusRetryFromSuperiorRequestEvent.Handler {
+        XAPlusRetryFromSuperiorRequestEvent.Handler,
+        XAPlusRecoveryResourceRequestEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusService.class);
 
     private final XAPlusProperties properties;
@@ -68,11 +68,7 @@ class XAPlusService extends Bolt implements
                 logger.debug("Branch with xid={} prepared, voted {}", branchXid,
                         XAPlusConstantsDecoder.decodePrepareVote(vote));
             }
-            if (vote != XAResource.XA_RDONLY) {
-                dispatcher.dispatch(new XAPlusBranchPreparedEvent(xid, branchXid));
-            } else {
-                dispatcher.dispatch(new XAPlusBranchReadOnlyEvent(xid, branchXid));
-            }
+            dispatcher.dispatch(new XAPlusBranchPreparedEvent(xid, branchXid));
         } catch (XAException prepareException) {
             if (logger.isWarnEnabled()) {
                 logger.warn("Prepare branch with xid={} failed with {}", branchXid, prepareException.getMessage());
@@ -104,6 +100,31 @@ class XAPlusService extends Bolt implements
                 logger.warn("Commit branch with xid={} failed with {}", branchXid, committingException.getMessage());
             }
             dispatcher.dispatch(new XAPlusCommitBranchFailedEvent(xid, branchXid, committingException));
+        }
+    }
+
+    @Override
+    public void handleRollbackBranchRequest(XAPlusRollbackBranchRequestEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        XAPlusXid branchXid = event.getBranchXid();
+        XAResource resource = event.getResource();
+        try {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Rolling back branch with xid={}", branchXid);
+            }
+            resource.rollback(branchXid);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Branch with xid={} rolled back", branchXid);
+            }
+            dispatcher.dispatch(new XAPlusBranchRolledBackEvent(xid, branchXid));
+        } catch (XAException rollingBackException) {
+            if (logger.isWarnEnabled()) {
+                logger.warn("Rollback branch with xid={} failed with {}", branchXid, rollingBackException.getMessage());
+            }
+            dispatcher.dispatch(new XAPlusRollbackBranchFailedEvent(xid, branchXid, rollingBackException));
         }
     }
 
@@ -149,31 +170,6 @@ class XAPlusService extends Bolt implements
             if (logger.isWarnEnabled()) {
                 logger.warn("Retry rollback branch with xid={} failed with {}", branchXid, rollbackException);
             }
-        }
-    }
-
-    @Override
-    public void handleRollbackBranchRequest(XAPlusRollbackBranchRequestEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid xid = event.getXid();
-        XAPlusXid branchXid = event.getBranchXid();
-        XAResource resource = event.getResource();
-        try {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Rolling back branch with xid={}", branchXid);
-            }
-            resource.rollback(branchXid);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Branch with xid={} rolled back", branchXid);
-            }
-            dispatcher.dispatch(new XAPlusBranchRolledBackEvent(xid, branchXid));
-        } catch (XAException rollingBackException) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Rollback branch with xid={} failed with {}", branchXid, rollingBackException.getMessage());
-            }
-            dispatcher.dispatch(new XAPlusRollbackBranchFailedEvent(xid, branchXid, rollingBackException));
         }
     }
 
@@ -307,6 +303,31 @@ class XAPlusService extends Bolt implements
     }
 
     @Override
+    public void handleReportReadyStatusRequest(XAPlusReportReadyStatusRequestEvent event)
+            throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        XAPlusResource resource = event.getResource();
+        try {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Reporting ready status for xid={}", xid);
+            }
+            resource.ready(xid);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Ready status for xid={} reported", xid);
+            }
+            dispatcher.dispatch(new XAPlusReadyStatusReportedEvent(xid));
+        } catch (XAPlusException readyException) {
+            if (logger.isWarnEnabled()) {
+                logger.warn("Report ready status for xid={} failed with {} ", xid, readyException.getMessage());
+            }
+            dispatcher.dispatch(new XAPlusReportReadyStatusFailedEvent(xid, readyException));
+        }
+    }
+
+    @Override
     public void handleReportDoneStatusRequest(XAPlusReportDoneStatusRequestEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
@@ -331,27 +352,23 @@ class XAPlusService extends Bolt implements
     }
 
     @Override
-    public void handleReportReadyStatusRequest(XAPlusReportReadyStatusRequestEvent event)
-            throws InterruptedException {
+    public void handleRetryFromSuperiorRequest(XAPlusRetryFromSuperiorRequestEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getXid();
         XAPlusResource resource = event.getResource();
         try {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Reporting ready status for xid={}", xid);
-            }
-            resource.ready(xid);
             if (logger.isDebugEnabled()) {
-                logger.debug("Ready status for xid={} reported", xid);
+                logger.debug("Requesting retry from superior for {}", properties.getServerId());
             }
-            dispatcher.dispatch(new XAPlusReadyStatusReportedEvent(xid));
-        } catch (XAPlusException readyException) {
+            resource.retry(properties.getServerId());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Retry from superior requested for {}", properties.getServerId());
+            }
+        } catch (XAPlusException retryException) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Report ready status for xid={} failed with {} ", xid, readyException.getMessage());
+                logger.warn("Request retry from superior failed with {}", retryException.getMessage());
             }
-            dispatcher.dispatch(new XAPlusReportReadyStatusFailedEvent(xid, readyException));
         }
     }
 
@@ -380,35 +397,14 @@ class XAPlusService extends Bolt implements
         }
     }
 
-    @Override
-    public void handleRetryFromSuperiorRequest(XAPlusRetryFromSuperiorRequestEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusResource resource = event.getResource();
-        try {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Requesting retry from superior");
-            }
-            resource.retry(properties.getServerId());
-            if (logger.isDebugEnabled()) {
-                logger.debug("Retry from superior requested");
-            }
-        } catch (XAPlusException retryException) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Request retry from superior failed with {}", retryException.getMessage());
-            }
-        }
-    }
-
     @PostConstruct
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusPrepareBranchRequestEvent.class);
         dispatcher.subscribe(this, XAPlusCommitBranchRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusRollbackBranchRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRetryCommitBranchRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRetryRollbackBranchRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusRollbackBranchRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRetryCommitOrderRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRetryRollbackOrderRequestEvent.class);
         dispatcher.subscribe(this, XAPlusCommitRecoveredXidRequestEvent.class);
@@ -416,7 +412,7 @@ class XAPlusService extends Bolt implements
         dispatcher.subscribe(this, XAPlusForgetRecoveredXidRequestEvent.class);
         dispatcher.subscribe(this, XAPlusReportReadyStatusRequestEvent.class);
         dispatcher.subscribe(this, XAPlusReportDoneStatusRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusRecoveryResourceRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRetryFromSuperiorRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusRecoveryResourceRequestEvent.class);
     }
 }

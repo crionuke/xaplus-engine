@@ -16,7 +16,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusServiceTest {
+public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusPrepareOrderWaiterServiceTest.class);
 
     XAPlusPrepareOrderWaiterService xaPlusPrepareOrderWaiterService;

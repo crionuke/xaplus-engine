@@ -1,102 +1,155 @@
 package org.xaplus.engine;
 
-import org.junit.Assert;
-import org.xaplus.engine.stubs.XADataSourceStub;
-import org.xaplus.engine.stubs.XAPlusFactoryStub;
+import com.crionuke.bolts.Bolt;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xaplus.engine.events.*;
 import org.xaplus.engine.stubs.XAPlusResourceStub;
-import org.xaplus.engine.stubs.XAResourceStub;
 
-public class XAPlusServiceTest extends Assert {
-    protected final int QUEUE_SIZE = 128;
-    protected final int DEFAULT_TIMEOUT_S = 10;
-    protected final int POLL_TIMIOUT_MS = 2000;
-    protected final int VERIFY_MS = 1000;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
-    protected final String SERVER_ID = "server-stub";
+public class XAPlusServiceTest extends XAPlusTest {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusServiceTest.class);
 
-    protected final String XA_RESOURCE_1 = "db1";
-    protected final String XA_RESOURCE_2 = "db2";
-    protected final String XA_RESOURCE_3 = "db3";
+    XAPlusService xaPlusService;
 
-    protected final String XA_PLUS_RESOURCE_1 = "service1";
-    protected final String XA_PLUS_RESOURCE_2 = "service2";
+    BlockingQueue<XAPlusReadyStatusReportedEvent> readyStatusReportedEvents;
+    BlockingQueue<XAPlusReportReadyStatusFailedEvent> reportReadyStatusFailedEvents;
+    BlockingQueue<XAPlusDoneStatusReportedEvent> doneStatusReportedEvents;
+    BlockingQueue<XAPlusReportDoneStatusFailedEvent> reportDoneStatusFailedEvents;
 
-    protected XAPlusProperties properties;
-    protected XAPlusResources resources;
-    protected XAPlusUidGenerator uidGenerator;
-    protected XAPlusThreadOfControl threadOfControl;
-    protected XAPlusEngine engine;
-    protected XAPlusThreadPool threadPool;
-    protected XAPlusDispatcher dispatcher;
+    ConsumerStub consumerStub;
 
-    protected void createXAPlusComponents() {
-        createXAPlusComponents(DEFAULT_TIMEOUT_S);
+    @Before
+    public void beforeTest() {
+        createXAPlusComponents(1);
+
+        xaPlusService = new XAPlusService(properties, threadPool, dispatcher);
+        xaPlusService.postConstruct();
+
+        readyStatusReportedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        reportReadyStatusFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        doneStatusReportedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        reportDoneStatusFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+
+        consumerStub = new ConsumerStub();
+        consumerStub.postConstruct();
     }
 
-    protected void createXAPlusComponents(int defaultTimeoutInSeconds) {
-        properties = new XAPlusProperties();
-        properties.setServerId(SERVER_ID);
-        properties.setQueueSize(QUEUE_SIZE);
-        properties.setDefaultTimeoutInSeconds(defaultTimeoutInSeconds);
-        resources = new XAPlusResources();
-        initResources(resources);
-        uidGenerator = new XAPlusUidGenerator();
-        threadOfControl = new XAPlusThreadOfControl();
-        engine = new XAPlusEngine(properties, dispatcher, resources, uidGenerator, threadOfControl);
-        threadPool = new XAPlusThreadPool();
-        dispatcher = new XAPlusDispatcher();
+    @After
+    public void afterTest() {
+        xaPlusService.finish();
+        consumerStub.finish();
     }
 
-    protected XAPlusXid generateSuperiorXid() {
-        return new XAPlusXid(uidGenerator.generateUid(properties.getServerId()),
-                uidGenerator.generateUid(properties.getServerId()));
-    }
-
-    protected XAPlusXid createBranchXid(XAPlusTransaction transaction) {
-        return uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(), properties.getServerId());
-    }
-
-    protected XAPlusTransaction createTestSuperiorTransaction() {
+    @Test
+    public void testReportReadyStatusRequestEventSuccessfully() throws InterruptedException, XAPlusException {
         XAPlusTransaction transaction = createSuperiorTransaction();
-        XAPlusXid bxid1 = createBranchXid(transaction);
-        transaction.enlist(bxid1, XA_RESOURCE_1, new XAResourceStub());
-        XAPlusXid bxid2 = createBranchXid(transaction);
-        transaction.enlist(bxid2, XA_RESOURCE_2, new XAResourceStub());
-        XAPlusXid bxid3 = createBranchXid(transaction);
-        transaction.enlist(bxid3, XA_RESOURCE_3, new XAResourceStub());
-        XAPlusXid bxid4 = createBranchXid(transaction);
-        transaction.enlist(bxid4, XA_PLUS_RESOURCE_1, new XAPlusResourceStub());
-        XAPlusXid bxid5 = createBranchXid(transaction);
-        transaction.enlist(bxid5, XA_PLUS_RESOURCE_2, new XAPlusResourceStub());
-        return transaction;
+        XAPlusXid branchXid = createBranchXid(transaction);
+        XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
+        dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(branchXid, xaPlusResourceMock));
+        Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).ready(branchXid);
+        XAPlusReadyStatusReportedEvent event = readyStatusReportedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(branchXid, event.getXid());
     }
 
-    protected XAPlusTransaction createSuperiorTransaction() {
-        return createSuperiorTransaction(properties.getDefaultTimeoutInSeconds());
+    @Test
+    public void testReportReadyStatusRequestEventFailed() throws InterruptedException, XAPlusException {
+        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusXid branchXid = createBranchXid(transaction);
+        XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
+        Mockito.doThrow(new XAPlusException("ready_exception")).when(xaPlusResourceMock).ready(branchXid);
+        dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(branchXid, xaPlusResourceMock));
+        XAPlusReportReadyStatusFailedEvent event =
+                reportReadyStatusFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(branchXid, event.getXid());
     }
 
-    protected XAPlusTransaction createSuperiorTransaction(int timeoutInSeconds) {
-        XAPlusXid xid = generateSuperiorXid();
-        XAPlusTransaction transaction = new XAPlusTransaction(xid, timeoutInSeconds, properties.getServerId());
-        return transaction;
+    @Test
+    public void testReportDoneStatusRequestSuccessfully() throws InterruptedException, XAPlusException {
+        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusXid branchXid = createBranchXid(transaction);
+        XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
+        dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(branchXid, xaPlusResourceMock));
+        Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).done(branchXid);
+        XAPlusDoneStatusReportedEvent event = doneStatusReportedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(branchXid, event.getXid());
     }
 
-    protected XAPlusTransaction createSubordinateTransaction(String uniqueName) {
-        return createSubordinateTransaction(uniqueName, properties.getDefaultTimeoutInSeconds());
+    @Test
+    public void testReportDoneStatusRequestFailed() throws InterruptedException, XAPlusException {
+        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusXid branchXid = createBranchXid(transaction);
+        XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
+        Mockito.doThrow(new XAPlusException("done_exception")).when(xaPlusResourceMock).done(branchXid);
+        dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(branchXid, xaPlusResourceMock));
+        XAPlusReportDoneStatusFailedEvent event =
+                reportDoneStatusFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(branchXid, event.getXid());
     }
 
-    protected XAPlusTransaction createSubordinateTransaction(String uniqueName, int timeoutInSeconds) {
-        XAPlusXid xid = new XAPlusXid(uidGenerator.generateUid(uniqueName),
-                uidGenerator.generateUid(uniqueName));
-        XAPlusTransaction transaction = new XAPlusTransaction(xid, timeoutInSeconds, properties.getServerId());
-        return transaction;
+    @Test
+    public void testRetryFromSuperiorRequestSuccessfully() throws InterruptedException, XAPlusException {
+        XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
+        dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(xaPlusResourceMock));
+        Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).retry(properties.getServerId());
     }
 
-    private void initResources(XAPlusResources resources) {
-        resources.register(new XADataSourceStub(), XA_RESOURCE_1);
-        resources.register(new XADataSourceStub(), XA_RESOURCE_2);
-        resources.register(new XADataSourceStub(), XA_RESOURCE_3);
-        resources.register(new XAPlusFactoryStub(), XA_PLUS_RESOURCE_1);
-        resources.register(new XAPlusFactoryStub(), XA_PLUS_RESOURCE_2);
+    @Test
+    public void testRetryFromSuperiorRequestFailed() throws InterruptedException, XAPlusException {
+        XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
+        Mockito.doThrow(new XAPlusException("retry_exception"))
+                .when(xaPlusResourceMock).retry(properties.getServerId());
+        dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(xaPlusResourceMock));
+        Thread.sleep(1000);
+    }
+
+    private class ConsumerStub extends Bolt implements
+            XAPlusReadyStatusReportedEvent.Handler,
+            XAPlusReportReadyStatusFailedEvent.Handler,
+            XAPlusDoneStatusReportedEvent.Handler,
+            XAPlusReportDoneStatusFailedEvent.Handler {
+
+        ConsumerStub() {
+            super("stub-consumer", QUEUE_SIZE);
+        }
+
+        @Override
+        public void handleReadyStatusReported(XAPlusReadyStatusReportedEvent event) throws InterruptedException {
+            readyStatusReportedEvents.put(event);
+        }
+
+        @Override
+        public void handleReportReadyStatusFailed(XAPlusReportReadyStatusFailedEvent event) throws InterruptedException {
+            reportReadyStatusFailedEvents.put(event);
+        }
+
+        @Override
+        public void handleDoneStatusReported(XAPlusDoneStatusReportedEvent event) throws InterruptedException {
+            doneStatusReportedEvents.put(event);
+        }
+
+        @Override
+        public void handleReportDoneStatusFailed(XAPlusReportDoneStatusFailedEvent event) throws InterruptedException {
+            reportDoneStatusFailedEvents.put(event);
+        }
+
+        void postConstruct() {
+            threadPool.execute(this);
+            dispatcher.subscribe(this, XAPlusReadyStatusReportedEvent.class);
+            dispatcher.subscribe(this, XAPlusReportReadyStatusFailedEvent.class);
+            dispatcher.subscribe(this, XAPlusDoneStatusReportedEvent.class);
+            dispatcher.subscribe(this, XAPlusReportDoneStatusFailedEvent.class);
+        }
     }
 }
