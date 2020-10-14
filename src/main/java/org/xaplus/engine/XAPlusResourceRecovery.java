@@ -28,16 +28,22 @@ class XAPlusResourceRecovery {
         Set<XAPlusXid> xids = new HashSet<>();
         int xidCount;
         xidCount = recover(xids, XAResource.TMSTARTRSCAN);
+        logger.debug("Recover {} xids with TMSTARTSCAN", xidCount);
         while (xidCount > 0) {
             xidCount = recover(xids, XAResource.TMNOFLAGS);
+            logger.debug("Recover {} xids with TMNOFLAGS", xidCount);
         }
         recover(xids, XAResource.TMENDRSCAN);
+        logger.debug("Recover {} xids with TMENDRSCAN", xidCount);
         return xids;
     }
 
     private int recover(Set<XAPlusXid> xids, int flag) throws XAException {
         Xid[] recovered = xaResource.recover(flag);
         if (recovered == null) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("No xid to recovery, flag=", flag);
+            }
             return 0;
         }
         Set<XAPlusXid> freshly = new HashSet<>();

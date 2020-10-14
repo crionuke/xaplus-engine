@@ -1,4 +1,4 @@
 .idea
 *.iml
 target
-src/integration-test/testpg/data
+src/integration-test/testpg

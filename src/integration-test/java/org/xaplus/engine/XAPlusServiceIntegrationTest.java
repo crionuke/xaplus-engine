@@ -4,30 +4,18 @@ import com.crionuke.bolts.Bolt;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.postgresql.xa.PGXADataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.*;
 
-import javax.sql.XAConnection;
-import javax.transaction.xa.XAException;
-import javax.transaction.xa.XAResource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusServiceIntegrationTest extends XAPlusTest {
+public class XAPlusServiceIntegrationTest extends XAPlusIntegrationTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusServiceIntegrationTest.class);
 
-    static private final String INSERT_SQL = "INSERT INTO test (t_value) VALUES (?)";
-    static private final String SELECT_SQL = "SELECT t_value FROM test";
-
     XAPlusService xaPlusService;
-
-    PGXADataSource xaDataSource;
 
     BlockingQueue<XAPlusBranchPreparedEvent> branchPreparedEvents;
     BlockingQueue<XAPlusPrepareBranchFailedEvent> prepareBranchFailedEvents;
@@ -41,14 +29,10 @@ public class XAPlusServiceIntegrationTest extends XAPlusTest {
     @Before
     public void beforeTest() {
         createXAPlusComponents(1);
+        createXADataSource();
 
         xaPlusService = new XAPlusService(properties, threadPool, dispatcher);
         xaPlusService.postConstruct();
-
-        xaDataSource = new PGXADataSource();
-        xaDataSource.setUrl("jdbc:postgresql://localhost:5432/testpg");
-        xaDataSource.setUser("testpg");
-        xaDataSource.setPassword("qwe123");
 
         branchPreparedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         prepareBranchFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -69,7 +53,7 @@ public class XAPlusServiceIntegrationTest extends XAPlusTest {
 
     @Test
     public void testPrepareBranchRequestSuccessfully() throws Exception {
-        try (OneBranchTransaction transaction = new OneBranchTransaction()) {
+        try (OneBranchTransaction transaction = new OneBranchTransaction(properties.getServerId())) {
             // Prepare
             transaction.start();
             transaction.insert();
@@ -86,7 +70,7 @@ public class XAPlusServiceIntegrationTest extends XAPlusTest {
 
     @Test
     public void testPrepareBranchRequestFailed() throws Exception {
-        try (OneBranchTransaction transaction = new OneBranchTransaction()) {
+        try (OneBranchTransaction transaction = new OneBranchTransaction(properties.getServerId())) {
             // Prepare - no branch start for prepare failure simulation
             transaction.insert();
             // Use
@@ -103,7 +87,7 @@ public class XAPlusServiceIntegrationTest extends XAPlusTest {
 
     @Test
     public void testCommitBranchRequestSuccessfully() throws Exception {
-        try (OneBranchTransaction transaction = new OneBranchTransaction()) {
+        try (OneBranchTransaction transaction = new OneBranchTransaction(properties.getServerId())) {
             // Prepare
             transaction.start();
             transaction.insert();
@@ -122,7 +106,7 @@ public class XAPlusServiceIntegrationTest extends XAPlusTest {
 
     @Test
     public void testCommitBranchRequestFailed() throws Exception {
-        try (OneBranchTransaction transaction = new OneBranchTransaction()) {
+        try (OneBranchTransaction transaction = new OneBranchTransaction(properties.getServerId())) {
             // Prepare - no prepare phase to commit failure simulation
             transaction.start();
             transaction.insert();
@@ -140,7 +124,7 @@ public class XAPlusServiceIntegrationTest extends XAPlusTest {
 
     @Test
     public void testRollbackBranchRequestSuccessfully() throws Exception {
-        try (OneBranchTransaction transaction = new OneBranchTransaction()) {
+        try (OneBranchTransaction transaction = new OneBranchTransaction(properties.getServerId())) {
             // Prepare
             transaction.start();
             transaction.insert();
@@ -157,7 +141,7 @@ public class XAPlusServiceIntegrationTest extends XAPlusTest {
 
     @Test
     public void testRollbackBranchRequestFailed() throws Exception {
-        try (OneBranchTransaction transaction = new OneBranchTransaction()) {
+        try (OneBranchTransaction transaction = new OneBranchTransaction(properties.getServerId())) {
             // Prepare - no start to rollback failure simulation
             transaction.insert();
             // Use
@@ -169,65 +153,6 @@ public class XAPlusServiceIntegrationTest extends XAPlusTest {
             assertNotNull(event);
             assertEquals(transaction.getXid(), event.getXid());
             assertEquals(transaction.getBranchXid(), event.getBranchXid());
-        }
-    }
-
-    private class OneBranchTransaction implements AutoCloseable {
-
-        private final XAConnection xaConnection;
-        private final XAResource xaResource;
-        private final Connection connection;
-
-        private final XAPlusTransaction xaPlusTransaction;
-        private final XAPlusXid branchXid;
-
-        OneBranchTransaction() throws SQLException {
-            xaConnection = xaDataSource.getXAConnection();
-            xaResource = xaConnection.getXAResource();
-            connection = xaConnection.getConnection();
-            // Start transaction
-            xaPlusTransaction = createSuperiorTransaction();
-            branchXid = createBranchXid(xaPlusTransaction);
-        }
-
-        XAResource getXaResource() {
-            return xaResource;
-        }
-
-        XAPlusXid getXid() {
-            return xaPlusTransaction.getXid();
-        }
-
-        XAPlusXid getBranchXid() {
-            return branchXid;
-        }
-
-        void start() throws XAException {
-            xaResource.start(branchXid, XAResource.TMNOFLAGS);
-        }
-
-        void end() throws XAException {
-            xaResource.end(branchXid, XAResource.TMSUCCESS);
-        }
-
-        void prepare() throws XAException {
-            int vote = xaResource.prepare(branchXid);
-            assertEquals(0, vote);
-        }
-
-        void insert() throws SQLException {
-            PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL);
-            long value = Math.round(Math.random() * 1000);
-            preparedStatement.setLong(1, value);
-            int affected = preparedStatement.executeUpdate();
-            assertEquals(1, affected);
-            preparedStatement.close();
-        }
-
-        @Override
-        public void close() throws Exception {
-            connection.close();
-            xaConnection.close();
         }
     }
 

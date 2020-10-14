@@ -12,14 +12,16 @@ public class XAPlusTest extends Assert {
     protected final int POLL_TIMIOUT_MS = 2000;
     protected final int VERIFY_MS = 1000;
 
-    protected final String SERVER_ID = "server-stub";
+    protected final String SERVER_ID_1 = "server1-stub";
+    protected final String SERVER_ID_2 = "server2-stub";
+    protected final String SERVER_ID_3 = "server3-stub";
 
-    protected final String XA_RESOURCE_1 = "db1";
-    protected final String XA_RESOURCE_2 = "db2";
-    protected final String XA_RESOURCE_3 = "db3";
+    protected final String XA_RESOURCE_1 = "db1-stub";
+    protected final String XA_RESOURCE_2 = "db2-stub";
+    protected final String XA_RESOURCE_3 = "db3-stub";
 
-    protected final String XA_PLUS_RESOURCE_1 = "service1";
-    protected final String XA_PLUS_RESOURCE_2 = "service2";
+    protected final String XA_PLUS_RESOURCE_1 = "service1-stub";
+    protected final String XA_PLUS_RESOURCE_2 = "service2-stub";
 
     protected XAPlusProperties properties;
     protected XAPlusResources resources;
@@ -35,7 +37,7 @@ public class XAPlusTest extends Assert {
 
     protected void createXAPlusComponents(int defaultTimeoutInSeconds) {
         properties = new XAPlusProperties();
-        properties.setServerId(SERVER_ID);
+        properties.setServerId(SERVER_ID_1);
         properties.setQueueSize(QUEUE_SIZE);
         properties.setDefaultTimeoutInSeconds(defaultTimeoutInSeconds);
         resources = new XAPlusResources();
