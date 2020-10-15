@@ -34,7 +34,7 @@ public class XAPlusCommitterServiceTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(1);
+        createXAPlusComponents(SERVER_ID_DEFAULT);
 
         xaPlusCommitterService = new XAPlusCommitterService(properties, threadPool, dispatcher);
         xaPlusCommitterService.postConstruct();

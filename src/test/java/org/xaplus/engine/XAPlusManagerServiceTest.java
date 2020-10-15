@@ -35,7 +35,7 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(1);
+        createXAPlusComponents(SERVER_ID_DEFAULT);
 
         xaPlusManagerService = new XAPlusManagerService(properties, threadPool, dispatcher);
         xaPlusManagerService.postConstruct();

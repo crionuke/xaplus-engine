@@ -37,7 +37,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents();
+        createXAPlusComponents(SERVER_ID_DEFAULT);
 
         tlogMock = Mockito.mock(XAPlusTLog.class);
         xaPlusJournalService = new XAPlusJournalService(properties, threadPool, dispatcher, engine, tlogMock);

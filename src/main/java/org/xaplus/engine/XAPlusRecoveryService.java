@@ -59,13 +59,13 @@ class XAPlusRecoveryService extends Bolt implements
     }
 
     @Override
-    public void handleRecoveryServerRequest(XAPlusRecoveryRequestEvent event) throws InterruptedException {
+    public void handleRecoveryRequest(XAPlusRecoveryRequestEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
         if (state.isStarted()) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Recovery already started");
+                logger.debug("Recovery already started, skip request");
             }
         } else {
             if (logger.isDebugEnabled()) {
@@ -282,10 +282,16 @@ class XAPlusRecoveryService extends Bolt implements
     private void checkTracker() throws InterruptedException {
         //TODO: waiting while all XA operation finished to closed connections
         if (state.isReady()) {
+            if (logger.isInfoEnabled()) {
+                logger.info("Server ready to recovery, starting");
+            }
             retry();
             recovery();
             reset();
         } else if (state.isRecovered() && state.isFailed()) {
+            if (logger.isInfoEnabled()) {
+                logger.info("Server recovery failed, reset state");
+            }
             reset();
         }
     }

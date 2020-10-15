@@ -28,7 +28,7 @@ public class XAPlusServiceIntegrationTest extends XAPlusIntegrationTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(1);
+        createXAPlusComponents(SERVER_ID_DEFAULT);
         createXADataSource();
 
         xaPlusService = new XAPlusService(properties, threadPool, dispatcher);

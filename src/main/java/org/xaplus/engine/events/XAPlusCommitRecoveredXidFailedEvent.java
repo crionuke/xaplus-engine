@@ -10,18 +10,18 @@ import org.xaplus.engine.XAPlusXid;
 public final class XAPlusCommitRecoveredXidFailedEvent extends Event<XAPlusCommitRecoveredXidFailedEvent.Handler> {
 
     private final XAPlusXid xid;
-    private final Exception exception;
+    private final String uniqueName;
 
-    public XAPlusCommitRecoveredXidFailedEvent(XAPlusXid xid, Exception exception) {
+    public XAPlusCommitRecoveredXidFailedEvent(XAPlusXid xid, String uniqueName) {
         super();
         if (xid == null) {
             throw new NullPointerException("xid is null");
         }
-        if (exception == null) {
-            throw new NullPointerException("exception is null");
+        if (uniqueName == null) {
+            throw new NullPointerException("uniqueName is null");
         }
         this.xid = xid;
-        this.exception = exception;
+        this.uniqueName = uniqueName;
     }
 
     @Override
@@ -33,8 +33,8 @@ public final class XAPlusCommitRecoveredXidFailedEvent extends Event<XAPlusCommi
         return xid;
     }
 
-    public Exception getException() {
-        return exception;
+    public String getUniqueName() {
+        return uniqueName;
     }
 
     public interface Handler {

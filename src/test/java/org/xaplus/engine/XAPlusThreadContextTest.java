@@ -9,7 +9,7 @@ public class XAPlusThreadContextTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents();
+        createXAPlusComponents(SERVER_ID_DEFAULT);
         threadContext = new XAPlusThreadContext();
     }
 

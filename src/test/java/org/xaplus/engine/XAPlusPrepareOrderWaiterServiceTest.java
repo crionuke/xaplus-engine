@@ -27,7 +27,7 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(1);
+        createXAPlusComponents(SERVER_ID_DEFAULT);
 
         xaPlusPrepareOrderWaiterService = new XAPlusPrepareOrderWaiterService(properties, threadPool, dispatcher);
         xaPlusPrepareOrderWaiterService.postConstruct();

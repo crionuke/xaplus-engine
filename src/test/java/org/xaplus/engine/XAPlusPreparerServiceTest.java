@@ -36,7 +36,7 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(1);
+        createXAPlusComponents(SERVER_ID_DEFAULT);
 
         xaPlusPreparerService = new XAPlusPreparerService(properties, threadPool, dispatcher);
         xaPlusPreparerService.postConstruct();

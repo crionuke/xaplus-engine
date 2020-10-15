@@ -12,7 +12,8 @@ public class XAPlusTest extends Assert {
     protected final int POLL_TIMIOUT_MS = 2000;
     protected final int VERIFY_MS = 1000;
 
-    protected final String SERVER_ID_1 = "server1-stub";
+    protected final String SERVER_ID_DEFAULT = "server1-stub";
+    protected final String SERVER_ID_1 = SERVER_ID_DEFAULT;
     protected final String SERVER_ID_2 = "server2-stub";
     protected final String SERVER_ID_3 = "server3-stub";
 
@@ -31,13 +32,13 @@ public class XAPlusTest extends Assert {
     protected XAPlusThreadPool threadPool;
     protected XAPlusDispatcher dispatcher;
 
-    protected void createXAPlusComponents() {
-        createXAPlusComponents(DEFAULT_TIMEOUT_S);
+    protected void createXAPlusComponents(String serverId) {
+        createXAPlusComponents(serverId, DEFAULT_TIMEOUT_S);
     }
 
-    protected void createXAPlusComponents(int defaultTimeoutInSeconds) {
+    protected void createXAPlusComponents(String serverId, int defaultTimeoutInSeconds) {
         properties = new XAPlusProperties();
-        properties.setServerId(SERVER_ID_1);
+        properties.setServerId(serverId);
         properties.setQueueSize(QUEUE_SIZE);
         properties.setDefaultTimeoutInSeconds(defaultTimeoutInSeconds);
         resources = new XAPlusResources();
@@ -50,8 +51,28 @@ public class XAPlusTest extends Assert {
     }
 
     protected XAPlusXid generateSuperiorXid() {
-        return new XAPlusXid(uidGenerator.generateUid(properties.getServerId()),
-                uidGenerator.generateUid(properties.getServerId()));
+        String serverId = properties.getServerId();
+        return new XAPlusXid(uidGenerator.generateUid(serverId),
+                uidGenerator.generateUid(serverId));
+    }
+
+    protected XAPlusTransaction createSuperiorTransaction() {
+        return createSuperiorTransaction(properties.getDefaultTimeoutInSeconds());
+    }
+
+    protected XAPlusTransaction createSuperiorTransaction(int timeoutInSeconds) {
+        String serverId = properties.getServerId();
+        XAPlusXid xid = new XAPlusXid(uidGenerator.generateUid(serverId), uidGenerator.generateUid(serverId));
+        XAPlusTransaction transaction = new XAPlusTransaction(xid, timeoutInSeconds, properties.getServerId());
+        return transaction;
+    }
+
+    protected XAPlusXid enlistJdbc(XAPlusTransaction transaction) {
+        return uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(), properties.getServerId());
+    }
+
+    protected XAPlusXid enlistXAPlus(XAPlusTransaction transaction, String serverId) {
+        return uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(), serverId);
     }
 
     protected XAPlusXid createBranchXid(XAPlusTransaction transaction) {
@@ -60,26 +81,16 @@ public class XAPlusTest extends Assert {
 
     protected XAPlusTransaction createTestSuperiorTransaction() {
         XAPlusTransaction transaction = createSuperiorTransaction();
-        XAPlusXid bxid1 = createBranchXid(transaction);
+        XAPlusXid bxid1 = enlistJdbc(transaction);
         transaction.enlist(bxid1, XA_RESOURCE_1, new XAResourceStub());
-        XAPlusXid bxid2 = createBranchXid(transaction);
+        XAPlusXid bxid2 = enlistJdbc(transaction);
         transaction.enlist(bxid2, XA_RESOURCE_2, new XAResourceStub());
-        XAPlusXid bxid3 = createBranchXid(transaction);
+        XAPlusXid bxid3 = enlistJdbc(transaction);
         transaction.enlist(bxid3, XA_RESOURCE_3, new XAResourceStub());
-        XAPlusXid bxid4 = createBranchXid(transaction);
+        XAPlusXid bxid4 = enlistXAPlus(transaction, XA_PLUS_RESOURCE_1);
         transaction.enlist(bxid4, XA_PLUS_RESOURCE_1, new XAPlusResourceStub());
-        XAPlusXid bxid5 = createBranchXid(transaction);
+        XAPlusXid bxid5 = enlistXAPlus(transaction, XA_PLUS_RESOURCE_2);
         transaction.enlist(bxid5, XA_PLUS_RESOURCE_2, new XAPlusResourceStub());
-        return transaction;
-    }
-
-    protected XAPlusTransaction createSuperiorTransaction() {
-        return createSuperiorTransaction(properties.getDefaultTimeoutInSeconds());
-    }
-
-    protected XAPlusTransaction createSuperiorTransaction(int timeoutInSeconds) {
-        XAPlusXid xid = generateSuperiorXid();
-        XAPlusTransaction transaction = new XAPlusTransaction(xid, timeoutInSeconds, properties.getServerId());
         return transaction;
     }
 

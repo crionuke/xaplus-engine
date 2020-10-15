@@ -14,10 +14,10 @@ public final class XAPlusRecoveryRequestEvent extends Event<XAPlusRecoveryReques
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleRecoveryServerRequest(this);
+        handler.handleRecoveryRequest(this);
     }
 
     public interface Handler {
-        void handleRecoveryServerRequest(XAPlusRecoveryRequestEvent event) throws InterruptedException;
+        void handleRecoveryRequest(XAPlusRecoveryRequestEvent event) throws InterruptedException;
     }
 }

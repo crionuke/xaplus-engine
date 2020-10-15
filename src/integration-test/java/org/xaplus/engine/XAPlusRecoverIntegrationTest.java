@@ -12,14 +12,14 @@ import javax.transaction.xa.Xid;
 import java.sql.SQLException;
 import java.util.*;
 
-public class XAPlusResourceRecoveryIntegrationTest extends XAPlusIntegrationTest {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusResourceRecoveryIntegrationTest.class);
+public class XAPlusRecoverIntegrationTest extends XAPlusIntegrationTest {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoverIntegrationTest.class);
 
     TestResource testResource;
 
     @Before
     public void beforeTest() throws SQLException, XAException {
-        createXAPlusComponents();
+        createXAPlusComponents(SERVER_ID_DEFAULT);
         createXADataSource();
         testResource = new TestResource();
         cleanUpXAResource(testResource.getXaResource());
@@ -66,9 +66,9 @@ public class XAPlusResourceRecoveryIntegrationTest extends XAPlusIntegrationTest
     }
 
     private void testRecoveryFor(String serverId, List<XAPlusXid> expectedXids) throws XAException {
-        XAPlusResourceRecovery xaPlusResourceRecovery =
-                new XAPlusResourceRecovery(serverId, testResource.getXaResource());
-        Set<XAPlusXid> recoveredXids = xaPlusResourceRecovery.recovery();
+        XAPlusRecover xaPlusRecover =
+                new XAPlusRecover(serverId, testResource.getXaResource());
+        Set<XAPlusXid> recoveredXids = xaPlusRecover.recovery();
         logger.info("Recovery {} xids by {}", recoveredXids.size(), serverId);
         for (XAPlusXid recoveredXid : recoveredXids) {
             assertTrue(expectedXids.contains(recoveredXid));

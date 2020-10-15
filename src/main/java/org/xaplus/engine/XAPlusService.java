@@ -228,6 +228,8 @@ class XAPlusService extends Bolt implements
         XAPlusXid xid = event.getXid();
         XAResource resource = event.getResource();
         String uniqueName = event.getUniqueName();
+        // Basesed on https://github.com/bitronix/btm/blob/master/btm/src/main/java/bitronix/tm/recovery/RecoveryHelper.java
+        boolean success = true;
         try {
             if (logger.isTraceEnabled()) {
                 logger.trace("Committing recovered xid={}", xid);
@@ -236,15 +238,33 @@ class XAPlusService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Recovered xid={} committed", xid);
             }
-            dispatcher.dispatch(new XAPlusRecoveredXidCommittedEvent(xid, uniqueName));
-            // TODO: forget only in some properly cases
-            dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
         } catch (XAException committingException) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Commit recovered xid={} failed with {} ", xid, committingException.getMessage());
+            int errorCode = committingException.errorCode;
+            String description;
+            if (errorCode == XAException.XAER_NOTA) {
+                description = "Forgotten heuristic?";
+            } else if (errorCode == XAException.XA_HEURCOM) {
+                description = "Heuristic decision compatible with the global state of this transaction. " +
+                        "Forget this xid";
+                dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
+            } else if (errorCode == XAException.XA_HEURHAZ || errorCode == XAException.XA_HEURMIX || errorCode == XAException.XA_HEURRB) {
+                description = "Heuristic decision incompatible with the global state of this transaction! " +
+                        "Forget this xid";
+                dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
+                success = false;
+            } else {
+                description = "Unable to commit in-doubt branch";
+                success = false;
             }
-            // TODO: handle error codes properly like - bitronix.tm.retry.RecoveryHelper.commit()
-            dispatcher.dispatch(new XAPlusCommitRecoveredXidFailedEvent(xid, committingException));
+            if (logger.isWarnEnabled()) {
+                logger.warn("Commit recovered xid={} on resource={} failed with errorCode={}. {}", xid, uniqueName,
+                        XAPlusConstantsDecoder.decodeXAExceptionErrorCode(committingException), description);
+            }
+        }
+        if (success) {
+            dispatcher.dispatch(new XAPlusRecoveredXidCommittedEvent(xid, uniqueName));
+        } else {
+            dispatcher.dispatch(new XAPlusCommitRecoveredXidFailedEvent(xid, uniqueName));
         }
     }
 
@@ -257,6 +277,8 @@ class XAPlusService extends Bolt implements
         XAPlusXid xid = event.getXid();
         XAResource resource = event.getResource();
         String uniqueName = event.getUniqueName();
+        // Basesed on https://github.com/bitronix/btm/blob/master/btm/src/main/java/bitronix/tm/recovery/RecoveryHelper.java
+        boolean success = true;
         try {
             if (logger.isTraceEnabled()) {
                 logger.trace("Rolling back recovered xid={}", xid);
@@ -265,15 +287,33 @@ class XAPlusService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Recovered xid={} rolled back", xid);
             }
-            dispatcher.dispatch(new XAPlusRecoveredXidRolledBackEvent(xid, uniqueName));
-            // TODO: forget only in some properly cases
-            dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
         } catch (XAException rollingBackException) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Rollback recovered xid={} failed with {} ", xid, rollingBackException.getMessage());
+            int errorCode = rollingBackException.errorCode;
+            String description;
+            if (errorCode == XAException.XAER_NOTA) {
+                description = "Forgotten heuristic?";
+            } else if (errorCode == XAException.XA_HEURRB) {
+                description = "Heuristic decision compatible with the global state of this transaction. " +
+                        "Forget this xid";
+                dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
+            } else if (errorCode == XAException.XA_HEURHAZ || errorCode == XAException.XA_HEURMIX || errorCode == XAException.XA_HEURCOM) {
+                description = "Heuristic decision incompatible with the global state of this transaction! " +
+                        "Forget this xid";
+                dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
+                success = false;
+            } else {
+                description = "Unable to rollback in-doubt branch";
+                success = false;
             }
-            // TODO: handle error codes properly like - bitronix.tm.retry.RecoveryHelper.rollback()
-            dispatcher.dispatch(new XAPlusRollbackRecoveredXidFailedEvent(xid, rollingBackException));
+            if (logger.isWarnEnabled()) {
+                logger.warn("Rollback recovered xid={} on resource={} failed with errorCode={}. {}", xid, uniqueName,
+                        XAPlusConstantsDecoder.decodeXAExceptionErrorCode(rollingBackException), description);
+            }
+        }
+        if (success) {
+            dispatcher.dispatch(new XAPlusRecoveredXidRolledBackEvent(xid, uniqueName));
+        } else {
+            dispatcher.dispatch(new XAPlusRollbackRecoveredXidFailedEvent(xid, uniqueName));
         }
     }
 
@@ -382,7 +422,7 @@ class XAPlusService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Recovering resource with uniqueName={}", uniqueName);
         }
-        XAPlusResourceRecovery resourceRecovery = new XAPlusResourceRecovery(properties.getServerId(), resource);
+        XAPlusRecover resourceRecovery = new XAPlusRecover(properties.getServerId(), resource);
         try {
             Set<XAPlusXid> xids = resourceRecovery.recovery();
             if (logger.isDebugEnabled()) {

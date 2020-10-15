@@ -32,7 +32,7 @@ public class XAPlusCommitOrderWaiterServiceTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(1);
+        createXAPlusComponents(SERVER_ID_DEFAULT);
 
         xaPlusCommitOrderWaiterService =
                 new XAPlusCommitOrderWaiterService(properties, threadPool, dispatcher, resources);

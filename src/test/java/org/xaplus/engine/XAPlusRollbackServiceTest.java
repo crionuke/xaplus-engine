@@ -32,7 +32,7 @@ public class XAPlusRollbackServiceTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(1);
+        createXAPlusComponents(SERVER_ID_DEFAULT);
 
         xaPlusRollbackService = new XAPlusRollbackService(properties, threadPool, dispatcher);
         xaPlusRollbackService.postConstruct();

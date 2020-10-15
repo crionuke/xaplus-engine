@@ -13,13 +13,13 @@ import java.util.Set;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-class XAPlusResourceRecovery {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusResourceRecovery.class);
+class XAPlusRecover {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusRecover.class);
 
     private final String serverId;
     private final XAResource xaResource;
 
-    XAPlusResourceRecovery(String serverId, XAResource xaResource) {
+    XAPlusRecover(String serverId, XAResource xaResource) {
         this.serverId = serverId;
         this.xaResource = xaResource;
     }
