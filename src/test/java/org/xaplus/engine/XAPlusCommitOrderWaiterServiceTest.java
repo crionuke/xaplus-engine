@@ -32,7 +32,7 @@ public class XAPlusCommitOrderWaiterServiceTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(SERVER_ID_DEFAULT);
+        createXAPlusComponents(XA_PLUS_RESOURCE_2);
 
         xaPlusCommitOrderWaiterService =
                 new XAPlusCommitOrderWaiterService(properties, threadPool, dispatcher, resources);
@@ -55,7 +55,7 @@ public class XAPlusCommitOrderWaiterServiceTest extends XAPlusTest {
 
     @Test
     public void testTransactionPreparedSuccessfully() throws InterruptedException {
-        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_1);
+        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
         dispatcher.dispatch(new XAPlusTransactionPreparedEvent(transaction));
         XAPlusReportReadyStatusRequestEvent event =
                 reportReadyStatusRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -65,7 +65,8 @@ public class XAPlusCommitOrderWaiterServiceTest extends XAPlusTest {
 
     @Test
     public void testTransactionPreparedFailed() throws InterruptedException {
-        XAPlusTransaction transaction = createSubordinateTransaction("unknown_resource");
+        XAPlusTransaction transaction = createSubordinateTransaction("unknown_server",
+                XA_PLUS_RESOURCE_2);
         dispatcher.dispatch(new XAPlusTransactionPreparedEvent(transaction));
         XAPlus2pcFailedEvent event = twoPcFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
@@ -74,7 +75,7 @@ public class XAPlusCommitOrderWaiterServiceTest extends XAPlusTest {
 
     @Test
     public void testRemoteSuperiorOrderToCommit() throws InterruptedException {
-        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_1);
+        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
         dispatcher.dispatch(new XAPlusTransactionPreparedEvent(transaction));
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToCommitEvent(transaction.getXid()));
         XAPlusCommitTransactionEvent event = commitTransactionEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -84,7 +85,7 @@ public class XAPlusCommitOrderWaiterServiceTest extends XAPlusTest {
 
     @Test
     public void testRemoteSuperiorOrderToRollback() throws InterruptedException {
-        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_1);
+        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
         dispatcher.dispatch(new XAPlusTransactionPreparedEvent(transaction));
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(transaction.getXid()));
         XAPlusRollbackRequestEvent event = rollbackRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);

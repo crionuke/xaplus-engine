@@ -170,11 +170,14 @@ class XAPlusRecoveryService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        String uniqueName = superiorTracker.remove(xid);
+        String uniqueName = superiorTracker.getUniqueName(xid);
         if (uniqueName != null) {
-            dispatcher.dispatch(new XAPlusDanglingTransactionCommittedEvent(xid, uniqueName));
-            //TODO: detect how transaction completed (commited or rolledback)
-            //dispatcher.dispatch(new XAPlusDanglingTransactionRolledBackEvent(xid, uniqueName));
+            if (superiorTracker.getStatus(xid)) {
+                dispatcher.dispatch(new XAPlusDanglingTransactionCommittedEvent(xid, uniqueName));
+            } else {
+                dispatcher.dispatch(new XAPlusDanglingTransactionRolledBackEvent(xid, uniqueName));
+            }
+            superiorTracker.remove(xid);
         }
     }
 
@@ -241,7 +244,7 @@ class XAPlusRecoveryService extends Bolt implements
             dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, xaResource, uniqueName));
         } else {
             if (logger.isWarnEnabled()) {
-                logger.warn("Unknown XA resource wi1th uniqueName={} to commit recovered xid={}", uniqueName, xid);
+                logger.warn("Unknown XA resource with uniqueName={} to commit recovered xid={}", uniqueName, xid);
             }
         }
     }
@@ -287,7 +290,7 @@ class XAPlusRecoveryService extends Bolt implements
             }
             retry();
             recovery();
-            reset();
+//            reset();
         } else if (state.isRecovered() && state.isFailed()) {
             if (logger.isInfoEnabled()) {
                 logger.info("Server recovery failed, reset state");
@@ -307,7 +310,6 @@ class XAPlusRecoveryService extends Bolt implements
         for (Map.Entry<String, Map<XAPlusXid, Boolean>> entry : danglingTransactions.entrySet()) {
             String uniqueName = entry.getKey();
             Map<XAPlusXid, Boolean> transactions = entry.getValue();
-            superiorTracker.clear(uniqueName);
             // Ignore transactions on non XA+ resources
             if (resources.isXAPlusResource(uniqueName)) {
                 for (Map.Entry<XAPlusXid, Boolean> transaction : transactions.entrySet()) {
@@ -320,7 +322,7 @@ class XAPlusRecoveryService extends Bolt implements
                         } else {
                             dispatcher.dispatch(new XAPlusRetryRollbackOrderRequestEvent(xid, resource));
                         }
-                        superiorTracker.track(xid, uniqueName);
+                        superiorTracker.track(xid, uniqueName, status);
                     } catch (XAPlusSystemException e) {
                         if (logger.isErrorEnabled()) {
                             logger.error("Internal error. Retry for non XA+ or unknown resource with " +
@@ -340,9 +342,9 @@ class XAPlusRecoveryService extends Bolt implements
             if (xaResource != null) {
                 Set<XAPlusXid> xids = entry.getValue();
                 for (XAPlusXid xid : xids) {
-                    Map<XAPlusXid, Boolean> resourceXids = state.getDanglingTransactions().get(uniqueName);
-                    if (resourceXids != null && resourceXids.containsKey(xid)) {
-                        boolean status = resourceXids.get(xid);
+                    Map<XAPlusXid, Boolean> danglingXids = state.getDanglingTransactions().get(uniqueName);
+                    if (danglingXids != null && danglingXids.containsKey(xid)) {
+                        boolean status = danglingXids.get(xid);
                         if (status) {
                             dispatcher.dispatch(
                                     new XAPlusCommitRecoveredXidRequestEvent(xid, xaResource, uniqueName));
@@ -350,6 +352,7 @@ class XAPlusRecoveryService extends Bolt implements
                             dispatcher.dispatch(
                                     new XAPlusRollbackRecoveredXidRequestEvent(xid, xaResource, uniqueName));
                         }
+                        // TODO wait and log done for xids
                     } else {
                         String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
                         if (superiorServerId.equals(properties.getServerId())) {

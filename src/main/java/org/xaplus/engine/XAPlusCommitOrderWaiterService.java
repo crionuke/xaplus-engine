@@ -60,6 +60,10 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
                     dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, readyException));
                 }
             }
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction {} is not subordinate, skip", transaction);
+            }
         }
     }
 

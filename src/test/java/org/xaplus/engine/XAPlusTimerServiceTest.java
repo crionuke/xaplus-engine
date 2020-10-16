@@ -26,7 +26,7 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(SERVER_ID_DEFAULT);
+        createXAPlusComponents(XA_PLUS_RESOURCE_1);
 
         xaPlusTimerService = new XAPlusTimerService(properties, threadPool, dispatcher);
         xaPlusTimerService.postConstruct();

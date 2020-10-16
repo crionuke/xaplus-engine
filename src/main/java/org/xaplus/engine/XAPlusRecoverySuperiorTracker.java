@@ -1,36 +1,37 @@
 package org.xaplus.engine;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 final class XAPlusRecoverySuperiorTracker {
-    private final Map<XAPlusXid, String> doing;
+    private final Map<XAPlusXid, Boolean> xids;
+    private final Map<XAPlusXid, String> uniqueNames;
 
     XAPlusRecoverySuperiorTracker() {
-        doing = new HashMap<>();
+        xids = new HashMap<>();
+        uniqueNames = new HashMap<>();
     }
 
-    void track(XAPlusXid xid, String uniqueName) {
-        doing.put(xid, uniqueName);
+    void track(XAPlusXid xid, String uniqueName, Boolean status) {
+        xids.put(xid, status);
+        uniqueNames.put(xid, uniqueName);
     }
 
-    void clear(String uniqueName) {
-        Iterator<Map.Entry<XAPlusXid, String>> iterator = doing.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<XAPlusXid, String> entry = iterator.next();
-            String entryValue = entry.getValue();
-            if (entryValue.equals(uniqueName)) {
-                iterator.remove();
-            }
-        }
+    String getUniqueName(XAPlusXid xid) {
+        return uniqueNames.get(xid);
     }
 
-    String remove(XAPlusXid xid) {
-        return doing.remove(xid);
+    Boolean getStatus(XAPlusXid xid) {
+        return xids.get(xid);
+    }
+
+    void remove(XAPlusXid xid) {
+        xids.remove(xid);
+        uniqueNames.remove(xid);
     }
 
     void reset() {
-        doing.clear();
+        xids.clear();
+        uniqueNames.clear();
     }
 }

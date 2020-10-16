@@ -31,19 +31,20 @@ public class XAPlusTLogTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(SERVER_ID_DEFAULT);
+        createXAPlusComponents(XA_PLUS_RESOURCE_1);
         engine.setTLogDataSource(preparedDbRule.getTestDatabase());
         tLog = new XAPlusTLog(properties, engine);
     }
 
     @Test
     public void testLogCommitXidDecision() throws SQLException {
-        XAPlusXid xid = generateSuperiorXid();
-        tLog.logCommitXidDecision(xid, XA_RESOURCE_1);
+        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusXid bxid = createJdbcXid(transaction);
+        tLog.logCommitXidDecision(bxid, XA_RESOURCE_1);
         TLogRecord record = selectTLogRecords().get(0);
         assertNotNull(record);
         assertEquals(properties.getServerId(), record.getServerId());
-        assertEquals(xid, record.getXid());
+        assertEquals(bxid, record.getXid());
         assertEquals(XA_RESOURCE_1, record.getUniqueName());
         assertEquals(true, record.getTStatus());
         assertEquals(false, record.isComplete());
@@ -51,12 +52,13 @@ public class XAPlusTLogTest extends XAPlusTest {
 
     @Test
     public void testLogXidCommitted() throws SQLException {
-        XAPlusXid xid = generateSuperiorXid();
-        tLog.logXidCommitted(xid, XA_RESOURCE_1);
+        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusXid bxid = createJdbcXid(transaction);
+        tLog.logXidCommitted(bxid, XA_RESOURCE_1);
         TLogRecord record = selectTLogRecords().get(0);
         assertNotNull(record);
         assertEquals(properties.getServerId(), record.getServerId());
-        assertEquals(xid, record.getXid());
+        assertEquals(bxid, record.getXid());
         assertEquals(XA_RESOURCE_1, record.getUniqueName());
         assertEquals(true, record.getTStatus());
         assertEquals(true, record.isComplete());
@@ -64,12 +66,13 @@ public class XAPlusTLogTest extends XAPlusTest {
 
     @Test
     public void testLogRollbackXidDecision() throws SQLException {
-        XAPlusXid xid = generateSuperiorXid();
-        tLog.logRollbackXidDecision(xid, XA_RESOURCE_1);
+        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusXid bxid = createJdbcXid(transaction);
+        tLog.logRollbackXidDecision(bxid, XA_RESOURCE_1);
         TLogRecord record = selectTLogRecords().get(0);
         assertNotNull(record);
         assertEquals(properties.getServerId(), record.getServerId());
-        assertEquals(xid, record.getXid());
+        assertEquals(bxid, record.getXid());
         assertEquals(XA_RESOURCE_1, record.getUniqueName());
         assertEquals(false, record.getTStatus());
         assertEquals(false, record.isComplete());
@@ -77,12 +80,13 @@ public class XAPlusTLogTest extends XAPlusTest {
 
     @Test
     public void testLogXidRolledBack() throws SQLException {
-        XAPlusXid xid = generateSuperiorXid();
-        tLog.logXidRolledBack(xid, XA_RESOURCE_1);
+        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusXid bxid = createJdbcXid(transaction);
+        tLog.logXidRolledBack(bxid, XA_RESOURCE_1);
         TLogRecord record = selectTLogRecords().get(0);
         assertNotNull(record);
         assertEquals(properties.getServerId(), record.getServerId());
-        assertEquals(xid, record.getXid());
+        assertEquals(bxid, record.getXid());
         assertEquals(XA_RESOURCE_1, record.getUniqueName());
         assertEquals(false, record.getTStatus());
         assertEquals(true, record.isComplete());

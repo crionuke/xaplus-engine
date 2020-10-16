@@ -127,9 +127,6 @@ public final class XAPlusEngine {
         if (context.hasTransaction()) {
             throw new IllegalStateException("Nested transactions not supported");
         }
-        if (xidString == null) {
-            throw new NullPointerException("xid is null");
-        }
         XAPlusXid xid = new XAPlusXid(xidString);
         XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getDefaultTimeoutInSeconds(),
                 properties.getServerId());

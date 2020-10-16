@@ -54,6 +54,10 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
                 XAPlusXid xid = event.getTransaction().getXid();
                 check(xid);
             }
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction {} is not subordinate, skip", transaction);
+            }
         }
     }
 

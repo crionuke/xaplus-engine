@@ -19,7 +19,7 @@ public class XAPlusRecoverIntegrationTest extends XAPlusIntegrationTest {
 
     @Before
     public void beforeTest() throws SQLException, XAException {
-        createXAPlusComponents(SERVER_ID_DEFAULT);
+        createXAPlusComponents(XA_PLUS_RESOURCE_1);
         createXADataSource();
         testResource = new TestResource();
         cleanUpXAResource(testResource.getXaResource());
@@ -39,19 +39,19 @@ public class XAPlusRecoverIntegrationTest extends XAPlusIntegrationTest {
         List<OneBranchTransaction> transactions = new ArrayList<>();
         // Transactions by SERVER_ID_1
         for (int i = 0; i < count; i++) {
-            OneBranchTransaction transaction = new OneBranchTransaction(SERVER_ID_1);
+            OneBranchTransaction transaction = new OneBranchTransaction(XA_PLUS_RESOURCE_1);
             danglingByServer1.add(transaction.getBranchXid());
             transactions.add(transaction);
         }
         // Transactions by SERVER_ID_2
         for (int i = 0; i < count; i++) {
-            OneBranchTransaction transaction = new OneBranchTransaction(SERVER_ID_2);
+            OneBranchTransaction transaction = new OneBranchTransaction(XA_PLUS_RESOURCE_2);
             danglingByServer2.add(transaction.getBranchXid());
             transactions.add(transaction);
         }
         // Transactions by SERVER_ID_3
         for (int i = 0; i < count; i++) {
-            OneBranchTransaction transaction = new OneBranchTransaction(SERVER_ID_3);
+            OneBranchTransaction transaction = new OneBranchTransaction(XA_PLUS_RESOURCE_3);
             danglingByServer3.add(transaction.getBranchXid());
             transactions.add(transaction);
         }
@@ -60,9 +60,9 @@ public class XAPlusRecoverIntegrationTest extends XAPlusIntegrationTest {
             prepareTransaction(transaction);
             transaction.close();
         }
-        testRecoveryFor(SERVER_ID_1, danglingByServer1);
-        testRecoveryFor(SERVER_ID_2, danglingByServer2);
-        testRecoveryFor(SERVER_ID_3, danglingByServer3);
+        testRecoveryFor(XA_PLUS_RESOURCE_1, danglingByServer1);
+        testRecoveryFor(XA_PLUS_RESOURCE_2, danglingByServer2);
+        testRecoveryFor(XA_PLUS_RESOURCE_3, danglingByServer3);
     }
 
     private void testRecoveryFor(String serverId, List<XAPlusXid> expectedXids) throws XAException {

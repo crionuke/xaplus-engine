@@ -36,7 +36,7 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(SERVER_ID_DEFAULT);
+        createXAPlusComponents(XA_PLUS_RESOURCE_1);
 
         xaPlusPreparerService = new XAPlusPreparerService(properties, threadPool, dispatcher);
         xaPlusPreparerService.postConstruct();
@@ -177,7 +177,7 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
 
     @Test
     public void testRemoteSuperiorOrderToRollback() throws InterruptedException {
-        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_1);
+        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
         dispatcher.dispatch(new XAPlusPrepareTransactionEvent(transaction));
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(transaction.getXid()));
         XAPlusRollbackRequestEvent event = rollbackRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);

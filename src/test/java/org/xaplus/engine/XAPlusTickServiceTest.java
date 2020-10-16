@@ -22,7 +22,7 @@ public class XAPlusTickServiceTest extends XAPlusTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(SERVER_ID_DEFAULT);
+        createXAPlusComponents(XA_PLUS_RESOURCE_1);
 
         xaPlusTickService = new XAPlusTickService(threadPool, dispatcher);
         xaPlusTickService.postConstruct();
