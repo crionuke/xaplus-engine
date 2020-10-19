@@ -6,9 +6,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.XAPlusPrepareTransactionEvent;
+import org.xaplus.engine.events.XAPlusRollbackRequestEvent;
+import org.xaplus.engine.events.XAPlusTransactionPreparedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
+import org.xaplus.engine.events.xa.XAPlusBranchPreparedEvent;
+import org.xaplus.engine.events.xa.XAPlusPrepareBranchFailedEvent;
+import org.xaplus.engine.events.xa.XAPlusPrepareBranchRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateReadyEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
 import org.xaplus.engine.stubs.XAPlusResourceStub;
@@ -60,7 +65,7 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
     public void test2pcRequest() throws InterruptedException, SQLException, XAException {
         // Create transaction and branches for xa and xa+ resources
         Set<XAPlusXid> branches = new HashSet<>();
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid bxid1 = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(),
                 properties.getServerId());
         transaction.enlist(bxid1, "db1", new XAResourceStub());
@@ -96,7 +101,7 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
     public void testPrepareTransaction() throws InterruptedException, SQLException, XAException {
         // Create transaction and branches for xa and xa+ resources
         Set<XAPlusXid> branches = new HashSet<>();
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid bxid1 = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(),
                 properties.getServerId());
         transaction.enlist(bxid1, "db1", new XAResourceStub());
@@ -131,7 +136,7 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
     @Test
     public void testTransactionPrepared() throws InterruptedException {
         // Create transaction and branches for xa and xa+ resources
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid bxid1 = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(),
                 properties.getServerId());
         transaction.enlist(bxid1, "db1", new XAResourceStub());
@@ -159,7 +164,7 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
     @Test
     public void testPrepareBranchFailed() throws InterruptedException {
         // Create transaction and branch for xa resource
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid bxid1 = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(),
                 properties.getServerId());
         transaction.enlist(bxid1, "db1", new XAResourceStub());
@@ -177,7 +182,7 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
 
     @Test
     public void testRemoteSuperiorOrderToRollback() throws InterruptedException {
-        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
         dispatcher.dispatch(new XAPlusPrepareTransactionEvent(transaction));
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(transaction.getXid()));
         XAPlusRollbackRequestEvent event = rollbackRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);

@@ -23,12 +23,12 @@ public class ConnectionStub implements Connection {
         return null;
     }
 
-    @Override public void setAutoCommit(boolean autoCommit) throws SQLException {
-
-    }
-
     @Override public boolean getAutoCommit() throws SQLException {
         return false;
+    }
+
+    @Override public void setAutoCommit(boolean autoCommit) throws SQLException {
+
     }
 
     @Override public void commit() throws SQLException {
@@ -51,15 +51,11 @@ public class ConnectionStub implements Connection {
         return null;
     }
 
-    @Override public void setReadOnly(boolean readOnly) throws SQLException {
-
-    }
-
     @Override public boolean isReadOnly() throws SQLException {
         return false;
     }
 
-    @Override public void setCatalog(String catalog) throws SQLException {
+    @Override public void setReadOnly(boolean readOnly) throws SQLException {
 
     }
 
@@ -67,12 +63,16 @@ public class ConnectionStub implements Connection {
         return null;
     }
 
-    @Override public void setTransactionIsolation(int level) throws SQLException {
+    @Override public void setCatalog(String catalog) throws SQLException {
 
     }
 
     @Override public int getTransactionIsolation() throws SQLException {
         return 0;
+    }
+
+    @Override public void setTransactionIsolation(int level) throws SQLException {
+
     }
 
     @Override public SQLWarning getWarnings() throws SQLException {
@@ -103,12 +103,12 @@ public class ConnectionStub implements Connection {
 
     }
 
-    @Override public void setHoldability(int holdability) throws SQLException {
-
-    }
-
     @Override public int getHoldability() throws SQLException {
         return 0;
+    }
+
+    @Override public void setHoldability(int holdability) throws SQLException {
+
     }
 
     @Override public Savepoint setSavepoint() throws SQLException {
@@ -175,16 +175,16 @@ public class ConnectionStub implements Connection {
 
     }
 
-    @Override public void setClientInfo(Properties properties) throws SQLClientInfoException {
-
-    }
-
     @Override public String getClientInfo(String name) throws SQLException {
         return null;
     }
 
     @Override public Properties getClientInfo() throws SQLException {
         return null;
+    }
+
+    @Override public void setClientInfo(Properties properties) throws SQLClientInfoException {
+
     }
 
     @Override public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
@@ -195,12 +195,12 @@ public class ConnectionStub implements Connection {
         return null;
     }
 
-    @Override public void setSchema(String schema) throws SQLException {
-
-    }
-
     @Override public String getSchema() throws SQLException {
         return null;
+    }
+
+    @Override public void setSchema(String schema) throws SQLException {
+
     }
 
     @Override public void abort(Executor executor) throws SQLException {

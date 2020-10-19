@@ -118,7 +118,7 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
 
     private class ConsumerStub extends Bolt implements
             XAPlus2pcRequestEvent.Handler,
-            XAPlusRollbackRequestEvent.Handler{
+            XAPlusRollbackRequestEvent.Handler {
 
 
         ConsumerStub() {

@@ -13,7 +13,8 @@ public class XAPlusDoc {
 
     private XAPlusRollbackService rollbackService;
 
-    private XAPlusRecoveryService recoveryService;
+    private XAPlusRecoveryPreparerService recoveryPreparerService;
+    private XAPlusRecoveryCommitterService recoveryCommitterService;
 
     private XAPlusJournalService journalService;
 

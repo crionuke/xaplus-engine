@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.recovery.*;
+import org.xaplus.engine.events.xa.*;
 
 import javax.annotation.PostConstruct;
 import javax.transaction.xa.XAException;
@@ -20,8 +22,6 @@ class XAPlusService extends Bolt implements
         XAPlusPrepareBranchRequestEvent.Handler,
         XAPlusCommitBranchRequestEvent.Handler,
         XAPlusRollbackBranchRequestEvent.Handler,
-        XAPlusRetryCommitBranchRequestEvent.Handler,
-        XAPlusRetryRollbackBranchRequestEvent.Handler,
         XAPlusRetryCommitOrderRequestEvent.Handler,
         XAPlusRetryRollbackOrderRequestEvent.Handler,
         XAPlusCommitRecoveredXidRequestEvent.Handler,
@@ -125,51 +125,6 @@ class XAPlusService extends Bolt implements
                 logger.warn("Rollback branch with xid={} failed with {}", branchXid, rollingBackException.getMessage());
             }
             dispatcher.dispatch(new XAPlusRollbackBranchFailedEvent(xid, branchXid, rollingBackException));
-        }
-    }
-
-    @Override
-    public void handleRetryCommitBranchRequest(XAPlusRetryCommitBranchRequestEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid branchXid = event.getBranchXid();
-        XAResource resource = event.getResource();
-        try {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Retrying commit branch with xid={}", branchXid);
-            }
-            resource.commit(branchXid, false);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Retry commit branch with xid={} completed", branchXid);
-            }
-        } catch (XAException commitException) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Retry commit branch with xid={} failed with {}", branchXid, commitException);
-            }
-        }
-    }
-
-    @Override
-    public void handleRetryRollbackBranchRequest(XAPlusRetryRollbackBranchRequestEvent event)
-            throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid branchXid = event.getBranchXid();
-        XAResource resource = event.getResource();
-        try {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Retrying rollback branch with xid={}", branchXid);
-            }
-            resource.rollback(branchXid);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Retry rollback branch with xid={} completed", branchXid);
-            }
-        } catch (XAException rollbackException) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Retry rollback branch with xid={} failed with {}", branchXid, rollbackException);
-            }
         }
     }
 
@@ -443,8 +398,6 @@ class XAPlusService extends Bolt implements
         dispatcher.subscribe(this, XAPlusPrepareBranchRequestEvent.class);
         dispatcher.subscribe(this, XAPlusCommitBranchRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackBranchRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusRetryCommitBranchRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusRetryRollbackBranchRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRetryCommitOrderRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRetryRollbackOrderRequestEvent.class);
         dispatcher.subscribe(this, XAPlusCommitRecoveredXidRequestEvent.class);

@@ -4,8 +4,12 @@ import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.XAPlusReportDoneStatusRequestEvent;
 import org.xaplus.engine.events.journal.*;
+import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionCommittedEvent;
+import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionRolledBackEvent;
+import org.xaplus.engine.events.recovery.XAPlusRecoveredXidCommittedEvent;
+import org.xaplus.engine.events.recovery.XAPlusRecoveredXidRolledBackEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 
 import javax.annotation.PostConstruct;
@@ -27,7 +31,8 @@ class XAPlusJournalService extends Bolt implements
         XAPlusDanglingTransactionCommittedEvent.Handler,
         XAPlusDanglingTransactionRolledBackEvent.Handler,
         XAPlus2pcDoneEvent.Handler,
-        XAPlusFindDanglingTransactionsRequestEvent.Handler {
+        XAPlusFindDanglingTransactionsRequestEvent.Handler,
+        XAPlusReportTransactionStatusRequestEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusJournalService.class);
 
     private final XAPlusProperties properties;
@@ -255,6 +260,26 @@ class XAPlusJournalService extends Bolt implements
         }
     }
 
+    @Override
+    public void handleReportTransactionStatusRequest(XAPlusReportTransactionStatusRequestEvent event)
+            throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        try {
+            XAPlusXid xid = event.getXid();
+            boolean completed = tlog.isTransactionCompleted(xid);
+            if (completed) {
+                XAPlusResource resource = event.getXaPlusResource();
+                dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
+            }
+        } catch (SQLException e) {
+            if (logger.isWarnEnabled()) {
+                logger.warn("Find transaction status from journal failed with {}", e.getMessage());
+            }
+        }
+    }
+
     @PostConstruct
     void postConstruct() {
         threadPool.execute(this);
@@ -268,5 +293,6 @@ class XAPlusJournalService extends Bolt implements
         dispatcher.subscribe(this, XAPlusDanglingTransactionRolledBackEvent.class);
         dispatcher.subscribe(this, XAPlus2pcDoneEvent.class);
         dispatcher.subscribe(this, XAPlusFindDanglingTransactionsRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusReportTransactionStatusRequestEvent.class);
     }
 }

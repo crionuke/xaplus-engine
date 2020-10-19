@@ -8,6 +8,7 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.recovery.*;
 import org.xaplus.engine.stubs.XAPlusResourceStub;
 
 import javax.transaction.xa.XAException;
@@ -61,7 +62,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testCommitRecoveredXidRequestSuccessfully() throws InterruptedException, XAException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid branchXid = createJdbcXid(transaction);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(branchXid, xaPlusResourceMock, XA_RESOURCE_1));
@@ -75,7 +76,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testCommitRecoveredXidRequestXAERNOTA() throws InterruptedException, XAException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid branchXid = createJdbcXid(transaction);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         Mockito.doThrow(new XAException(XAException.XAER_NOTA))
@@ -90,7 +91,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testCommitRecoveredXidRequestXAHEURCOM() throws InterruptedException, XAException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid branchXid = createJdbcXid(transaction);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         Mockito.doThrow(new XAException(XAException.XA_HEURCOM))
@@ -109,7 +110,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testCommitRecoveredXidRequestXAHEURHAZ() throws InterruptedException, XAException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid branchXid = createJdbcXid(transaction);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         Mockito.doThrow(new XAException(XAException.XA_HEURHAZ))
@@ -128,7 +129,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testCommitRecoveredXidRequestUnknown() throws InterruptedException, XAException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid branchXid = createJdbcXid(transaction);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         Mockito.doThrow(new XAException(XAException.XA_RBROLLBACK))
@@ -143,7 +144,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testRollbackRecoveredXidRequestSuccessfully() throws InterruptedException, XAException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid branchXid = createJdbcXid(transaction);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(branchXid, xaPlusResourceMock, XA_RESOURCE_1));
@@ -157,7 +158,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testRollbackRecoveredXidRequestXAERNOTA() throws InterruptedException, XAException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid branchXid = createJdbcXid(transaction);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         Mockito.doThrow(new XAException(XAException.XAER_NOTA))
@@ -172,7 +173,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testRollbackRecoveredXidRequestXAHEURRB() throws InterruptedException, XAException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid branchXid = createJdbcXid(transaction);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         Mockito.doThrow(new XAException(XAException.XA_HEURRB))
@@ -191,7 +192,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testRollbackRecoveredXidRequestXAHEURHAZ() throws InterruptedException, XAException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid branchXid = createJdbcXid(transaction);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         Mockito.doThrow(new XAException(XAException.XA_HEURHAZ))
@@ -210,7 +211,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testRollbackRecoveredXidRequestUnknown() throws InterruptedException, XAException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid branchXid = createJdbcXid(transaction);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         Mockito.doThrow(new XAException(XAException.XA_RBROLLBACK))
@@ -225,7 +226,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testReportReadyStatusRequestEventSuccessfully() throws InterruptedException, XAPlusException {
-        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
         Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).ready(transaction.getXid());
@@ -236,7 +237,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testReportReadyStatusRequestEventFailed() throws InterruptedException, XAPlusException {
-        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         Mockito.doThrow(new XAPlusException("ready_exception")).when(xaPlusResourceMock).ready(transaction.getXid());
         dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
@@ -248,7 +249,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testReportDoneStatusRequestSuccessfully() throws InterruptedException, XAPlusException {
-        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
         Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).done(transaction.getXid());
@@ -259,7 +260,7 @@ public class XAPlusServiceTest extends XAPlusTest {
 
     @Test
     public void testReportDoneStatusRequestFailed() throws InterruptedException, XAPlusException {
-        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         Mockito.doThrow(new XAPlusException("done_exception")).when(xaPlusResourceMock).done(transaction.getXid());
         dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
@@ -272,7 +273,7 @@ public class XAPlusServiceTest extends XAPlusTest {
     @Test
     public void testRetryFromSuperiorRequestSuccessfully() throws InterruptedException, XAPlusException {
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
-        dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(xaPlusResourceMock));
+        dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(XA_PLUS_RESOURCE_1, xaPlusResourceMock));
         Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).retry(properties.getServerId());
     }
 
@@ -281,7 +282,7 @@ public class XAPlusServiceTest extends XAPlusTest {
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         Mockito.doThrow(new XAPlusException("retry_exception"))
                 .when(xaPlusResourceMock).retry(properties.getServerId());
-        dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(xaPlusResourceMock));
+        dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(XA_PLUS_RESOURCE_1, xaPlusResourceMock));
         Thread.sleep(1000);
     }
 

@@ -4,20 +4,23 @@ import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.XAPlusCommitTransactionEvent;
+import org.xaplus.engine.events.XAPlusTimeoutEvent;
+import org.xaplus.engine.events.XAPlusTransactionPreparedEvent;
 import org.xaplus.engine.events.journal.XAPlusCommitTransactionDecisionLoggedEvent;
 import org.xaplus.engine.events.journal.XAPlusLogCommitTransactionDecisionEvent;
 import org.xaplus.engine.events.journal.XAPlusLogCommitTransactionDecisionFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
+import org.xaplus.engine.events.xa.XAPlusBranchCommittedEvent;
+import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
+import org.xaplus.engine.events.xa.XAPlusCommitBranchRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
 
 import javax.annotation.PostConstruct;
 import javax.transaction.xa.XAResource;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)

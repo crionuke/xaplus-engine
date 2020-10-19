@@ -26,7 +26,7 @@ public class XAPlusThreadContextTest extends XAPlusTest {
 
     @Test
     public void testThreadContext() {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         threadContext.setTransaction(transaction);
         assertTrue(threadContext.hasTransaction());
         assertEquals(transaction, threadContext.getTransaction());

@@ -46,10 +46,9 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
 
     @Test
     public void test2pcTimeout() throws InterruptedException {
-        int timeout = 1000;
-        XAPlusTransaction transaction = createSuperiorTransaction(timeout / 1000);
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
-        Thread.sleep(timeout);
+        Thread.sleep(properties.getDefaultTimeoutInSeconds() * 1000);
         dispatcher.dispatch(new XAPlusTickEvent(1));
         XAPlusTimeoutEvent timeoutEvent = timeoutEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timeoutEvent);
@@ -59,10 +58,9 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
 
     @Test
     public void testRollbackTimeout() throws InterruptedException {
-        int timeout = 1000;
-        XAPlusTransaction transaction = createSuperiorTransaction(timeout / 1000);
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
-        Thread.sleep(timeout);
+        Thread.sleep(properties.getDefaultTimeoutInSeconds() * 1000);
         dispatcher.dispatch(new XAPlusTickEvent(1));
         XAPlusTimeoutEvent timeoutEvent = timeoutEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timeoutEvent);
@@ -71,8 +69,8 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void test2pcRequestDone() throws InterruptedException  {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+    public void test2pcRequestDone() throws InterruptedException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
         dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
         XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -82,8 +80,8 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void test2pcRequestFailed() throws InterruptedException  {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+    public void test2pcRequestFailed() throws InterruptedException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
         dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, new Exception("2pc failed")));
         XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -93,8 +91,8 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void testRollbackRequestDone() throws InterruptedException  {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+    public void testRollbackRequestDone() throws InterruptedException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
         dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
         XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -105,9 +103,9 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
 
     @Test
     public void testRollbackRequestFailed() throws InterruptedException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
-        dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction,  new Exception("rollback failed")));
+        dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction, new Exception("rollback failed")));
         XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timerCancelledEvent);
         assertEquals(timerCancelledEvent.getTransaction().getXid(), transaction.getXid());

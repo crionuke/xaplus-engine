@@ -9,19 +9,28 @@ import org.xaplus.engine.XAPlusResource;
  */
 public final class XAPlusRetryFromSuperiorRequestEvent extends Event<XAPlusRetryFromSuperiorRequestEvent.Handler> {
 
+    private final String serverId;
     private final XAPlusResource resource;
 
-    public XAPlusRetryFromSuperiorRequestEvent(XAPlusResource resource) {
+    public XAPlusRetryFromSuperiorRequestEvent(String serverId, XAPlusResource resource) {
         super();
+        if (serverId == null) {
+            throw new NullPointerException("serverId is null");
+        }
         if (resource == null) {
             throw new NullPointerException("resource is null");
         }
+        this.serverId = serverId;
         this.resource = resource;
     }
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
         handler.handleRetryFromSuperiorRequest(this);
+    }
+
+    public String getServerId() {
+        return serverId;
     }
 
     public XAPlusResource getResource() {

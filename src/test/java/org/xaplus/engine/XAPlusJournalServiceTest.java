@@ -7,8 +7,11 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.*;
 import org.xaplus.engine.events.journal.*;
+import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionCommittedEvent;
+import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionRolledBackEvent;
+import org.xaplus.engine.events.recovery.XAPlusRecoveredXidCommittedEvent;
+import org.xaplus.engine.events.recovery.XAPlusRecoveredXidRolledBackEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 
 import java.sql.SQLException;
@@ -109,7 +112,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
     @Test
     public void testLogCommitRecoveredXidDecisionSuccessfully() throws InterruptedException {
         String uniqueName = XA_RESOURCE_1;
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusLogCommitRecoveredXidDecisionEvent(transaction.getXid(), uniqueName));
         XAPlusCommitRecoveredXidDecisionLoggedEvent event = commitRecoveredXidDecisionLoggedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -121,7 +124,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
     @Test
     public void testLogRollbackRecoveredXidDecisionSuccessfully() throws InterruptedException {
         String uniqueName = XA_RESOURCE_1;
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusLogRollbackRecoveredXidDecisionEvent(transaction.getXid(), uniqueName));
         XAPlusRollbackRecoveredXidDecisionLoggedEvent event = rollbackRecoveredXidDecisionLoggedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -133,7 +136,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
     @Test
     public void testRecoveredXidCommitted() throws InterruptedException, SQLException {
         String uniqueName = XA_RESOURCE_1;
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusRecoveredXidCommittedEvent(transaction.getXid(), uniqueName));
         Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS)).logXidCommitted(transaction.getXid(), uniqueName);
     }
@@ -141,7 +144,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
     @Test
     public void testRecoveredXidRolledBack() throws InterruptedException, SQLException {
         String uniqueName = XA_RESOURCE_1;
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusRecoveredXidRolledBackEvent(transaction.getXid(), uniqueName));
         Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS)).logXidRolledBack(transaction.getXid(), uniqueName);
     }
@@ -149,7 +152,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
     @Test
     public void testDanglingTransactionCommitted() throws InterruptedException, SQLException {
         String uniqueName = XA_RESOURCE_1;
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusDanglingTransactionCommittedEvent(transaction.getXid(), uniqueName));
         Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS)).logXidCommitted(transaction.getXid(), uniqueName);
     }
@@ -157,14 +160,14 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
     @Test
     public void testDanglingTransactionRolledBack() throws InterruptedException, SQLException {
         String uniqueName = XA_RESOURCE_1;
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusDanglingTransactionRolledBackEvent(transaction.getXid(), uniqueName));
         Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS)).logXidRolledBack(transaction.getXid(), uniqueName);
     }
 
     @Test
     public void test2pcDone() throws InterruptedException, SQLException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
         Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS)).logTransactionCommitted(transaction);
     }

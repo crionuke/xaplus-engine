@@ -10,7 +10,9 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 public class XAPlusRecoverIntegrationTest extends XAPlusIntegrationTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoverIntegrationTest.class);

@@ -6,8 +6,8 @@
         </encoder>
     </appender>
 
-    <logger name="com.crionuke.bolts" level="TRACE" />
-    <logger name="org.xaplus.engine" level="TRACE" />
+    <logger name="com.crionuke.bolts" level="TRACE"/>
+    <logger name="org.xaplus.engine" level="TRACE"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

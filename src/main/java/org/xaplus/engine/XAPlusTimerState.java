@@ -23,7 +23,6 @@ final class XAPlusTimerState {
         Iterator<Map.Entry<XAPlusXid, XAPlusTransaction>> iterator = transactions.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<XAPlusXid, XAPlusTransaction> entry = iterator.next();
-            XAPlusXid xid = entry.getKey();
             XAPlusTransaction transaction = entry.getValue();
             if (time >= transaction.getExpireTimeInMillis()) {
                 expired.add(transaction);

@@ -47,8 +47,8 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusTest {
 
     @Test
     public void testFirst2pcRequestAfterPrepareOrder() throws InterruptedException {
-        XAPlusTransaction transaction1 = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
-        XAPlusTransaction transaction2 = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
+        XAPlusTransaction transaction1 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
+        XAPlusTransaction transaction2 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
         // Send 2pc request
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction1));
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction2));
@@ -62,8 +62,8 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusTest {
 
     @Test
     public void testFirstPrepareOrderAfter2pcRequest() throws InterruptedException {
-        XAPlusTransaction transaction1 = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
-        XAPlusTransaction transaction2 = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
+        XAPlusTransaction transaction1 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
+        XAPlusTransaction transaction2 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
         // Send order to prepare only for one transaction
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(transaction2.getXid()));
         // Send 2pc request
@@ -77,7 +77,7 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusTest {
 
     @Test
     public void testRemoteSuperiorOrderToRollback() throws InterruptedException {
-        XAPlusTransaction transaction = createSubordinateTransaction(XA_PLUS_RESOURCE_2);
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(transaction.getXid()));
         XAPlusRollbackRequestEvent event = rollbackRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);

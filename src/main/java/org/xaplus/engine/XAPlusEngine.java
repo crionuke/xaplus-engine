@@ -3,7 +3,7 @@ package org.xaplus.engine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.xaplus.engine.events.XAPlusRecoveryRequestEvent;
+import org.xaplus.engine.events.recovery.XAPlusRecoveryRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 

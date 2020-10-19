@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.journal.XAPlusReportTransactionStatusRequestEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToCommitEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
@@ -77,6 +78,17 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             dispatcher.dispatch(new XAPlusCommitTransactionEvent(transaction));
+        } else {
+            String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
+            try {
+                XAPlusResource xaPlusResource = resources.getXAPlusResource(superiorServerId);
+                dispatcher.dispatch(new XAPlusReportTransactionStatusRequestEvent(xaPlusResource, xid));
+            } catch (XAPlusSystemException e) {
+                if (logger.isErrorEnabled()) {
+                    logger.error("Internal error. Report transaction status for non XA+ " +
+                            "or unknown resource with name={}", superiorServerId);
+                }
+            }
         }
     }
 

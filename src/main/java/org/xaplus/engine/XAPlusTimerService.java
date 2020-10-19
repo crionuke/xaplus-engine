@@ -10,7 +10,7 @@ import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
 
 import javax.annotation.PostConstruct;
-import java.util.*;
+import java.util.List;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)

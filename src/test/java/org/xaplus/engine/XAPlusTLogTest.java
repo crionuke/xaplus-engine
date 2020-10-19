@@ -38,7 +38,7 @@ public class XAPlusTLogTest extends XAPlusTest {
 
     @Test
     public void testLogCommitXidDecision() throws SQLException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid bxid = createJdbcXid(transaction);
         tLog.logCommitXidDecision(bxid, XA_RESOURCE_1);
         TLogRecord record = selectTLogRecords().get(0);
@@ -52,7 +52,7 @@ public class XAPlusTLogTest extends XAPlusTest {
 
     @Test
     public void testLogXidCommitted() throws SQLException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid bxid = createJdbcXid(transaction);
         tLog.logXidCommitted(bxid, XA_RESOURCE_1);
         TLogRecord record = selectTLogRecords().get(0);
@@ -66,7 +66,7 @@ public class XAPlusTLogTest extends XAPlusTest {
 
     @Test
     public void testLogRollbackXidDecision() throws SQLException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid bxid = createJdbcXid(transaction);
         tLog.logRollbackXidDecision(bxid, XA_RESOURCE_1);
         TLogRecord record = selectTLogRecords().get(0);
@@ -80,7 +80,7 @@ public class XAPlusTLogTest extends XAPlusTest {
 
     @Test
     public void testLogXidRolledBack() throws SQLException {
-        XAPlusTransaction transaction = createSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid bxid = createJdbcXid(transaction);
         tLog.logXidRolledBack(bxid, XA_RESOURCE_1);
         TLogRecord record = selectTLogRecords().get(0);
@@ -184,7 +184,7 @@ public class XAPlusTLogTest extends XAPlusTest {
         try (Connection connection = engine.getTlogDataSource().getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(XAPlusTLog.SELECT_SQL)) {
                 try (ResultSet resultSet = statement.executeQuery()) {
-                    while(resultSet.next()) {
+                    while (resultSet.next()) {
                         String serverId = resultSet.getString(1);
                         byte[] gtridBytes = resultSet.getBytes(2);
                         XAPlusUid gtridUid = new XAPlusUid(gtridBytes);

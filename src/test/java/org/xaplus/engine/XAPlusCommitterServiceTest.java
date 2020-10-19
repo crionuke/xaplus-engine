@@ -6,12 +6,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.XAPlusCommitTransactionEvent;
+import org.xaplus.engine.events.XAPlusTransactionPreparedEvent;
 import org.xaplus.engine.events.journal.XAPlusCommitTransactionDecisionLoggedEvent;
 import org.xaplus.engine.events.journal.XAPlusLogCommitTransactionDecisionEvent;
 import org.xaplus.engine.events.journal.XAPlusLogCommitTransactionDecisionFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
+import org.xaplus.engine.events.xa.XAPlusBranchCommittedEvent;
+import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
+import org.xaplus.engine.events.xa.XAPlusCommitBranchRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
 
 import java.util.HashSet;
@@ -134,7 +138,7 @@ public class XAPlusCommitterServiceTest extends XAPlusTest {
             XAPlusLogCommitTransactionDecisionEvent.Handler,
             XAPlusCommitBranchRequestEvent.Handler,
             XAPlus2pcFailedEvent.Handler,
-            XAPlus2pcDoneEvent.Handler{
+            XAPlus2pcDoneEvent.Handler {
 
         ConsumerStub() {
             super("stub-consumer", QUEUE_SIZE);

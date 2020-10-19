@@ -15,29 +15,52 @@ import java.util.Map;
  */
 @Component
 class XAPlusTLog {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusTLog.class);
-
     static final String DANGLING_SQL = "SELECT t_gtrid, t_bqual, t_unique_name, t_status " +
             "FROM tlog WHERE t_server_id=? " +
             "GROUP BY t_bqual, t_gtrid, t_unique_name, t_status " +
-            "HAVING COUNT(*) = 1;";
-
+            "HAVING COUNT(*) = 1";
+    static final String COMPLETED_SQL = "SELECT COUNT(*) FROM tlog " +
+            "WHERE t_gtrid=? t_bqual=? " +
+            "GROUP BY t_gtrid, t_bqual " +
+            "HAVING COUNT(*) = 2";
     static final String SELECT_SQL = "SELECT t_server_id, t_gtrid, t_bqual, t_unique_name, t_status, t_complete " +
             "FROM tlog";
-
     static final String INSERT_SQL = "INSERT INTO tlog " +
             "(t_timestamp, t_server_id, t_gtrid, t_bqual, t_unique_name, t_status, t_complete) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-    int FETCH_SIZE = 50;
-
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusTLog.class);
     private final XAPlusProperties properties;
     private final XAPlusEngine engine;
+    int FETCH_SIZE = 50;
 
     XAPlusTLog(XAPlusProperties properties, XAPlusEngine engine) {
         this.properties = properties;
         this.engine = engine;
     }
+
+    boolean isTransactionCompleted(XAPlusXid xid) throws SQLException {
+        DataSource tlogDataSource = engine.getTlogDataSource();
+        try (Connection connection = tlogDataSource.getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(COMPLETED_SQL)) {
+                statement.setBytes(1, xid.getGlobalTransactionId());
+                statement.setBytes(2, xid.getBranchQualifier());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Transaction with xid={} completed", xid);
+                        }
+                        return true;
+                    } else {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Transaction with xid={} not found", xid);
+                        }
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
 
     Map<String, Map<XAPlusXid, Boolean>> findDanglingTransactions() throws SQLException {
         DataSource tlogDataSource = engine.getTlogDataSource();
