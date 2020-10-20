@@ -37,6 +37,45 @@ public class XAPlusTLogTest extends XAPlusTest {
     }
 
     @Test
+    public void testIsTransactionCompleted() throws SQLException {
+        XAPlusTransaction transaction1 = createTestSuperiorTransaction();
+        XAPlusTransaction transaction2 = createTestSuperiorTransaction();
+        XAPlusTransaction transaction3 = createTestSuperiorTransaction();
+        tLog.logCommitTransactionDecision(transaction1);
+        tLog.logRollbackTransactionDecision(transaction2);
+        tLog.logTransactionCommitted(transaction1);
+        tLog.logRollbackTransactionDecision(transaction3);
+        tLog.logTransactionRolledBack(transaction3);
+        assertEquals(true, tLog.isTransactionCompleted(transaction1.getXid()));
+        assertEquals(false, tLog.isTransactionCompleted(transaction2.getXid()));
+        assertEquals(true, tLog.isTransactionCompleted(transaction3.getXid()));
+    }
+
+    @Test
+    public void testFindDanglingTransactions() throws SQLException {
+        XAPlusTransaction transaction1 = createTestSuperiorTransaction();
+        XAPlusTransaction transaction2 = createTestSuperiorTransaction();
+        XAPlusTransaction transaction3 = createTestSuperiorTransaction();
+        Map<XAPlusXid, String> uniqueNames2 = transaction2.getUniqueNames();
+        tLog.logCommitTransactionDecision(transaction1);
+        tLog.logRollbackTransactionDecision(transaction2);
+        tLog.logTransactionCommitted(transaction1);
+        tLog.logRollbackTransactionDecision(transaction3);
+        tLog.logTransactionRolledBack(transaction3);
+        Map<String, Map<XAPlusXid, Boolean>> danglingTransactions =
+                tLog.findDanglingTransactions(System.currentTimeMillis());
+        for (Map.Entry<String, Map<XAPlusXid, Boolean>> entry : danglingTransactions.entrySet()) {
+            String uniqueName = entry.getKey();
+            Map<XAPlusXid, Boolean> branches = entry.getValue();
+            assertTrue(uniqueNames2.containsValue(uniqueName));
+            for (XAPlusXid branchXid : branches.keySet()) {
+                assertTrue(uniqueNames2.containsKey(branchXid));
+            }
+        }
+        assertEquals(danglingTransactions.size(), uniqueNames2.size());
+    }
+
+    @Test
     public void testLogCommitXidDecision() throws SQLException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid bxid = createJdbcXid(transaction);
@@ -154,29 +193,6 @@ public class XAPlusTLogTest extends XAPlusTest {
             assertEquals(true, record.isComplete());
         }
         assertEquals(uniqueNames.size(), records.size());
-    }
-
-    @Test
-    public void testFindDanglingTransactions() throws SQLException {
-        XAPlusTransaction transaction1 = createTestSuperiorTransaction();
-        XAPlusTransaction transaction2 = createTestSuperiorTransaction();
-        XAPlusTransaction transaction3 = createTestSuperiorTransaction();
-        Map<XAPlusXid, String> uniqueNames2 = transaction2.getUniqueNames();
-        tLog.logCommitTransactionDecision(transaction1);
-        tLog.logRollbackTransactionDecision(transaction2);
-        tLog.logTransactionCommitted(transaction1);
-        tLog.logRollbackTransactionDecision(transaction3);
-        tLog.logTransactionRolledBack(transaction3);
-        Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = tLog.findDanglingTransactions();
-        for (Map.Entry<String, Map<XAPlusXid, Boolean>> entry : danglingTransactions.entrySet()) {
-            String uniqueName = entry.getKey();
-            Map<XAPlusXid, Boolean> branches = entry.getValue();
-            assertTrue(uniqueNames2.containsValue(uniqueName));
-            for (XAPlusXid branchXid : branches.keySet()) {
-                assertTrue(uniqueNames2.containsKey(branchXid));
-            }
-        }
-        assertEquals(danglingTransactions.size(), uniqueNames2.size());
     }
 
     List<TLogRecord> selectTLogRecords() throws SQLException {

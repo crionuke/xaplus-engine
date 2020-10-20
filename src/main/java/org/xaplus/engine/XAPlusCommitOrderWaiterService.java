@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.*;
-import org.xaplus.engine.events.journal.XAPlusReportTransactionStatusRequestEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToCommitEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
@@ -29,7 +28,7 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
     private final XAPlusResources resources;
-    private final XAPlusTracker tracker;
+    private final XAPlusTransactionsTracker tracker;
 
     XAPlusCommitOrderWaiterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
                                    XAPlusDispatcher dispatcher, XAPlusResources resources) {
@@ -37,7 +36,7 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.resources = resources;
-        tracker = new XAPlusTracker();
+        tracker = new XAPlusTransactionsTracker();
     }
 
     @Override
@@ -55,15 +54,15 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
                     dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(xid, resource));
                 } catch (XAPlusSystemException readyException) {
                     if (logger.isWarnEnabled()) {
-                        logger.warn("Subordinate transaction with xid={} failed as {}",
-                                transaction.getXid(), readyException.getMessage());
+                        logger.warn("Subordinate transaction failed as {}, {}",
+                                readyException.getMessage(), transaction);
                     }
                     dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, readyException));
                 }
             }
         } else {
             if (logger.isTraceEnabled()) {
-                logger.trace("Transaction {} is not subordinate, skip", transaction);
+                logger.trace("Transaction is not subordinate, {}", transaction);
             }
         }
     }
@@ -78,17 +77,6 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             dispatcher.dispatch(new XAPlusCommitTransactionEvent(transaction));
-        } else {
-            String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
-            try {
-                XAPlusResource xaPlusResource = resources.getXAPlusResource(superiorServerId);
-                dispatcher.dispatch(new XAPlusReportTransactionStatusRequestEvent(xaPlusResource, xid));
-            } catch (XAPlusSystemException e) {
-                if (logger.isErrorEnabled()) {
-                    logger.error("Internal error. Report transaction status for non XA+ " +
-                            "or unknown resource with name={}", superiorServerId);
-                }
-            }
         }
     }
 
@@ -101,7 +89,7 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled for xid={} as transaction failed", xid);
+                logger.debug("2pc protocol cancelled as transaction failed, {}", transaction);
             }
         }
     }
@@ -115,7 +103,7 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled for xid={} as transaction timed out", xid);
+                logger.debug("2pc protocol cancelled as transaction timed out, {}", transaction);
             }
         }
     }
@@ -130,7 +118,7 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled for xid={} as got order to rollback", xid);
+                logger.debug("2pc protocol cancelled as got order to rollback, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
         }

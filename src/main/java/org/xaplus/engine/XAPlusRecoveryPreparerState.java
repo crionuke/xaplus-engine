@@ -100,8 +100,7 @@ class XAPlusRecoveryPreparerState {
         return danglingTransactions;
     }
 
-    void reset() {
-        started = false;
+    void close() {
         for (String uniqueName : jdbcConnections.keySet()) {
             javax.sql.XAConnection connection = jdbcConnections.get(uniqueName);
             try {
@@ -112,7 +111,6 @@ class XAPlusRecoveryPreparerState {
                 }
             }
         }
-        jdbcConnections.clear();
         for (String uniqueName : jmsConnections.keySet()) {
             javax.jms.XAConnection connection = jmsConnections.get(uniqueName);
             try {
@@ -123,6 +121,11 @@ class XAPlusRecoveryPreparerState {
                 }
             }
         }
+    }
+
+    void reset() {
+        started = false;
+        jdbcConnections.clear();
         jmsConnections.clear();
         xaResources.clear();
         remain.clear();

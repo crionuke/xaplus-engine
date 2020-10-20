@@ -148,7 +148,7 @@ class XAPlusCommitterService extends Bolt implements
         XAPlusTransaction transaction = state.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled for xid={} as transaction failed", xid);
+                logger.debug("2pc protocol cancelled as transaction failed, {}", transaction);
             }
         }
     }
@@ -162,7 +162,7 @@ class XAPlusCommitterService extends Bolt implements
         XAPlusTransaction transaction = state.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled for xid={} as transaction timed out", xid);
+                logger.debug("2pc protocol cancelled as transaction timed out, {}", transaction);
             }
         }
     }

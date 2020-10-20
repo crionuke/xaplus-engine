@@ -14,6 +14,7 @@ public class XAPlusTransaction {
     private final XAPlusXid xid;
     private final String serverId;
     private final String superiorServerId;
+    private final long creationTimeInMillis;
     private final long expireTimeInMillis;
     private final Map<XAPlusXid, XAResource> xaResources;
     private final Map<XAPlusXid, XAPlusResource> xaPlusResources;
@@ -24,7 +25,8 @@ public class XAPlusTransaction {
         this.xid = xid;
         this.serverId = serverId;
         superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
-        expireTimeInMillis = System.currentTimeMillis() + timeoutInSeconds * 1000;
+        creationTimeInMillis = System.currentTimeMillis();
+        expireTimeInMillis = creationTimeInMillis + timeoutInSeconds * 1000;
         xaResources = new ConcurrentHashMap<>();
         xaPlusResources = new ConcurrentHashMap<>();
         uniqueNames = new ConcurrentHashMap<>();
@@ -44,6 +46,10 @@ public class XAPlusTransaction {
 
     XAPlusXid getXid() {
         return xid;
+    }
+
+    long getCreationTimeInMillis() {
+        return creationTimeInMillis;
     }
 
     long getExpireTimeInMillis() {

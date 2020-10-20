@@ -47,7 +47,7 @@ class XAPlusRecoveryPreparerService extends Bolt implements
         }
         if (state.isStarted()) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Recovery already started, skip request");
+                logger.debug("Recovery already started");
             }
         } else {
             if (logger.isDebugEnabled()) {
@@ -76,7 +76,7 @@ class XAPlusRecoveryPreparerService extends Bolt implements
                     }
                 } catch (SQLException | JMSException e) {
                     if (logger.isWarnEnabled()) {
-                        logger.warn("Recovery resource {} failed with {}", uniqueName, e.getMessage());
+                        logger.warn("Recovery resource failed with {}, resource={}", e.getMessage(), uniqueName);
                     }
                 }
             }
@@ -159,8 +159,9 @@ class XAPlusRecoveryPreparerService extends Bolt implements
         if (state.isRecovered()) {
             if (state.isFailed()) {
                 if (logger.isInfoEnabled()) {
-                    logger.info("Recovery failed, reset state");
+                    logger.info("Recovery failed, close connections and reset state");
                 }
+                state.close();
                 state.reset();
             } else {
                 if (logger.isInfoEnabled()) {
@@ -169,6 +170,7 @@ class XAPlusRecoveryPreparerService extends Bolt implements
                 dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(state.getJdbcConnections(),
                         state.getJmsConnections(), state.getXaResources(), state.getRecoveredXids(),
                         state.getDanglingTransactions()));
+                state.reset();
             }
         }
     }

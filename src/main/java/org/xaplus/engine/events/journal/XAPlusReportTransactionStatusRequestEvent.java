@@ -10,19 +10,19 @@ import org.xaplus.engine.XAPlusXid;
  */
 public final class XAPlusReportTransactionStatusRequestEvent extends Event<XAPlusReportTransactionStatusRequestEvent.Handler> {
 
-    private final XAPlusResource xaPlusResource;
     private final XAPlusXid xid;
+    private final XAPlusResource resource;
 
-    public XAPlusReportTransactionStatusRequestEvent(XAPlusResource xaPlusResource, XAPlusXid xid) {
+    public XAPlusReportTransactionStatusRequestEvent(XAPlusXid xid, XAPlusResource resource) {
         super();
-        if (xaPlusResource == null) {
-            throw new NullPointerException("xaPlusResource is null");
-        }
         if (xid == null) {
             throw new NullPointerException("xid is null");
         }
-        this.xaPlusResource = xaPlusResource;
+        if (resource == null) {
+            throw new NullPointerException("resource is null");
+        }
         this.xid = xid;
+        this.resource = resource;
     }
 
     @Override
@@ -30,12 +30,12 @@ public final class XAPlusReportTransactionStatusRequestEvent extends Event<XAPlu
         handler.handleReportTransactionStatusRequest(this);
     }
 
-    public XAPlusResource getXaPlusResource() {
-        return xaPlusResource;
-    }
-
     public XAPlusXid getXid() {
         return xid;
+    }
+
+    public XAPlusResource getResource() {
+        return resource;
     }
 
     public interface Handler {

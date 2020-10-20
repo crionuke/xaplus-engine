@@ -46,7 +46,7 @@ class XAPlusTimerService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         if (state.track(transaction)) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Track timeout for xid={}", transaction.getXid());
+                logger.debug("Track timeout, {}", transaction);
             }
         }
     }
@@ -59,7 +59,7 @@ class XAPlusTimerService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         if (state.track(transaction)) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Track timeout for xid={}", transaction.getXid());
+                logger.debug("Track timeout, {}", transaction);
             }
         }
     }
@@ -80,7 +80,7 @@ class XAPlusTimerService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         if (state.remove(transaction.getXid())) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Timeout tracking for xid={} cancelled as 2pc procotol done", transaction.getXid());
+                logger.debug("Timeout tracking cancelled as 2pc procotol done, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
         }
@@ -95,7 +95,7 @@ class XAPlusTimerService extends Bolt implements
         XAPlusXid xid = transaction.getXid();
         if (state.remove(xid)) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Timeout tracking for xid={} cancelled as rollback protocol done", xid);
+                logger.debug("Timeout tracking cancelled as rollback protocol done, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
         }
@@ -110,7 +110,7 @@ class XAPlusTimerService extends Bolt implements
         XAPlusXid xid = transaction.getXid();
         if (state.remove(xid)) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Timeout tracking for xid={} cancelled as 2pc protocol failed", xid);
+                logger.debug("Timeout tracking cancelled as 2pc protocol failed, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
         }
@@ -125,7 +125,7 @@ class XAPlusTimerService extends Bolt implements
         XAPlusXid xid = transaction.getXid();
         if (state.remove(xid)) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Timeout tracking for xid={} cancelled as rollback protocol failed", xid);
+                logger.debug("Timeout tracking cancelled as rollback protocol failed, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
         }

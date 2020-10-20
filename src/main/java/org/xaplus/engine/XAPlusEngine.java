@@ -66,7 +66,7 @@ public final class XAPlusEngine {
     public void register(XADataSource dataSource, String uniqueName) {
         resources.register(dataSource, uniqueName);
         if (logger.isDebugEnabled()) {
-            logger.debug("Resource with uniqueName={}, dataSource={} registered", uniqueName, dataSource);
+            logger.debug("Resource registered, uniqueName={}, dataSource={}", uniqueName, dataSource);
         }
     }
 
@@ -79,7 +79,7 @@ public final class XAPlusEngine {
     public void register(XAConnectionFactory connectionFactory, String uniqueName) {
         resources.register(connectionFactory, uniqueName);
         if (logger.isDebugEnabled()) {
-            logger.debug("Resource with uniqueName={}, connectionFactory={} registered", uniqueName, connectionFactory);
+            logger.debug("Resource registered, uniqueName={}, connectionFactory={}", uniqueName, connectionFactory);
         }
     }
 
@@ -92,7 +92,7 @@ public final class XAPlusEngine {
     public void register(XAPlusFactory factory, String serverId) {
         resources.register(factory, serverId);
         if (logger.isDebugEnabled()) {
-            logger.debug("Resource with serverId={}, factory={} registered", serverId, factory);
+            logger.debug("Resource registered, with serverId={}, factory={}", serverId, factory);
         }
     }
 
@@ -110,7 +110,7 @@ public final class XAPlusEngine {
                 properties.getServerId());
         context.setTransaction(transaction);
         if (logger.isDebugEnabled()) {
-            logger.debug("User begin transaction with generated xid={}", xid);
+            logger.debug("User begin transaction with new xid={}", xid);
         }
     }
 
@@ -154,17 +154,17 @@ public final class XAPlusEngine {
         }
         XAPlusTransaction transaction = context.getTransaction();
         if (logger.isTraceEnabled()) {
-            logger.trace("Enlisting resource with uniqueName={}, xid={}", uniqueName, transaction.getXid());
+            logger.trace("Enlisting resource, uniqueName={}, xid={}", uniqueName, transaction.getXid());
         }
         XAPlusResources.XADataSourceWrapper wrapper =
                 (XAPlusResources.XADataSourceWrapper) resources.get(uniqueName);
         if (wrapper == null) {
-            throw new IllegalArgumentException("Unknown resource name=" + uniqueName);
+            throw new IllegalArgumentException("Unknown resource, name=" + uniqueName);
         }
         javax.sql.XAConnection connection = wrapper.get();
         XAPlusXid branchXid = createAndStartBranch(uniqueName, connection.getXAResource());
         if (logger.isDebugEnabled()) {
-            logger.debug("Resource with uniqueName={}, branchXid={}, xid={} enlisted",
+            logger.debug("Resource enlisted, uniqueName={}, branchXid={}, xid={}",
                     uniqueName, branchXid, transaction.getXid());
         }
         return connection.getConnection();
@@ -188,7 +188,7 @@ public final class XAPlusEngine {
         }
         XAPlusTransaction transaction = context.getTransaction();
         if (logger.isTraceEnabled()) {
-            logger.trace("Enlisting resource with uniqueName={}, xid={}", uniqueName, transaction.getXid());
+            logger.trace("Enlisting resource, uniqueName={}, xid={}", uniqueName, transaction.getXid());
         }
         XAPlusResources.XAConnectionFactoryWrapper wrapper =
                 (XAPlusResources.XAConnectionFactoryWrapper) resources.get(uniqueName);
@@ -199,7 +199,7 @@ public final class XAPlusEngine {
         XASession session = connection.createXASession();
         XAPlusXid branchXid = createAndStartBranch(uniqueName, session.getXAResource());
         if (logger.isDebugEnabled()) {
-            logger.debug("Resource with uniqueName={}, branchXid={}, xid={} enlisted",
+            logger.debug("Resource enlisted, uniqueName={}, branchXid={}, xid={}",
                     uniqueName, branchXid, transaction.getXid());
         }
         return session.getSession();
@@ -225,7 +225,7 @@ public final class XAPlusEngine {
             throw new IllegalStateException("Only superior has the right to enlist XA+ resources");
         }
         if (logger.isTraceEnabled()) {
-            logger.trace("Enlisting resource with serverId={}, xid={}", serverId, transaction.getXid());
+            logger.trace("Enlisting resource, serverId={}, xid={}", serverId, transaction.getXid());
         }
         XAPlusResources.XAPlusFactoryWrapper wrapper =
                 (XAPlusResources.XAPlusFactoryWrapper) resources.get(serverId);
@@ -235,8 +235,8 @@ public final class XAPlusEngine {
         XAPlusResource resource = wrapper.get();
         XAPlusXid branchXid = createAndStartBranch(serverId, resource);
         if (logger.isDebugEnabled()) {
-            logger.debug("Resource with uniqueName={}, branchXid={}, xid={} enlisted",
-                    serverId, branchXid, transaction.getXid());
+            logger.debug("Resource enlisted, uniqueName={}, branchXid={}, xid={}", serverId, branchXid,
+                    transaction.getXid());
         }
         return branchXid.toString();
     }
@@ -254,7 +254,7 @@ public final class XAPlusEngine {
         XAPlusTransaction transaction = context.getTransaction();
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         if (logger.isDebugEnabled()) {
-            logger.debug("User commit transaction with xid={}", context.getTransaction().getXid());
+            logger.debug("User commit transaction, xid={}", context.getTransaction().getXid());
         }
         return transaction.getFuture();
     }
@@ -272,7 +272,7 @@ public final class XAPlusEngine {
         XAPlusTransaction transaction = context.getTransaction();
         dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
         if (logger.isDebugEnabled()) {
-            logger.debug("User rollback transaction with xid={}", context.getTransaction().getXid());
+            logger.debug("User rollback transaction, xid={}", context.getTransaction().getXid());
         }
         return transaction.getFuture();
     }
@@ -303,11 +303,11 @@ public final class XAPlusEngine {
                 properties.getServerId());
         transaction.enlist(branchXid, uniqueName, resource);
         if (logger.isTraceEnabled()) {
-            logger.trace("Starting branch with branchXid={}, resource={}", branchXid, resource);
+            logger.trace("Starting branch, branchXid={}, resource={}", branchXid, resource);
         }
         resource.start(branchXid, XAResource.TMNOFLAGS);
         if (logger.isDebugEnabled()) {
-            logger.debug("Branch with branchXid={}, resource={} started", branchXid, resource);
+            logger.debug("Branch started, branchXid={}, resource={}", branchXid, resource);
         }
         return branchXid;
     }
@@ -324,11 +324,11 @@ public final class XAPlusEngine {
         XAPlusXid branchXid = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(), serverId);
         transaction.enlist(branchXid, serverId, resource);
         if (logger.isTraceEnabled()) {
-            logger.trace("Starting branch with branchXid={}, resource={}", branchXid, resource);
+            logger.trace("Starting branch, branchXid={}, resource={}", branchXid, resource);
         }
         resource.start(branchXid, XAResource.TMNOFLAGS);
         if (logger.isDebugEnabled()) {
-            logger.debug("Branch with branchXid={}, resource={} started", branchXid, resource);
+            logger.debug("Branch started, branchXid={}, resource={}", branchXid, resource);
         }
         return branchXid;
     }

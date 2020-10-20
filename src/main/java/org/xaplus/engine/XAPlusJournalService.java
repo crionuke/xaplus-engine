@@ -5,16 +5,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.XAPlusReportDoneStatusRequestEvent;
+import org.xaplus.engine.events.XAPlusTransactionCompletedEvent;
 import org.xaplus.engine.events.journal.*;
 import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionCommittedEvent;
 import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionRolledBackEvent;
 import org.xaplus.engine.events.recovery.XAPlusRecoveredXidCommittedEvent;
 import org.xaplus.engine.events.recovery.XAPlusRecoveredXidRolledBackEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
+import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
+import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 
 import javax.annotation.PostConstruct;
 import java.sql.SQLException;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -32,7 +38,10 @@ class XAPlusJournalService extends Bolt implements
         XAPlusDanglingTransactionRolledBackEvent.Handler,
         XAPlus2pcDoneEvent.Handler,
         XAPlusFindDanglingTransactionsRequestEvent.Handler,
-        XAPlusReportTransactionStatusRequestEvent.Handler {
+        XAPlusReportTransactionStatusRequestEvent.Handler,
+        XAPlusUserCommitRequestEvent.Handler,
+        XAPlusUserRollbackRequestEvent.Handler,
+        XAPlusTransactionCompletedEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusJournalService.class);
 
     private final XAPlusProperties properties;
@@ -40,6 +49,8 @@ class XAPlusJournalService extends Bolt implements
     private final XAPlusDispatcher dispatcher;
     private final XAPlusEngine engine;
     private final XAPlusTLog tlog;
+    private final long startTime;
+    private final SortedSet<XAPlusTransaction> inFlightTransactions;
 
     XAPlusJournalService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
                          XAPlusEngine engine, XAPlusTLog tlog) {
@@ -49,6 +60,9 @@ class XAPlusJournalService extends Bolt implements
         this.dispatcher = dispatcher;
         this.engine = engine;
         this.tlog = tlog;
+        startTime = System.currentTimeMillis();
+        inFlightTransactions = new TreeSet<>(Comparator
+                .comparingLong((transaction) -> transaction.getCreationTimeInMillis()));
     }
 
     @Override
@@ -62,14 +76,13 @@ class XAPlusJournalService extends Bolt implements
         try {
             tlog.logCommitTransactionDecision(transaction);
             if (logger.isDebugEnabled()) {
-                logger.debug("Commit decision for transaction with xid={} and resources={} logged",
-                        xid, transaction.getUniqueNames());
+                logger.debug("Commit decision logged, xid={}, resources={}", xid, transaction.getUniqueNames());
             }
             dispatcher.dispatch(new XAPlusCommitTransactionDecisionLoggedEvent(transaction));
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Log commit decision for transaction with xid={} and resources={} failed with {}",
-                        xid, sqle.getMessage(), transaction.getUniqueNames());
+                logger.warn("Log commit decision failed as {}, xid={}, resources={}",
+                        sqle.getMessage(), xid, transaction.getUniqueNames());
             }
             dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionFailedEvent(transaction, sqle));
         }
@@ -86,12 +99,12 @@ class XAPlusJournalService extends Bolt implements
         try {
             tlog.logRollbackTransactionDecision(transaction);
             if (logger.isDebugEnabled()) {
-                logger.debug("Rollback decision for transaction with xid={} logged", xid);
+                logger.debug("Rollback decision logged, xid={}, resources={}", xid, transaction.getUniqueNames());
             }
             dispatcher.dispatch(new XAPlusRollbackTransactionDecisionLoggedEvent(transaction));
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Log rollback decision for transaction with xid={} failed with {}", sqle.getMessage());
+                logger.warn("Log rollback decision failed as {}, xid={}", sqle.getMessage(), xid);
             }
             dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionFailedEvent(transaction, sqle));
         }
@@ -108,13 +121,13 @@ class XAPlusJournalService extends Bolt implements
         try {
             tlog.logCommitXidDecision(event.getXid(), event.getUniqueName());
             if (logger.isDebugEnabled()) {
-                logger.debug("Commit decision for recovered xid={} logged", xid);
+                logger.debug("Commit decision for recovered xid logged, xid={}", xid);
             }
             dispatcher.dispatch(new XAPlusCommitRecoveredXidDecisionLoggedEvent(xid, uniqueName));
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Log commit decision for recovered xid={} on resource={} failed with {}",
-                        xid, uniqueName, sqle.getMessage());
+                logger.warn("Log commit decision for recovered xid failed as {}, xid={}, resource={}",
+                        sqle.getMessage(), xid, uniqueName);
             }
         }
     }
@@ -130,13 +143,13 @@ class XAPlusJournalService extends Bolt implements
         try {
             tlog.logRollbackXidDecision(event.getXid(), event.getUniqueName());
             if (logger.isDebugEnabled()) {
-                logger.debug("Rollback decision for recovered xid={} logged", xid);
+                logger.debug("Rollback decision for recovered xid logged, xid={}", xid);
             }
             dispatcher.dispatch(new XAPlusRollbackRecoveredXidDecisionLoggedEvent(xid, uniqueName));
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Log rollback decision for recovered xid={} on resource={} failed with {}",
-                        xid, uniqueName, sqle.getMessage());
+                logger.warn("Log rollback decision for recovered xid failed as {}, xid={}, resource={}",
+                        sqle.getMessage(), xid, uniqueName);
             }
         }
     }
@@ -151,12 +164,13 @@ class XAPlusJournalService extends Bolt implements
         try {
             tlog.logXidCommitted(xid, uniqueName);
             if (logger.isDebugEnabled()) {
-                logger.debug("Done status for committed recovered xid={} on resource={} logged", xid, uniqueName);
+                logger.debug("Done status for committed recovered xid logged, xid={}, resource={}",
+                        xid, uniqueName);
             }
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Log done status for committed recovered xid={} on resource={} failed with {}",
-                        xid, uniqueName, sqle.getMessage());
+                logger.warn("Log done status for committed recovered xid failed as {}, xid={}, resource={}",
+                        sqle.getMessage(), xid, uniqueName);
             }
         }
     }
@@ -171,12 +185,12 @@ class XAPlusJournalService extends Bolt implements
         try {
             tlog.logXidRolledBack(xid, uniqueName);
             if (logger.isDebugEnabled()) {
-                logger.debug("Done status for rolled back recovered xid={} on resource={} logged", xid, uniqueName);
+                logger.debug("Done status for rolled back recovered xid logged, xid={}, resource={}", xid, uniqueName);
             }
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Log done status for rolled back recovered xid={} on resource={} failed with {}",
-                        xid, uniqueName, sqle.getMessage());
+                logger.warn("Log done status for rolled back recovered xid failed as {}, xid={}, resource={}",
+                        sqle.getMessage(), xid, uniqueName);
             }
         }
     }
@@ -191,13 +205,13 @@ class XAPlusJournalService extends Bolt implements
         try {
             tlog.logXidCommitted(xid, uniqueName);
             if (logger.isDebugEnabled()) {
-                logger.debug("Commit status for dangling transaction with xid={} on resource={} logged",
+                logger.debug("Commit status for dangling transaction logged, xid={}, resource={}",
                         xid, uniqueName);
             }
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Log commit status for dangling transaction with xid={} on resource={} failed with {}",
-                        xid, uniqueName, sqle.getMessage());
+                logger.warn("Log commit status for dangling transaction failed as {}, xid={}, resource={}",
+                        sqle.getMessage(), xid, uniqueName);
             }
         }
     }
@@ -212,13 +226,13 @@ class XAPlusJournalService extends Bolt implements
         try {
             tlog.logXidRolledBack(xid, uniqueName);
             if (logger.isDebugEnabled()) {
-                logger.debug("Rollback status for dangling transaction with xid={} on resource={} logged",
+                logger.debug("Rollback status for dangling transaction logged, xid={}, resource={}",
                         xid, uniqueName);
             }
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Log rollback status for dangling transaction with xid={} on resource={} failed with {}",
-                        xid, uniqueName, sqle.getMessage());
+                logger.warn("Log rollback status for dangling transaction failed as {},  xid={}, resource={}",
+                        sqle.getMessage(), xid, uniqueName);
             }
         }
     }
@@ -233,12 +247,12 @@ class XAPlusJournalService extends Bolt implements
         try {
             tlog.logTransactionCommitted(transaction);
             if (logger.isDebugEnabled()) {
-                logger.debug("Done status for 2pc transaction with xid={} logged", xid);
+                logger.debug("Done status for 2pc transaction logged, xid={}", xid);
             }
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Log done status for 2pc transaction with xid={} failed with {}",
-                        xid, sqle.getMessage());
+                logger.warn("Log done status for 2pc transaction failed as {}, xid={}",
+                        sqle.getMessage(), xid);
             }
         }
     }
@@ -250,11 +264,18 @@ class XAPlusJournalService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         try {
-            Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = tlog.findDanglingTransactions();
+            long inflightCutoff;
+            if (inFlightTransactions.isEmpty()) {
+                // If no transaction yet use app start time
+                inflightCutoff = startTime;
+            } else {
+                inflightCutoff = inFlightTransactions.first().getCreationTimeInMillis();
+            }
+            Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = tlog.findDanglingTransactions(inflightCutoff);
             dispatcher.dispatch(new XAPlusDanglingTransactionsFoundEvent(danglingTransactions));
         } catch (SQLException e) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Find dangling transaction from journal failed with {}", e.getMessage());
+                logger.warn("Find dangling transaction from journal failed as {}", e.getMessage());
             }
             dispatcher.dispatch(new XAPlusFindDanglingTransactionsFailedEvent(e));
         }
@@ -270,14 +291,41 @@ class XAPlusJournalService extends Bolt implements
             XAPlusXid xid = event.getXid();
             boolean completed = tlog.isTransactionCompleted(xid);
             if (completed) {
-                XAPlusResource resource = event.getXaPlusResource();
+                XAPlusResource resource = event.getResource();
                 dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
             }
         } catch (SQLException e) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Find transaction status from journal failed with {}", e.getMessage());
+                logger.warn("Find transaction status from journal failed as {}", e.getMessage());
             }
         }
+    }
+
+    @Override
+    public void handleUserCommitRequest(XAPlusUserCommitRequestEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusTransaction transaction = event.getTransaction();
+        inFlightTransactions.add(transaction);
+    }
+
+    @Override
+    public void handleUserRollbackRequest(XAPlusUserRollbackRequestEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusTransaction transaction = event.getTransaction();
+        inFlightTransactions.add(transaction);
+    }
+
+    @Override
+    public void handleTransactionCompleted(XAPlusTransactionCompletedEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusTransaction transaction = event.getTransaction();
+        inFlightTransactions.remove(transaction);
     }
 
     @PostConstruct
@@ -294,5 +342,8 @@ class XAPlusJournalService extends Bolt implements
         dispatcher.subscribe(this, XAPlus2pcDoneEvent.class);
         dispatcher.subscribe(this, XAPlusFindDanglingTransactionsRequestEvent.class);
         dispatcher.subscribe(this, XAPlusReportTransactionStatusRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusUserCommitRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusUserRollbackRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusTransactionCompletedEvent.class);
     }
 }

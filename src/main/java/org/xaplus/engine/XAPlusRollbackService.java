@@ -98,7 +98,6 @@ class XAPlusRollbackService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        logger.info("XAPlusBranchRolledBackEvent");
         XAPlusXid xid = event.getXid();
         XAPlusXid branchXid = event.getBranchXid();
         state.setRolledBack(xid, branchXid);
@@ -121,14 +120,13 @@ class XAPlusRollbackService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        logger.info("XAPlusRemoteSubordinateDoneEvent");
         XAPlusXid branchXid = event.getXid();
-        state.setDone(branchXid);
         XAPlusXid xid = state.getTransactionXid(branchXid);
         if (xid != null) {
+            state.setDone(branchXid);
             check(xid);
         } else {
-            logger.debug("Unknown done xid={} from remote subordinate", xid);
+            logger.debug("Unknown xid from remote subordinate to mark as done, xid={}{", xid);
         }
     }
 

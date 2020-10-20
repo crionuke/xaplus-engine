@@ -112,7 +112,7 @@ class XAPlusPreparerService extends Bolt implements
         XAPlusTransaction transaction = state.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled for xid={} as transaction failed", xid);
+                logger.debug("2pc protocol cancelled as transaction failed, {}", transaction);
             }
         }
     }
@@ -126,7 +126,7 @@ class XAPlusPreparerService extends Bolt implements
         XAPlusTransaction transaction = state.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled for xid={} as transaction timed out", xid);
+                logger.debug("2pc protocol cancelled as transaction timed out, {}", transaction);
             }
         }
     }
@@ -141,7 +141,7 @@ class XAPlusPreparerService extends Bolt implements
         XAPlusTransaction transaction = state.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled in phase prepare for xid={} as got order to rollback", xid);
+                logger.debug("2pc protocol cancelled in phase prepare as got order to rollback, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
         }

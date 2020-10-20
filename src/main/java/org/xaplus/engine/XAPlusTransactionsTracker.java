@@ -3,11 +3,11 @@ package org.xaplus.engine;
 import java.util.HashMap;
 import java.util.Map;
 
-class XAPlusTracker {
+class XAPlusTransactionsTracker {
 
     final Map<XAPlusXid, XAPlusTransaction> transactions;
 
-    XAPlusTracker() {
+    XAPlusTransactionsTracker() {
         transactions = new HashMap<>();
     }
 
@@ -16,7 +16,11 @@ class XAPlusTracker {
         return transactions.put(xid, transaction) == null;
     }
 
-    XAPlusTransaction getTransaction(XAPlusXid xid) {
+    boolean contains(XAPlusXid xid) {
+        return transactions.containsKey(xid);
+    }
+
+    XAPlusTransaction transaction(XAPlusXid xid) {
         return transactions.get(xid);
     }
 

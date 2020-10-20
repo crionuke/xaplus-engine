@@ -60,7 +60,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         }
         if (state.isStarted()) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Recovery already started, skip request");
+                logger.debug("Recovery already started");
             }
         } else {
             state.start(event.getJdbcConnections(), event.getJmsConnections(), event.getXaResources(),
@@ -88,8 +88,8 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     dispatcher.dispatch(new XAPlusLogCommitRecoveredXidDecisionEvent(branchXid, uniqueName));
                 } else {
                     if (logger.isWarnEnabled()) {
-                        logger.warn("Unknown XA resource with uniqueName={} to commit branchXid={}",
-                                uniqueName, branches);
+                        logger.warn("Unknown XA resource to commit branch, resource={}, xid={}",
+                                uniqueName, branchXid);
                     }
                 }
             }
@@ -113,8 +113,8 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     dispatcher.dispatch(new XAPlusLogRollbackRecoveredXidDecisionEvent(branchXid, uniqueName));
                 } else {
                     if (logger.isWarnEnabled()) {
-                        logger.warn("Unknown XA resource with uniqueName={} to commit branchXid={}",
-                                uniqueName, branches);
+                        logger.warn("Unknown XA resource to rollback branch, resource={}, xid={}",
+                                uniqueName, branchXid);
                     }
                 }
             }
@@ -134,7 +134,8 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, xaResource, uniqueName));
         } else {
             if (logger.isWarnEnabled()) {
-                logger.warn("Unknown XA resource with uniqueName={} to commit recovered xid={}", uniqueName, xid);
+                logger.warn("Unknown XA resource to commit recovered branch, resource={}, xid={}",
+                        uniqueName, xid);
             }
         }
     }
@@ -152,7 +153,8 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, xaResource, uniqueName));
         } else {
             if (logger.isWarnEnabled()) {
-                logger.warn("Unknown XA resource with uniqueName={} to rollback recovered xid={}", uniqueName, xid);
+                logger.warn("Unknown XA resource to rollback recovered branch, resource={}, xid={}",
+                        uniqueName, xid);
             }
         }
     }
@@ -204,7 +206,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     }
                 } catch (XAPlusSystemException e) {
                     if (logger.isErrorEnabled()) {
-                        logger.error("Internal error. Retry order for non XA+ or unknown resource with uniqueName={}",
+                        logger.error("Internal error. Retry order for non XA+ or unknown resource, resource={}",
                                 uniqueName);
                     }
                 }
@@ -243,8 +245,8 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                                             resources.getXAPlusResource(superiorServerId)));
                                 } catch (XAPlusSystemException e) {
                                     if (logger.isWarnEnabled()) {
-                                        logger.warn("Unknown XA+ resource with uniqueName={} to retryOrders",
-                                                superiorServerId, xid);
+                                        logger.warn("Unknown XA+ resource to retry orders, resource={}",
+                                                superiorServerId);
                                     }
                                 }
                             }
@@ -253,7 +255,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                 }
             } else {
                 if (logger.isWarnEnabled()) {
-                    logger.warn("Unknown XA resource with uniqueName={} to recovery", uniqueName);
+                    logger.warn("Unknown XA resource to recovery, resource={}", uniqueName);
                 }
             }
         }

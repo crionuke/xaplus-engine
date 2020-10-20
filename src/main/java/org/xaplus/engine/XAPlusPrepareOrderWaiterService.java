@@ -52,7 +52,7 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             }
         } else {
             if (logger.isTraceEnabled()) {
-                logger.trace("Transaction {} is not subordinate, skip", transaction);
+                logger.trace("Transaction is not subordinate, {}", transaction);
             }
         }
     }
@@ -77,7 +77,7 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = state.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled for xid={} as transaction failed", xid);
+                logger.debug("2pc protocol cancelled as transaction failed, {} ", transaction);
             }
         }
     }
@@ -91,7 +91,7 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = state.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled for xid={} as transaction timed out", xid);
+                logger.debug("2pc protocol cancelled as transaction timed out, {}", transaction);
             }
         }
     }
@@ -106,7 +106,7 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = state.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled for xid={} as got order to rollback", xid);
+                logger.debug("2pc protocol cancelled as got order to rollback, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
         }
