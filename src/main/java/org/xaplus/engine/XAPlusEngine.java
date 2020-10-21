@@ -2,7 +2,6 @@ package org.xaplus.engine;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import org.xaplus.engine.events.recovery.XAPlusRecoveryRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
@@ -22,7 +21,6 @@ import java.sql.SQLException;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Component
 public final class XAPlusEngine {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusEngine.class);
 

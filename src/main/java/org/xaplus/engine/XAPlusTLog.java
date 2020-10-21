@@ -2,7 +2,6 @@ package org.xaplus.engine;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -13,7 +12,6 @@ import java.util.Map;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Component
 class XAPlusTLog {
     static final String DANGLING_SQL = "SELECT t_gtrid, t_bqual, t_unique_name, t_status " +
             "FROM tlog WHERE t_server_id = ? AND t_timestamp < ? " +
@@ -30,11 +28,11 @@ class XAPlusTLog {
 
     static private final int FETCH_SIZE = 50;
 
-    private final XAPlusProperties properties;
+    private final String serverId;
     private final XAPlusEngine engine;
 
-    XAPlusTLog(XAPlusProperties properties, XAPlusEngine engine) {
-        this.properties = properties;
+    XAPlusTLog(String serverId, XAPlusEngine engine) {
+        this.serverId = serverId;
         this.engine = engine;
     }
 
@@ -82,7 +80,7 @@ class XAPlusTLog {
             Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = new HashMap<>();
             try (PreparedStatement statement = connection.prepareStatement(DANGLING_SQL)) {
                 statement.setFetchSize(FETCH_SIZE);
-                statement.setString(1, properties.getServerId());
+                statement.setString(1, serverId);
                 statement.setTimestamp(2, new Timestamp(inflightCutoff));
 
                 try (ResultSet resultSet = statement.executeQuery()) {
@@ -164,7 +162,7 @@ class XAPlusTLog {
             try (PreparedStatement statement = connection.prepareStatement(INSERT_SQL)) {
                 Timestamp timestamp = new Timestamp(System.currentTimeMillis());
                 statement.setTimestamp(1, timestamp);
-                statement.setString(2, properties.getServerId());
+                statement.setString(2, serverId);
                 statement.setBoolean(6, tstatus);
                 statement.setBoolean(7, complete);
                 for (Map.Entry<XAPlusXid, String> entry : uniqueNames.entrySet()) {
@@ -177,7 +175,7 @@ class XAPlusTLog {
                     statement.setString(5, uniqueName);
                     if (logger.isDebugEnabled()) {
                         logger.debug("Log timestamp={}, serverId={}, uniqueName={}, status={}, complete={}, xid={}",
-                                timestamp, properties.getServerId(), uniqueName, tstatus, complete, branchXid);
+                                timestamp, serverId, uniqueName, tstatus, complete, branchXid);
                     }
                     statement.addBatch();
                 }

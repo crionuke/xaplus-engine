@@ -3,16 +3,12 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Worker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.XAPlusTickEvent;
-
-import javax.annotation.PostConstruct;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Service
 class XAPlusTickService extends Worker {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTickService.class);
 
@@ -45,7 +41,6 @@ class XAPlusTickService extends Worker {
         Thread.currentThread().setName(oldThreadName);
     }
 
-    @PostConstruct
     void postConstruct() {
         threadPool.execute(this);
     }

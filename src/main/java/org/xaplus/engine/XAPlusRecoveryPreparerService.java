@@ -3,19 +3,16 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.journal.XAPlusDanglingTransactionsFoundEvent;
 import org.xaplus.engine.events.journal.XAPlusFindDanglingTransactionsFailedEvent;
 import org.xaplus.engine.events.journal.XAPlusFindDanglingTransactionsRequestEvent;
 import org.xaplus.engine.events.recovery.*;
 
-import javax.annotation.PostConstruct;
 import javax.jms.JMSException;
 import javax.transaction.xa.XAResource;
 import java.sql.SQLException;
 import java.util.Map;
 
-@Service
 class XAPlusRecoveryPreparerService extends Bolt implements
         XAPlusRecoveryRequestEvent.Handler,
         XAPlusResourceRecoveredEvent.Handler,
@@ -145,7 +142,6 @@ class XAPlusRecoveryPreparerService extends Bolt implements
         }
     }
 
-    @PostConstruct
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusRecoveryRequestEvent.class);

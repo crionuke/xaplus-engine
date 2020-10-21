@@ -3,7 +3,6 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.*;
 import org.xaplus.engine.events.journal.XAPlusReportTransactionStatusRequestEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
@@ -18,13 +17,10 @@ import org.xaplus.engine.exceptions.XAPlusRollbackException;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 import org.xaplus.engine.exceptions.XAPlusTimeoutException;
 
-import javax.annotation.PostConstruct;
-
 /**
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Service
 class XAPlusManagerService extends Bolt implements
         XAPlusUserCommitRequestEvent.Handler,
         XAPlusUserRollbackRequestEvent.Handler,
@@ -183,7 +179,6 @@ class XAPlusManagerService extends Bolt implements
         }
     }
 
-    @PostConstruct
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusUserCommitRequestEvent.class);

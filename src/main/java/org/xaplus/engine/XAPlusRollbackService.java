@@ -3,7 +3,6 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.XAPlusRollbackFailedEvent;
 import org.xaplus.engine.events.XAPlusRollbackRequestEvent;
@@ -16,7 +15,6 @@ import org.xaplus.engine.events.xa.XAPlusRollbackBranchFailedEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
 
-import javax.annotation.PostConstruct;
 import javax.transaction.xa.XAResource;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,7 +23,6 @@ import java.util.Map;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Service
 class XAPlusRollbackService extends Bolt implements
         XAPlusRollbackRequestEvent.Handler,
         XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
@@ -148,7 +145,6 @@ class XAPlusRollbackService extends Bolt implements
         state.remove(xid);
     }
 
-    @PostConstruct
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusRollbackRequestEvent.class);

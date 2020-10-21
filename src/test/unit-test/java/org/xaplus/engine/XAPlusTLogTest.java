@@ -33,7 +33,7 @@ public class XAPlusTLogTest extends XAPlusTest {
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
         engine.setTLogDataSource(preparedDbRule.getTestDatabase());
-        tLog = new XAPlusTLog(properties, engine);
+        tLog = new XAPlusTLog(properties.getServerId(), engine);
     }
 
     @Test

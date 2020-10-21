@@ -20,8 +20,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class XAPlusRecoveryCommitterServiceScenarioTest extends XAPlusTest {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryCommitterServiceScenarioTest.class);
+public class XAPlusRecoveryCommitterServiceTest extends XAPlusTest {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryCommitterServiceTest.class);
 
     XAPlusRecoveryCommitterService xaPlusRecoveryCommitterService;
 
@@ -66,7 +66,7 @@ public class XAPlusRecoveryCommitterServiceScenarioTest extends XAPlusTest {
     }
 
     @Test
-    public void testRecoveryRetryOrdersFromSuperiorSideScenario() throws InterruptedException {
+    public void testRecoveryRetryOrdersFromSuperiorSide() throws InterruptedException {
         // Test transactions data set
         TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
         // Initiate prepare recovery
@@ -109,7 +109,7 @@ public class XAPlusRecoveryCommitterServiceScenarioTest extends XAPlusTest {
     }
 
     @Test
-    public void testRecoveryXAResourcesOnSuperiorSideScenario() throws InterruptedException {
+    public void testRecoveryXAResourcesOnSuperiorSide() throws InterruptedException {
         // Test transactions data set
         TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
         // Test xa resources
@@ -144,7 +144,7 @@ public class XAPlusRecoveryCommitterServiceScenarioTest extends XAPlusTest {
     }
 
     @Test
-    public void testRecoveryXAResourcesOnSubordinateSideScenario() throws InterruptedException {
+    public void testRecoveryXAResourcesOnSubordinateSide() throws InterruptedException {
         // Test transactions data set
         TestSubordinateDataSet dataSet = new TestSubordinateDataSet(XA_PLUS_RESOURCE_2, XA_PLUS_RESOURCE_3,
                 XA_PLUS_RESOURCE_1);

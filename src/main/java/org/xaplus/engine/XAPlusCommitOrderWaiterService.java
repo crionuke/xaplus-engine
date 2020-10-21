@@ -3,20 +3,16 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.*;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToCommitEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 
-import javax.annotation.PostConstruct;
-
 /**
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Service
 class XAPlusCommitOrderWaiterService extends Bolt implements
         XAPlusTransactionPreparedEvent.Handler,
         XAPlusRemoteSuperiorOrderToCommitEvent.Handler,
@@ -124,7 +120,6 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
         }
     }
 
-    @PostConstruct
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusTransactionPreparedEvent.class);

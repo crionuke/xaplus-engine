@@ -3,29 +3,26 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Worker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.stereotype.Component;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Component
 class XAPlusThreadPool {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusThreadPool.class);
     static private final int THREAD_POOL_SIZE = 32;
 
-    private final ThreadPoolTaskExecutor threadPoolTaskExecutor;
+    private final ExecutorService threadPool;
 
     XAPlusThreadPool() {
-        threadPoolTaskExecutor = new ThreadPoolTaskExecutor();
-        threadPoolTaskExecutor.setThreadNamePrefix("xaplus-");
-        threadPoolTaskExecutor.setCorePoolSize(THREAD_POOL_SIZE);
-        threadPoolTaskExecutor.initialize();
+        threadPool = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
         logger.info("Thread pool with size={} created", THREAD_POOL_SIZE);
     }
 
-    void execute(Worker service) {
-        threadPoolTaskExecutor.execute(service);
+    void execute(Worker worker) {
+        threadPool.execute(worker);
     }
 }

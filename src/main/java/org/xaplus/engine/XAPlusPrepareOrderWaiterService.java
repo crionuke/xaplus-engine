@@ -3,7 +3,6 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.XAPlusPrepareTransactionEvent;
 import org.xaplus.engine.events.XAPlusRollbackRequestEvent;
 import org.xaplus.engine.events.XAPlusTimeoutEvent;
@@ -12,13 +11,10 @@ import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToPrepareEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
 
-import javax.annotation.PostConstruct;
-
 /**
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Service
 class XAPlusPrepareOrderWaiterService extends Bolt implements
         XAPlus2pcRequestEvent.Handler,
         XAPlusRemoteSuperiorOrderToPrepareEvent.Handler,
@@ -112,7 +108,6 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         }
     }
 
-    @PostConstruct
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlus2pcRequestEvent.class);

@@ -3,7 +3,6 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.XAPlusRetryCommitOrderRequestEvent;
 import org.xaplus.engine.events.XAPlusRetryFromSuperiorRequestEvent;
 import org.xaplus.engine.events.XAPlusRetryRollbackOrderRequestEvent;
@@ -17,13 +16,11 @@ import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToCommitEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 
-import javax.annotation.PostConstruct;
 import javax.transaction.xa.XAResource;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-@Service
 class XAPlusRecoveryCommitterService extends Bolt implements
         XAPlusRecoveryPreparedEvent.Handler,
         XAPlusRemoteSuperiorOrderToCommitEvent.Handler,
@@ -176,7 +173,6 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         }
     }
 
-    @PostConstruct
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusRecoveryPreparedEvent.class);

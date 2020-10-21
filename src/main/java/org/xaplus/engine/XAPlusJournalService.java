@@ -3,7 +3,6 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.XAPlusReportDoneStatusRequestEvent;
 import org.xaplus.engine.events.XAPlusTransactionCompletedEvent;
 import org.xaplus.engine.events.journal.*;
@@ -15,7 +14,6 @@ import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 
-import javax.annotation.PostConstruct;
 import java.sql.SQLException;
 import java.util.Comparator;
 import java.util.Map;
@@ -26,7 +24,6 @@ import java.util.TreeSet;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Service
 class XAPlusJournalService extends Bolt implements
         XAPlusLogCommitTransactionDecisionEvent.Handler,
         XAPlusLogRollbackTransactionDecisionEvent.Handler,
@@ -328,7 +325,6 @@ class XAPlusJournalService extends Bolt implements
         inFlightTransactions.remove(transaction);
     }
 
-    @PostConstruct
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusLogCommitTransactionDecisionEvent.class);

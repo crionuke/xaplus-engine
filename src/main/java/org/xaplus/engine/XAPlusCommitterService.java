@@ -3,7 +3,6 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.XAPlusCommitTransactionEvent;
 import org.xaplus.engine.events.XAPlusTimeoutEvent;
 import org.xaplus.engine.events.XAPlusTransactionPreparedEvent;
@@ -17,7 +16,6 @@ import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
 import org.xaplus.engine.events.xa.XAPlusCommitBranchRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
 
-import javax.annotation.PostConstruct;
 import javax.transaction.xa.XAResource;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,7 +24,6 @@ import java.util.Map;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Service
 class XAPlusCommitterService extends Bolt implements
         XAPlusTransactionPreparedEvent.Handler,
         XAPlusCommitTransactionEvent.Handler,
@@ -167,7 +164,6 @@ class XAPlusCommitterService extends Bolt implements
         }
     }
 
-    @PostConstruct
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusTransactionPreparedEvent.class);

@@ -15,15 +15,12 @@
  */
 package org.xaplus.engine;
 
-import org.springframework.stereotype.Component;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Ludovic Orban
  * @since 1.0.0
  */
-@Component
 class XAPlusUidGenerator {
 
     static private final AtomicInteger sequenceGenerator = new AtomicInteger();

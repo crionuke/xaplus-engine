@@ -3,21 +3,18 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.xaplus.engine.events.*;
 import org.xaplus.engine.events.recovery.*;
 import org.xaplus.engine.events.xa.*;
 
-import javax.annotation.PostConstruct;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import java.util.Set;
 
 /**
- * @author Kirill Byvshev (k@byv.sh)
+ * @author Kirill Byvshev (k@byv.ssh)
  * @since 1.0.0
  */
-@Service
 class XAPlusService extends Bolt implements
         XAPlusPrepareBranchRequestEvent.Handler,
         XAPlusCommitBranchRequestEvent.Handler,
@@ -396,7 +393,6 @@ class XAPlusService extends Bolt implements
         }
     }
 
-    @PostConstruct
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusPrepareBranchRequestEvent.class);

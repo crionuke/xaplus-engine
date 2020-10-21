@@ -1,4 +1,6 @@
 .idea
 *.iml
 target
-src/integration-test/testpg
+src/env/pg1
+src/env/pg2
+src/env/tlog

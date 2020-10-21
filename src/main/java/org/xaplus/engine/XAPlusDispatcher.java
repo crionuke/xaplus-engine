@@ -5,13 +5,11 @@ import com.crionuke.bolts.Dispatcher;
 import com.crionuke.bolts.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Component
 class XAPlusDispatcher {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusDispatcher.class);
 

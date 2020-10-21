@@ -2,7 +2,6 @@ package org.xaplus.engine;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 
 import javax.jms.JMSException;
@@ -18,7 +17,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@Component
 class XAPlusResources {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusEngine.class);
 

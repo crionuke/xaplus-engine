@@ -1,54 +1,30 @@
 package org.xaplus.engine;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-
 /**
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-@org.springframework.context.annotation.Configuration
-@EnableConfigurationProperties
-@ConfigurationProperties("xaplus")
 class XAPlusProperties {
 
-    volatile private String serverId;
-    volatile private int queueSize;
-    volatile private int defaultTimeoutInSeconds;
-    volatile private String tlog;
+    private final String serverId;
+    private final int queueSize;
+    private final int defaultTimeoutInSeconds;
 
-    XAPlusProperties() {
-    }
-
-    public String getServerId() {
-        return serverId;
-    }
-
-    public void setServerId(String serverId) {
+    XAPlusProperties(String serverId, int queueSize, int defaultTimeoutInSeconds) {
         this.serverId = serverId;
-    }
-
-    public int getQueueSize() {
-        return queueSize;
-    }
-
-    public void setQueueSize(int queueSize) {
         this.queueSize = queueSize;
-    }
-
-    public int getDefaultTimeoutInSeconds() {
-        return defaultTimeoutInSeconds;
-    }
-
-    public void setDefaultTimeoutInSeconds(int defaultTimeoutInSeconds) {
         this.defaultTimeoutInSeconds = defaultTimeoutInSeconds;
     }
 
-    public String getTlog() {
-        return tlog;
+    String getServerId() {
+        return serverId;
     }
 
-    public void setTlog(String tlog) {
-        this.tlog = tlog;
+    int getQueueSize() {
+        return queueSize;
+    }
+
+    int getDefaultTimeoutInSeconds() {
+        return defaultTimeoutInSeconds;
     }
 }

@@ -17,8 +17,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusRecoveryPreparerServiceScenarioTest extends XAPlusTest {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryPreparerServiceScenarioTest.class);
+public class XAPlusRecoveryPreparerServiceTest extends XAPlusTest {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryPreparerServiceTest.class);
 
     XAPlusRecoveryPreparerService xaPlusRecoveryPreparerService;
 
@@ -50,7 +50,7 @@ public class XAPlusRecoveryPreparerServiceScenarioTest extends XAPlusTest {
     }
 
     @Test
-    public void testRecoveryPrepareFirstDangingNextResourcesRecoveryRequestsScenario() throws InterruptedException {
+    public void testRecoveryPrepareFirstDangingNextResourcesRecoveryRequests() throws InterruptedException {
         // Test data set
         TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
         // Initiate server recovery
@@ -66,7 +66,7 @@ public class XAPlusRecoveryPreparerServiceScenarioTest extends XAPlusTest {
     }
 
     @Test
-    public void testRecoveryPrepareFirstResourcesRecoveryNextDangingRequestScenario() throws InterruptedException {
+    public void testRecoveryPrepareFirstResourcesRecoveryNextDangingRequest() throws InterruptedException {
         // Test data set
         TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
         // Initiate prepare recovery

@@ -37,10 +37,7 @@ public class XAPlusTest extends Assert {
     }
 
     protected void createXAPlusComponents(String serverId, int defaultTimeoutInSeconds) {
-        properties = new XAPlusProperties();
-        properties.setServerId(serverId);
-        properties.setQueueSize(QUEUE_SIZE);
-        properties.setDefaultTimeoutInSeconds(defaultTimeoutInSeconds);
+        properties = new XAPlusProperties(serverId, QUEUE_SIZE, defaultTimeoutInSeconds);
         resources = new XAPlusResources();
         initResources(resources);
         uidGenerator = new XAPlusUidGenerator();
