@@ -24,15 +24,15 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
     private final XAPlusResources resources;
-    private final XAPlusTransactionsTracker tracker;
+    private final XAPlusTracker tracker;
 
     XAPlusCommitOrderWaiterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
                                    XAPlusDispatcher dispatcher, XAPlusResources resources) {
-        super("commit-order-waiter", properties.getQueueSize());
+        super(properties.getServerId() + "-commit-order-waiter", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.resources = resources;
-        tracker = new XAPlusTransactionsTracker();
+        tracker = new XAPlusTracker();
     }
 
     @Override
@@ -70,6 +70,9 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
+        if (tracker.contains(xid)) {
+
+        }
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             dispatcher.dispatch(new XAPlusCommitTransactionEvent(transaction));

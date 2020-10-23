@@ -11,6 +11,7 @@ import org.xaplus.engine.events.recovery.*;
 import javax.jms.JMSException;
 import javax.transaction.xa.XAResource;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.Map;
 
 class XAPlusRecoveryPreparerService extends Bolt implements
@@ -21,20 +22,18 @@ class XAPlusRecoveryPreparerService extends Bolt implements
         XAPlusFindDanglingTransactionsFailedEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryPreparerService.class);
 
-    private final XAPlusProperties properties;
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
     private final XAPlusResources resources;
-    private final XAPlusRecoveryPreparerState state;
+    private final XAPlusRecoveryPreparerTracker tracker;
 
     XAPlusRecoveryPreparerService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
-                                  XAPlusResources resources) {
-        super("recovery-preparer", properties.getQueueSize());
-        this.properties = properties;
+                                  XAPlusResources resources, XAPlusRecoveryPreparerTracker tracker) {
+        super(properties.getServerId() + "-recovery-preparer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.resources = resources;
-        state = new XAPlusRecoveryPreparerState();
+        this.tracker = tracker;
     }
 
     @Override
@@ -42,7 +41,7 @@ class XAPlusRecoveryPreparerService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        if (state.isStarted()) {
+        if (tracker.isStarted()) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Recovery already started");
             }
@@ -50,7 +49,7 @@ class XAPlusRecoveryPreparerService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Recovery started at {}", System.currentTimeMillis());
             }
-            state.start();
+            tracker.start();
             dispatcher.dispatch(new XAPlusFindDanglingTransactionsRequestEvent());
             // Recovery all registered resources
             Map<String, XAPlusResources.Wrapper> wrappers = resources.getResources();
@@ -60,12 +59,12 @@ class XAPlusRecoveryPreparerService extends Bolt implements
                     XAResource resource = null;
                     if (wrapper instanceof XAPlusResources.XADataSourceWrapper) {
                         javax.sql.XAConnection connection = ((XAPlusResources.XADataSourceWrapper) wrapper).get();
-                        state.track(uniqueName, connection);
+                        tracker.track(uniqueName, connection);
                         resource = connection.getXAResource();
                     } else if (wrapper instanceof XAPlusResources.XAConnectionFactoryWrapper) {
                         javax.jms.XAConnection connection =
                                 ((XAPlusResources.XAConnectionFactoryWrapper) wrapper).get();
-                        state.track(uniqueName, connection);
+                        tracker.track(uniqueName, connection);
                         resource = connection.createXASession().getXAResource();
                     }
                     if (resource != null) {
@@ -73,7 +72,7 @@ class XAPlusRecoveryPreparerService extends Bolt implements
                     }
                 } catch (SQLException | JMSException e) {
                     if (logger.isWarnEnabled()) {
-                        logger.warn("Recovery resource failed with {}, resource={}", e.getMessage(), uniqueName);
+                        logger.warn("Recovery xaResource failed with {}, uniqueName={}", e.getMessage(), uniqueName);
                     }
                 }
             }
@@ -85,12 +84,12 @@ class XAPlusRecoveryPreparerService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        if (state.isStarted()) {
-            state.putRecoveredXids(event.getUniqueName(), event.getRecoveredXids());
-            checkTracker();
+        if (tracker.isStarted()) {
+            tracker.putRecoveredXids(event.getUniqueName(), event.getRecoveredXids());
+            check();
         } else {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Recovery not started yet");
+            if (logger.isTraceEnabled()) {
+                logger.trace("Recovery not started yet");
             }
         }
     }
@@ -100,12 +99,12 @@ class XAPlusRecoveryPreparerService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        if (state.isStarted()) {
-            state.recoveryResourceFailed(event.getUniqueName());
-            checkTracker();
+        if (tracker.isStarted()) {
+            tracker.recoveryResourceFailed(event.getUniqueName());
+            check();
         } else {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Recovery not started yet");
+            if (logger.isTraceEnabled()) {
+                logger.trace("Recovery not started yet");
             }
         }
     }
@@ -116,9 +115,9 @@ class XAPlusRecoveryPreparerService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        if (state.isStarted()) {
-            state.putDanglingTransactions(event.getDanglingTransactions());
-            checkTracker();
+        if (tracker.isStarted()) {
+            tracker.putDanglingTransactions(event.getDanglingTransactions());
+            check();
         } else {
             if (logger.isDebugEnabled()) {
                 logger.debug("Recovery not started yet");
@@ -132,9 +131,9 @@ class XAPlusRecoveryPreparerService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        if (state.isStarted()) {
-            state.findDanglingTransactionsFailed();
-            checkTracker();
+        if (tracker.isStarted()) {
+            tracker.findDanglingTransactionsFailed();
+            check();
         } else {
             if (logger.isDebugEnabled()) {
                 logger.debug("Recovery not started yet");
@@ -151,22 +150,22 @@ class XAPlusRecoveryPreparerService extends Bolt implements
         dispatcher.subscribe(this, XAPlusFindDanglingTransactionsFailedEvent.class);
     }
 
-    private void checkTracker() throws InterruptedException {
-        if (state.isRecovered()) {
-            if (state.isFailed()) {
+    private void check() throws InterruptedException {
+        if (tracker.isRecovered()) {
+            if (tracker.isFailed()) {
                 if (logger.isInfoEnabled()) {
-                    logger.info("Recovery failed, close connections and reset state");
+                    logger.info("Recovery failed, close connections and reset");
                 }
-                state.close();
-                state.reset();
+                tracker.close();
+                tracker.reset();
             } else {
                 if (logger.isInfoEnabled()) {
                     logger.info("Ready to recovery, starting");
                 }
-                dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(state.getJdbcConnections(),
-                        state.getJmsConnections(), state.getXaResources(), state.getRecoveredXids(),
-                        state.getDanglingTransactions()));
-                state.reset();
+                dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(tracker.getJdbcConnections(),
+                        tracker.getJmsConnections(), tracker.getXaResources(), tracker.getRecoveredXids(),
+                        tracker.getDanglingTransactions()));
+                tracker.reset();
             }
         }
     }

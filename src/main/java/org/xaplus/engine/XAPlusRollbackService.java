@@ -10,6 +10,7 @@ import org.xaplus.engine.events.XAPlusTimeoutEvent;
 import org.xaplus.engine.events.journal.XAPlusLogRollbackTransactionDecisionEvent;
 import org.xaplus.engine.events.journal.XAPlusLogRollbackTransactionDecisionFailedEvent;
 import org.xaplus.engine.events.journal.XAPlusRollbackTransactionDecisionLoggedEvent;
+import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchRolledBackEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchFailedEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchRequestEvent;
@@ -36,13 +37,14 @@ class XAPlusRollbackService extends Bolt implements
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final XAPlusRollbackState state;
+    private final XAPlusTracker tracker;
 
-    XAPlusRollbackService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
-        super("rollback", properties.getQueueSize());
+    XAPlusRollbackService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
+                          XAPlusTracker tracker) {
+        super(properties.getServerId() + "-rollback", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        state = new XAPlusRollbackState();
+        this.tracker = tracker;
     }
 
     @Override
@@ -51,8 +53,12 @@ class XAPlusRollbackService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        if (state.track(transaction)) {
+        if (tracker.track(transaction)) {
             dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction already tracked, {}", transaction);
+            }
         }
     }
 
@@ -63,16 +69,8 @@ class XAPlusRollbackService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        XAPlusTransaction transaction = state.getTransaction(xid);
-        if (transaction != null) {
-            Map<XAPlusXid, XAResource> resources = new HashMap<>();
-            resources.putAll(transaction.getXaResources());
-            resources.putAll(transaction.getXaPlusResources());
-            for (Map.Entry<XAPlusXid, XAResource> entry : resources.entrySet()) {
-                XAPlusXid branchXid = entry.getKey();
-                XAResource resource = entry.getValue();
-                dispatcher.dispatch(new XAPlusRollbackBranchRequestEvent(xid, branchXid, resource));
-            }
+        if (tracker.contains(xid)) {
+            tracker.getTransaction(xid).rollback(dispatcher);
         }
     }
 
@@ -83,8 +81,8 @@ class XAPlusRollbackService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        XAPlusTransaction transaction = state.getTransaction(xid);
-        if (transaction != null) {
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
             Exception exception = event.getException();
             dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction, exception));
         }
@@ -96,9 +94,16 @@ class XAPlusRollbackService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        XAPlusXid branchXid = event.getBranchXid();
-        state.setRolledBack(xid, branchXid);
-        check(xid);
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
+            XAPlusXid branchXid = event.getBranchXid();
+            transaction.branchRolledBack(branchXid);
+            check(xid);
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction not found, xid={}", xid);
+            }
+        }
     }
 
     @Override
@@ -107,9 +112,15 @@ class XAPlusRollbackService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        XAPlusXid branchXid = event.getBranchXid();
-        state.setRollbackAsFailed(xid, branchXid);
-        check(xid);
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
+            Exception exception = event.getException();
+            dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction, exception));
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction not found, xid={}", xid);
+            }
+        }
     }
 
     @Override
@@ -118,12 +129,13 @@ class XAPlusRollbackService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid branchXid = event.getXid();
-        XAPlusXid xid = state.getTransactionXid(branchXid);
-        if (xid != null) {
-            state.setDone(branchXid);
+        XAPlusXid xid = tracker.getTransactionXid(branchXid);
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
+            transaction.branchDone(branchXid);
             check(xid);
         } else {
-            logger.debug("Unknown xid from remote subordinate to mark as done, xid={}{", xid);
+            logger.debug("Wrong xid from subordinate, xid={}", xid);
         }
     }
 
@@ -133,7 +145,7 @@ class XAPlusRollbackService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        state.remove(xid);
+        tracker.remove(xid);
     }
 
     @Override
@@ -142,7 +154,7 @@ class XAPlusRollbackService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        state.remove(xid);
+        tracker.remove(xid);
     }
 
     void postConstruct() {
@@ -158,9 +170,13 @@ class XAPlusRollbackService extends Bolt implements
     }
 
     private void check(XAPlusXid xid) throws InterruptedException {
-        if (state.check(xid)) {
-            XAPlusTransaction transaction = state.getTransaction(xid);
-            dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
+            if (transaction.isRolledBack() && transaction.isDone()) {
+                tracker.remove(xid);
+                dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
+                // TODO: send done to superior if this is subordinate
+            }
         }
     }
 }

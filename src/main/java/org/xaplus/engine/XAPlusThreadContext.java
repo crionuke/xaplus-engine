@@ -14,7 +14,7 @@ class XAPlusThreadContext {
 
     void setTransaction(XAPlusTransaction transaction) {
         if (transaction == null) {
-            throw new NullPointerException("transaction is null");
+            throw new NullPointerException("Transaction is null");
         }
         this.transaction = transaction;
     }

@@ -36,15 +36,15 @@ class XAPlusManagerService extends Bolt implements
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
     private final XAPlusResources resources;
-    private final XAPlusTransactionsTracker tracker;
+    private final XAPlusTracker tracker;
 
-    XAPlusManagerService(XAPlusProperties XAPlusProperties, XAPlusThreadPool threadPool,
+    XAPlusManagerService(XAPlusProperties properties, XAPlusThreadPool threadPool,
                          XAPlusDispatcher dispatcher, XAPlusResources resources) {
-        super("manager", XAPlusProperties.getQueueSize());
+        super(properties.getServerId() + "-manager", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.resources = resources;
-        tracker = new XAPlusTransactionsTracker();
+        tracker = new XAPlusTracker();
     }
 
     @Override
@@ -85,8 +85,8 @@ class XAPlusManagerService extends Bolt implements
         XAPlusXid xid = event.getTransaction().getXid();
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Transaction done, {}", transaction);
+            if (logger.isInfoEnabled()) {
+                logger.info("Transaction done, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTransactionCompletedEvent(transaction));
             transaction.getFuture().put(new XAPlusResult());
@@ -100,8 +100,8 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusTransaction transaction = tracker.remove(event.getTransaction().getXid());
         if (transaction != null) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Transaction rolled back, {}", transaction);
+            if (logger.isInfoEnabled()) {
+                logger.info("Transaction rolled back, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTransactionCompletedEvent(transaction));
             transaction.getFuture().put(new XAPlusResult());
@@ -116,8 +116,8 @@ class XAPlusManagerService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(event.getTransaction().getXid());
         Exception exception = event.getException();
         if (transaction != null) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Transaction 2pc failed as {}, {}", exception.getMessage(), transaction);
+            if (logger.isInfoEnabled()) {
+                logger.info("Transaction 2pc failed as {}, {}", exception.getMessage(), transaction);
             }
             dispatcher.dispatch(new XAPlusTransactionCompletedEvent(transaction));
             transaction.getFuture().put(new XAPlusResult(new XAPlusCommitException(exception)));
@@ -132,8 +132,8 @@ class XAPlusManagerService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(event.getTransaction().getXid());
         Exception exception = event.getException();
         if (transaction != null) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Transaction rollback failed as {}, {}", exception.getMessage(), transaction);
+            if (logger.isInfoEnabled()) {
+                logger.info("Transaction rollback failed as {}, {}", exception.getMessage(), transaction);
             }
             dispatcher.dispatch(new XAPlusTransactionCompletedEvent(transaction));
             transaction.getFuture().put(new XAPlusResult(new XAPlusRollbackException(exception)));
@@ -147,8 +147,8 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusTransaction transaction = tracker.remove(event.getTransaction().getXid());
         if (transaction != null) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Transaction timed out, {}", transaction);
+            if (logger.isInfoEnabled()) {
+                logger.info("Transaction timed out, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTransactionCompletedEvent(transaction));
             transaction.getFuture().put(new XAPlusResult(new XAPlusTimeoutException()));
@@ -162,7 +162,7 @@ class XAPlusManagerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        if (tracker.transaction(xid) == null) {
+        if (tracker.getTransaction(xid) == null) {
             reportTransactionStatus(xid);
         }
     }
@@ -174,7 +174,7 @@ class XAPlusManagerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        if (tracker.transaction(xid) == null) {
+        if (tracker.getTransaction(xid) == null) {
             reportTransactionStatus(xid);
         }
     }
@@ -203,7 +203,7 @@ class XAPlusManagerService extends Bolt implements
         } catch (XAPlusSystemException e) {
             if (logger.isWarnEnabled()) {
                 logger.warn("Internal error. Report transaction status for non XA+ " +
-                        "or unknown resource with name={}", superiorServerId);
+                        "or unknown xaResource with name={}", superiorServerId);
             }
         }
     }

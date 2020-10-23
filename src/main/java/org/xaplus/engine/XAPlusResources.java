@@ -41,7 +41,7 @@ class XAPlusResources {
             if (wrapper != null) {
                 return wrapper.get();
             } else {
-                throw new XAPlusSystemException("resource " + uniqueName + " not found");
+                throw new XAPlusSystemException("xaResource " + uniqueName + " not found");
             }
         } catch (ClassCastException | XAPlusException e) {
             throw new XAPlusSystemException(e);
@@ -85,7 +85,7 @@ class XAPlusResources {
 
     private void register(Wrapper xaWrapper, String uniqueName) {
         if (resources.containsKey(uniqueName)) {
-            throw new IllegalStateException("resource with name " + uniqueName + " already registered");
+            throw new IllegalStateException("xaResource with name " + uniqueName + " already registered");
         }
         resources.put(uniqueName, xaWrapper);
         if (logger.isTraceEnabled()) {

@@ -13,12 +13,7 @@ import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchCommittedEvent;
 import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
-import org.xaplus.engine.events.xa.XAPlusCommitBranchRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
-
-import javax.transaction.xa.XAResource;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -38,13 +33,15 @@ class XAPlusCommitterService extends Bolt implements
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final XAPlusCommitterState state;
+    private final XAPlusTracker tracker;
 
-    XAPlusCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
-        super("committer", properties.getQueueSize());
+
+    XAPlusCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
+                           XAPlusTracker tracker) {
+        super(properties.getServerId() + "-committer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        state = new XAPlusCommitterState();
+        this.tracker = tracker;
     }
 
     @Override
@@ -54,7 +51,13 @@ class XAPlusCommitterService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (transaction.isSuperior()) {
-            fireCommitDecision(transaction);
+            if (tracker.track(transaction)) {
+                dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
+            }
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction is not superior, {}", transaction);
+            }
         }
     }
 
@@ -64,7 +67,13 @@ class XAPlusCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        fireCommitDecision(transaction);
+        if (tracker.track(transaction)) {
+            dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction already tracked, {}", transaction);
+            }
+        }
     }
 
     @Override
@@ -74,16 +83,8 @@ class XAPlusCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        XAPlusTransaction transaction = state.getTransaction(xid);
-        if (transaction != null) {
-            Map<XAPlusXid, XAResource> resources = new HashMap<>();
-            resources.putAll(transaction.getXaResources());
-            resources.putAll(transaction.getXaPlusResources());
-            for (Map.Entry<XAPlusXid, XAResource> entry : resources.entrySet()) {
-                XAPlusXid branchXid = entry.getKey();
-                XAResource resource = entry.getValue();
-                dispatcher.dispatch(new XAPlusCommitBranchRequestEvent(xid, branchXid, resource));
-            }
+        if (tracker.contains(xid)) {
+            tracker.getTransaction(xid).commit(dispatcher);
         }
     }
 
@@ -94,8 +95,8 @@ class XAPlusCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        XAPlusTransaction transaction = state.getTransaction(xid);
-        if (transaction != null) {
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
             Exception exception = event.getException();
             dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, exception));
         }
@@ -107,9 +108,11 @@ class XAPlusCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        XAPlusXid branchXid = event.getBranchXid();
-        state.setCommitted(xid, branchXid);
-        check(xid);
+        if (tracker.contains(xid)) {
+            XAPlusXid branchXid = event.getBranchXid();
+            tracker.getTransaction(xid).branchCommitted(branchXid);
+            check(xid);
+        }
     }
 
     @Override
@@ -118,8 +121,8 @@ class XAPlusCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        XAPlusTransaction transaction = state.remove(xid);
-        if (transaction != null) {
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
             Exception exception = event.getException();
             dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, exception));
         }
@@ -131,9 +134,11 @@ class XAPlusCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid branchXid = event.getXid();
-        state.setDone(branchXid);
-        XAPlusXid xid = state.getTransactionXid(branchXid);
-        check(xid);
+        XAPlusXid transactionXid = tracker.getTransactionXid(branchXid);
+        if (transactionXid != null && tracker.contains(transactionXid)) {
+            tracker.getTransaction(transactionXid).branchDone(branchXid);
+            check(transactionXid);
+        }
     }
 
     @Override
@@ -142,8 +147,8 @@ class XAPlusCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        XAPlusTransaction transaction = state.remove(xid);
-        if (transaction != null) {
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.remove(xid);
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled as transaction failed, {}", transaction);
             }
@@ -156,8 +161,8 @@ class XAPlusCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        XAPlusTransaction transaction = state.remove(xid);
-        if (transaction != null) {
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.remove(xid);
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled as transaction timed out, {}", transaction);
             }
@@ -177,16 +182,13 @@ class XAPlusCommitterService extends Bolt implements
         dispatcher.subscribe(this, XAPlusTimeoutEvent.class);
     }
 
-    private void fireCommitDecision(XAPlusTransaction transaction) throws InterruptedException {
-        if (state.track(transaction)) {
-            dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
-        }
-    }
-
     private void check(XAPlusXid xid) throws InterruptedException {
-        if (state.check(xid)) {
-            XAPlusTransaction transaction = state.remove(xid);
-            dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
+            if (transaction.isCommitted() && transaction.isDone()) {
+                tracker.remove(xid);
+                dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
+            }
         }
     }
 }

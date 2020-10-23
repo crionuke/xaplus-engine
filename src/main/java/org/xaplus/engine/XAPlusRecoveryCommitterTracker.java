@@ -11,8 +11,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-class XAPlusRecoveryCommitterState {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryCommitterState.class);
+class XAPlusRecoveryCommitterTracker {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryCommitterTracker.class);
 
     private boolean started;
     private Map<String, XAConnection> jdbcConnections;
@@ -21,7 +21,7 @@ class XAPlusRecoveryCommitterState {
     private Map<String, Set<XAPlusXid>> recoveredXids;
     private Map<String, Map<XAPlusXid, Boolean>> danglingTransactions;
 
-    XAPlusRecoveryCommitterState() {
+    XAPlusRecoveryCommitterTracker() {
         started = false;
         jdbcConnections = new HashMap<>();
         jmsConnections = new HashMap<>();

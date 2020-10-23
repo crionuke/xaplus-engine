@@ -34,20 +34,22 @@ class XAPlusRecoveryCommitterService extends Bolt implements
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
     private final XAPlusResources resources;
-    private final XAPlusRecoveryCommitterState state;
-    private final XAPlusOrdersTracker ordersTracker;
-    private final XAPlusRetriesTracker retriesTracker;
+    private final XAPlusRecoveryCommitterTracker tracker;
+    private final XAPlusRecoveryOrdersTracker ordersTracker;
+    private final XAPlusRecoveryRetriesTracker retriesTracker;
 
     XAPlusRecoveryCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
-                                   XAPlusDispatcher dispatcher, XAPlusResources resources) {
-        super("recovery-committer", properties.getQueueSize());
+                                   XAPlusDispatcher dispatcher, XAPlusResources resources,
+                                   XAPlusRecoveryCommitterTracker tracker, XAPlusRecoveryOrdersTracker ordersTracker,
+                                   XAPlusRecoveryRetriesTracker retriesTracker) {
+        super(properties.getServerId() + "-recovery-committer", properties.getQueueSize());
         this.properties = properties;
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.resources = resources;
-        state = new XAPlusRecoveryCommitterState();
-        ordersTracker = new XAPlusOrdersTracker();
-        retriesTracker = new XAPlusRetriesTracker();
+        this.tracker = tracker;
+        this.ordersTracker = ordersTracker;
+        this.retriesTracker = retriesTracker;
     }
 
     @Override
@@ -55,12 +57,12 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        if (state.isStarted()) {
+        if (tracker.isStarted()) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Recovery already started");
             }
         } else {
-            state.start(event.getJdbcConnections(), event.getJmsConnections(), event.getXaResources(),
+            tracker.start(event.getJdbcConnections(), event.getJmsConnections(), event.getXaResources(),
                     event.getRecoveredXids(), event.getDanglingTransactions());
             retryOrders();
             recoveryResources();
@@ -75,17 +77,17 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        Map<String, XAPlusXid> branches = retriesTracker.remove(xid);
+        Map<XAPlusXid, String> branches = retriesTracker.remove(xid);
         if (branches != null) {
-            for (Map.Entry<String, XAPlusXid> entry : branches.entrySet()) {
-                String uniqueName = entry.getKey();
-                XAPlusXid branchXid = entry.getValue();
-                XAResource resource = state.getXaResources().get(uniqueName);
+            for (Map.Entry<XAPlusXid, String> entry : branches.entrySet()) {
+                XAPlusXid branchXid = entry.getKey();
+                String uniqueName = entry.getValue();
+                XAResource resource = tracker.getXaResources().get(uniqueName);
                 if (resource != null) {
                     dispatcher.dispatch(new XAPlusLogCommitRecoveredXidDecisionEvent(branchXid, uniqueName));
                 } else {
                     if (logger.isWarnEnabled()) {
-                        logger.warn("Unknown XA resource to commit branch, resource={}, xid={}",
+                        logger.warn("Unknown XA xaResource to commit branch, xaResource={}, xid={}",
                                 uniqueName, branchXid);
                     }
                 }
@@ -100,17 +102,17 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        Map<String, XAPlusXid> branches = retriesTracker.remove(xid);
+        Map<XAPlusXid, String> branches = retriesTracker.remove(xid);
         if (branches != null) {
-            for (Map.Entry<String, XAPlusXid> entry : branches.entrySet()) {
-                String uniqueName = entry.getKey();
-                XAPlusXid branchXid = entry.getValue();
-                XAResource resource = state.getXaResources().get(uniqueName);
+            for (Map.Entry<XAPlusXid, String> entry : branches.entrySet()) {
+                XAPlusXid branchXid = entry.getKey();
+                String uniqueName = entry.getValue();
+                XAResource resource = tracker.getXaResources().get(uniqueName);
                 if (resource != null) {
                     dispatcher.dispatch(new XAPlusLogRollbackRecoveredXidDecisionEvent(branchXid, uniqueName));
                 } else {
                     if (logger.isWarnEnabled()) {
-                        logger.warn("Unknown XA resource to rollback branch, resource={}, xid={}",
+                        logger.warn("Unknown XA xaResource to rollback branch, xaResource={}, xid={}",
                                 uniqueName, branchXid);
                     }
                 }
@@ -126,12 +128,12 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
-        XAResource xaResource = state.getXaResources().get(uniqueName);
+        XAResource xaResource = tracker.getXaResources().get(uniqueName);
         if (xaResource != null) {
             dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, xaResource, uniqueName));
         } else {
             if (logger.isWarnEnabled()) {
-                logger.warn("Unknown XA resource to commit recovered branch, resource={}, xid={}",
+                logger.warn("Unknown XA xaResource to commit recovered branch, xaResource={}, xid={}",
                         uniqueName, xid);
             }
         }
@@ -145,12 +147,12 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
-        XAResource xaResource = state.getXaResources().get(uniqueName);
+        XAResource xaResource = tracker.getXaResources().get(uniqueName);
         if (xaResource != null) {
             dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, xaResource, uniqueName));
         } else {
             if (logger.isWarnEnabled()) {
-                logger.warn("Unknown XA resource to rollback recovered branch, resource={}, xid={}",
+                logger.warn("Unknown XA xaResource to rollback recovered branch, xaResource={}, xid={}",
                         uniqueName, xid);
             }
         }
@@ -184,7 +186,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
     }
 
     private void retryOrders() throws InterruptedException {
-        Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = state.getDanglingTransactions();
+        Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = tracker.getDanglingTransactions();
         for (String uniqueName : danglingTransactions.keySet()) {
             // Ignore transactions on non XA+ resources
             if (resources.isXAPlusResource(uniqueName)) {
@@ -202,7 +204,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     }
                 } catch (XAPlusSystemException e) {
                     if (logger.isErrorEnabled()) {
-                        logger.error("Internal error. Retry order for non XA+ or unknown resource, resource={}",
+                        logger.error("Internal error. Retry order for non XA+ or unknown xaResource, xaResource={}",
                                 uniqueName);
                     }
                 }
@@ -211,14 +213,14 @@ class XAPlusRecoveryCommitterService extends Bolt implements
     }
 
     private void recoveryResources() throws InterruptedException {
-        Map<String, Set<XAPlusXid>> recoveredXids = state.getRecoveredXids();
+        Map<String, Set<XAPlusXid>> recoveredXids = tracker.getRecoveredXids();
         Set<String> superiorServers = new HashSet<>();
         for (String uniqueName : recoveredXids.keySet()) {
-            XAResource xaResource = state.getXaResources().get(uniqueName);
+            XAResource xaResource = tracker.getXaResources().get(uniqueName);
             if (xaResource != null) {
                 Set<XAPlusXid> xids = recoveredXids.get(uniqueName);
                 for (XAPlusXid xid : xids) {
-                    Map<XAPlusXid, Boolean> danglingXids = state.getDanglingTransactions().get(uniqueName);
+                    Map<XAPlusXid, Boolean> danglingXids = tracker.getDanglingTransactions().get(uniqueName);
                     if (danglingXids != null && danglingXids.containsKey(xid)) {
                         boolean status = danglingXids.get(xid);
                         if (status) {
@@ -230,7 +232,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     } else {
                         String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
                         if (superiorServerId.equals(properties.getServerId())) {
-                            // Rollback recovered transaction's xid as was no commit command found
+                            // Rollback recovered getTransaction's xid as was no commit command found
                             dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(
                                     xid, xaResource, uniqueName));
                         } else {
@@ -241,7 +243,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                                             resources.getXAPlusResource(superiorServerId)));
                                 } catch (XAPlusSystemException e) {
                                     if (logger.isWarnEnabled()) {
-                                        logger.warn("Unknown XA+ resource to retry orders, resource={}",
+                                        logger.warn("Unknown XA+ xaResource to retry orders, xaResource={}",
                                                 superiorServerId);
                                     }
                                 }
@@ -251,7 +253,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                 }
             } else {
                 if (logger.isWarnEnabled()) {
-                    logger.warn("Unknown XA resource to recovery, resource={}", uniqueName);
+                    logger.warn("Unknown XA xaResource to recovery, xaResource={}", uniqueName);
                 }
             }
         }

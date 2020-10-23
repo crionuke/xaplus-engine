@@ -56,7 +56,7 @@ public class XAPlusTLogTest extends XAPlusTest {
         XAPlusTransaction transaction1 = createTestSuperiorTransaction();
         XAPlusTransaction transaction2 = createTestSuperiorTransaction();
         XAPlusTransaction transaction3 = createTestSuperiorTransaction();
-        Map<XAPlusXid, String> uniqueNames2 = transaction2.getUniqueNames();
+        Map<XAPlusXid, String> branches2 = transaction2.getBranches();
         tLog.logCommitTransactionDecision(transaction1);
         tLog.logRollbackTransactionDecision(transaction2);
         tLog.logTransactionCommitted(transaction1);
@@ -67,12 +67,12 @@ public class XAPlusTLogTest extends XAPlusTest {
         for (Map.Entry<String, Map<XAPlusXid, Boolean>> entry : danglingTransactions.entrySet()) {
             String uniqueName = entry.getKey();
             Map<XAPlusXid, Boolean> branches = entry.getValue();
-            assertTrue(uniqueNames2.containsValue(uniqueName));
+            assertTrue(branches2.containsValue(uniqueName));
             for (XAPlusXid branchXid : branches.keySet()) {
-                assertTrue(uniqueNames2.containsKey(branchXid));
+                assertTrue(branches2.containsKey(branchXid));
             }
         }
-        assertEquals(danglingTransactions.size(), uniqueNames2.size());
+        assertEquals(danglingTransactions.size(), branches2.size());
     }
 
     @Test
@@ -134,65 +134,65 @@ public class XAPlusTLogTest extends XAPlusTest {
     @Test
     public void testLogCommitTransactionDecision() throws SQLException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
-        Map<XAPlusXid, String> uniqueNames = transaction.getUniqueNames();
+        Map<XAPlusXid, String> branches = transaction.getBranches();
         tLog.logCommitTransactionDecision(transaction);
         List<TLogRecord> records = selectTLogRecords();
         for (TLogRecord record : records) {
             assertEquals(properties.getServerId(), record.getServerId());
-            assertNotNull(uniqueNames.get(record.getXid()));
-            assertEquals(uniqueNames.get(record.getXid()), record.getUniqueName());
+            assertNotNull(branches.get(record.getXid()));
+            assertEquals(branches.get(record.getXid()), record.getUniqueName());
             assertEquals(true, record.getTStatus());
             assertEquals(false, record.isComplete());
         }
-        assertEquals(uniqueNames.size(), records.size());
+        assertEquals(branches.size(), records.size());
     }
 
     @Test
     public void testLogTransactionCommitted() throws SQLException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
-        Map<XAPlusXid, String> uniqueNames = transaction.getUniqueNames();
+        Map<XAPlusXid, String> branches = transaction.getBranches();
         tLog.logTransactionCommitted(transaction);
         List<TLogRecord> records = selectTLogRecords();
         for (TLogRecord record : records) {
             assertEquals(properties.getServerId(), record.getServerId());
-            assertNotNull(uniqueNames.get(record.getXid()));
-            assertEquals(uniqueNames.get(record.getXid()), record.getUniqueName());
+            assertNotNull(branches.get(record.getXid()));
+            assertEquals(branches.get(record.getXid()), record.getUniqueName());
             assertEquals(true, record.getTStatus());
             assertEquals(true, record.isComplete());
         }
-        assertEquals(uniqueNames.size(), records.size());
+        assertEquals(branches.size(), records.size());
     }
 
     @Test
     public void testLogRollbackTransactionDecision() throws SQLException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
-        Map<XAPlusXid, String> uniqueNames = transaction.getUniqueNames();
+        Map<XAPlusXid, String> branches = transaction.getBranches();
         tLog.logRollbackTransactionDecision(transaction);
         List<TLogRecord> records = selectTLogRecords();
         for (TLogRecord record : records) {
             assertEquals(properties.getServerId(), record.getServerId());
-            assertNotNull(uniqueNames.get(record.getXid()));
-            assertEquals(uniqueNames.get(record.getXid()), record.getUniqueName());
+            assertNotNull(branches.get(record.getXid()));
+            assertEquals(branches.get(record.getXid()), record.getUniqueName());
             assertEquals(false, record.getTStatus());
             assertEquals(false, record.isComplete());
         }
-        assertEquals(uniqueNames.size(), records.size());
+        assertEquals(branches.size(), records.size());
     }
 
     @Test
     public void testTransactionRolledBack() throws SQLException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
-        Map<XAPlusXid, String> uniqueNames = transaction.getUniqueNames();
+        Map<XAPlusXid, String> branches = transaction.getBranches();
         tLog.logTransactionRolledBack(transaction);
         List<TLogRecord> records = selectTLogRecords();
         for (TLogRecord record : records) {
             assertEquals(properties.getServerId(), record.getServerId());
-            assertNotNull(uniqueNames.get(record.getXid()));
-            assertEquals(uniqueNames.get(record.getXid()), record.getUniqueName());
+            assertNotNull(branches.get(record.getXid()));
+            assertEquals(branches.get(record.getXid()), record.getUniqueName());
             assertEquals(false, record.getTStatus());
             assertEquals(true, record.isComplete());
         }
-        assertEquals(uniqueNames.size(), records.size());
+        assertEquals(branches.size(), records.size());
     }
 
     List<TLogRecord> selectTLogRecords() throws SQLException {

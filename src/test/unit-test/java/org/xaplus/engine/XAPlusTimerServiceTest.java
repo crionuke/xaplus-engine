@@ -53,7 +53,7 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
         XAPlusTimeoutEvent timeoutEvent = timeoutEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timeoutEvent);
         assertEquals(timeoutEvent.getTransaction().getXid(), transaction.getXid());
-        logger.info("transaction {} timed out", timeoutEvent.getTransaction());
+        logger.info("Transaction {} timed out", timeoutEvent.getTransaction());
     }
 
     @Test
@@ -65,7 +65,7 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
         XAPlusTimeoutEvent timeoutEvent = timeoutEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timeoutEvent);
         assertEquals(timeoutEvent.getTransaction().getXid(), transaction.getXid());
-        logger.info("transaction {} timed out", timeoutEvent.getTransaction());
+        logger.info("Transaction {} timed out", timeoutEvent.getTransaction());
     }
 
     @Test
@@ -76,7 +76,7 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
         XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timerCancelledEvent);
         assertEquals(timerCancelledEvent.getTransaction().getXid(), transaction.getXid());
-        logger.info("transaction {} done", timerCancelledEvent.getTransaction());
+        logger.info("Transaction {} done", timerCancelledEvent.getTransaction());
     }
 
     @Test
@@ -87,7 +87,7 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
         XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timerCancelledEvent);
         assertEquals(timerCancelledEvent.getTransaction().getXid(), transaction.getXid());
-        logger.info("transaction {} failed", timerCancelledEvent.getTransaction());
+        logger.info("Transaction {} failed", timerCancelledEvent.getTransaction());
     }
 
     @Test

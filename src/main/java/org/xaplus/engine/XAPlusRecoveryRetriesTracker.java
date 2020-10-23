@@ -3,25 +3,25 @@ package org.xaplus.engine;
 import java.util.HashMap;
 import java.util.Map;
 
-final class XAPlusRetriesTracker {
+final class XAPlusRecoveryRetriesTracker {
 
-    private Map<XAPlusUid, Map<String, XAPlusXid>> waiting;
+    private Map<XAPlusUid, Map<XAPlusXid, String>> waiting;
 
-    XAPlusRetriesTracker() {
+    XAPlusRecoveryRetriesTracker() {
         waiting = new HashMap<>();
     }
 
     void track(XAPlusXid xid, String uniqueName) {
         XAPlusUid gtrid = xid.getGlobalTransactionIdUid();
-        Map<String, XAPlusXid> xids = waiting.get(gtrid);
+        Map<XAPlusXid, String> xids = waiting.get(gtrid);
         if (xids == null) {
             xids = new HashMap<>();
             waiting.put(gtrid, xids);
         }
-        xids.put(uniqueName, xid);
+        xids.put(xid, uniqueName);
     }
 
-    Map<String, XAPlusXid> remove(XAPlusXid xid) {
+    Map<XAPlusXid, String> remove(XAPlusXid xid) {
         return waiting.remove(xid.getGlobalTransactionIdUid());
     }
 

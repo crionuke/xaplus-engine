@@ -25,7 +25,6 @@ public final class XAPlusRecoveryPreparedEvent extends Event<XAPlusRecoveryPrepa
                                        Map<String, Set<XAPlusXid>> recoveredXids,
                                        Map<String, Map<XAPlusXid, Boolean>> danglingTransactions) {
         super();
-
         if (jdbcConnections == null) {
             throw new NullPointerException("jdbcConnections is null");
         }

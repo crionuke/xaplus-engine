@@ -32,7 +32,9 @@ public class XAPlusRecoveryPreparerServiceTest extends XAPlusTest {
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
 
-        xaPlusRecoveryPreparerService = new XAPlusRecoveryPreparerService(properties, threadPool, dispatcher, resources);
+        xaPlusRecoveryPreparerService =
+                new XAPlusRecoveryPreparerService(properties, threadPool, dispatcher, resources,
+                        new XAPlusRecoveryPreparerTracker());
         xaPlusRecoveryPreparerService.postConstruct();
 
         findDanglingTransactionsRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -57,7 +59,7 @@ public class XAPlusRecoveryPreparerServiceTest extends XAPlusTest {
         dispatcher.dispatch(new XAPlusRecoveryRequestEvent());
         // First waiting danging transaction request
         waitingFindDanglingTransactionsRequest(dataSet);
-        // Next waiting all resource recovery requests
+        // Next waiting all xaResource recovery requests
         waitingResourceRecoveryRequests(dataSet);
         // Waiting recovery prepared event
         XAPlusRecoveryPreparedEvent recoveryPreparedEvent = recoveryPreparedEvents
@@ -71,7 +73,7 @@ public class XAPlusRecoveryPreparerServiceTest extends XAPlusTest {
         TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
         // Initiate prepare recovery
         dispatcher.dispatch(new XAPlusRecoveryRequestEvent());
-        // First waiting all resource recovery requests
+        // First waiting all xaResource recovery requests
         waitingResourceRecoveryRequests(dataSet);
         // Next waiting danging transaction request
         waitingFindDanglingTransactionsRequest(dataSet);
@@ -101,7 +103,7 @@ public class XAPlusRecoveryPreparerServiceTest extends XAPlusTest {
                 dispatcher.dispatch(new XAPlusResourceRecoveredEvent(uniqueName,
                         dataSet.allPreparedXids.get(uniqueName)));
             } else {
-                fail("unknown resource name=" + uniqueName + " to recovery");
+                fail("unknown xaResource name=" + uniqueName + " to recovery");
             }
         }
     }

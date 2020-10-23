@@ -29,7 +29,7 @@ class XAPlusTimerService extends Bolt implements
     private final XAPlusTimerState state;
 
     XAPlusTimerService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
-        super("timer", properties.getQueueSize());
+        super(properties.getServerId() + "-timer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         state = new XAPlusTimerState();
@@ -45,6 +45,10 @@ class XAPlusTimerService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Track timeout, {}", transaction);
             }
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction already tracked, {}", transaction);
+            }
         }
     }
 
@@ -57,6 +61,10 @@ class XAPlusTimerService extends Bolt implements
         if (state.track(transaction)) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Track timeout, {}", transaction);
+            }
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction already tracked, {}", transaction);
             }
         }
     }
@@ -80,6 +88,10 @@ class XAPlusTimerService extends Bolt implements
                 logger.debug("Timeout tracking cancelled as 2pc procotol done, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction not found, {}", transaction);
+            }
         }
     }
 
@@ -95,6 +107,10 @@ class XAPlusTimerService extends Bolt implements
                 logger.debug("Timeout tracking cancelled as rollback protocol done, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction not found, {}", transaction);
+            }
         }
     }
 
@@ -110,6 +126,10 @@ class XAPlusTimerService extends Bolt implements
                 logger.debug("Timeout tracking cancelled as 2pc protocol failed, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction not found, {}", transaction);
+            }
         }
     }
 
@@ -125,6 +145,10 @@ class XAPlusTimerService extends Bolt implements
                 logger.debug("Timeout tracking cancelled as rollback protocol failed, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction not found, {}", transaction);
+            }
         }
     }
 

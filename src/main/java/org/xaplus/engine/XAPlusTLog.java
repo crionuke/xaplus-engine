@@ -38,7 +38,7 @@ class XAPlusTLog {
 
     boolean isTransactionCompleted(XAPlusXid xid) throws SQLException {
         if (logger.isTraceEnabled()) {
-            logger.trace("Check transaction, xid={}", xid);
+            logger.trace("Check getTransaction, xid={}", xid);
         }
         DataSource tlogDataSource = engine.getTlogDataSource();
         try (Connection connection = tlogDataSource.getConnection()) {
@@ -135,19 +135,19 @@ class XAPlusTLog {
     }
 
     void logCommitTransactionDecision(XAPlusTransaction transaction) throws SQLException {
-        log(transaction.getUniqueNames(), true, false);
+        log(transaction.getBranches(), true, false);
     }
 
     void logTransactionCommitted(XAPlusTransaction transaction) throws SQLException {
-        log(transaction.getUniqueNames(), true, true);
+        log(transaction.getBranches(), true, true);
     }
 
     void logRollbackTransactionDecision(XAPlusTransaction transaction) throws SQLException {
-        log(transaction.getUniqueNames(), false, false);
+        log(transaction.getBranches(), false, false);
     }
 
     void logTransactionRolledBack(XAPlusTransaction transaction) throws SQLException {
-        log(transaction.getUniqueNames(), false, true);
+        log(transaction.getBranches(), false, true);
     }
 
     private void logXid(XAPlusXid xid, String uniqueName, boolean tstatus, boolean complete) throws SQLException {

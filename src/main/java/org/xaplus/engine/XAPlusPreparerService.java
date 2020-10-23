@@ -11,13 +11,8 @@ import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchPreparedEvent;
 import org.xaplus.engine.events.xa.XAPlusPrepareBranchFailedEvent;
-import org.xaplus.engine.events.xa.XAPlusPrepareBranchRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateReadyEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
-
-import javax.transaction.xa.XAResource;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -36,13 +31,14 @@ class XAPlusPreparerService extends Bolt implements
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final XAPlusPreparerState state;
+    private final XAPlusTracker tracker;
 
-    XAPlusPreparerService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
-        super("preparer", properties.getQueueSize());
+    XAPlusPreparerService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
+                          XAPlusTracker tracker) {
+        super(properties.getServerId() + "-preparer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        state = new XAPlusPreparerState();
+        this.tracker = tracker;
     }
 
     @Override
@@ -52,7 +48,13 @@ class XAPlusPreparerService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (transaction.isSuperior()) {
-            prepare(transaction);
+            if (tracker.track(transaction)) {
+                transaction.prepare(dispatcher);
+            }
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction is not superior, {}", transaction);
+            }
         }
     }
 
@@ -62,7 +64,13 @@ class XAPlusPreparerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        prepare(transaction);
+        if (tracker.track(transaction)) {
+            transaction.prepare(dispatcher);
+        } else {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Transaction already tracked, {}", transaction);
+            }
+        }
     }
 
     @Override
@@ -71,9 +79,11 @@ class XAPlusPreparerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        XAPlusXid branchXid = event.getBranchXid();
-        state.setPrepared(xid, branchXid);
-        check(xid);
+        if (tracker.contains(xid)) {
+            XAPlusXid branchXid = event.getBranchXid();
+            tracker.getTransaction(xid).branchPrepared(branchXid);
+            check(xid);
+        }
     }
 
     @Override
@@ -82,8 +92,8 @@ class XAPlusPreparerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        XAPlusTransaction transaction = state.getTransaction(xid);
-        if (transaction != null) {
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
             Exception exception = event.getException();
             dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, exception));
         }
@@ -95,9 +105,11 @@ class XAPlusPreparerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid branchXid = event.getXid();
-        state.setReady(branchXid);
-        XAPlusXid xid = state.getTransactionXid(branchXid);
-        check(xid);
+        XAPlusXid transactionXid = tracker.getTransactionXid(branchXid);
+        if (transactionXid != null && tracker.contains(transactionXid)) {
+            tracker.getTransaction(transactionXid).branchReadied(branchXid);
+            check(transactionXid);
+        }
     }
 
     @Override
@@ -106,8 +118,8 @@ class XAPlusPreparerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        XAPlusTransaction transaction = state.remove(xid);
-        if (transaction != null) {
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.remove(xid);
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled as transaction failed, {}", transaction);
             }
@@ -120,8 +132,8 @@ class XAPlusPreparerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        XAPlusTransaction transaction = state.remove(xid);
-        if (transaction != null) {
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.remove(xid);
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled as transaction timed out, {}", transaction);
             }
@@ -135,33 +147,22 @@ class XAPlusPreparerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        XAPlusTransaction transaction = state.remove(xid);
+        XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled in phase prepare as got order to rollback, {}", transaction);
+                logger.debug("2pc protocol cancelled as got order to rollback, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
         }
     }
 
-    private void prepare(XAPlusTransaction transaction) throws InterruptedException {
-        if (state.track(transaction)) {
-            XAPlusXid xid = transaction.getXid();
-            Map<XAPlusXid, XAResource> resources = new HashMap<>();
-            resources.putAll(transaction.getXaResources());
-            resources.putAll(transaction.getXaPlusResources());
-            for (Map.Entry<XAPlusXid, XAResource> entry : resources.entrySet()) {
-                XAPlusXid branchXid = entry.getKey();
-                XAResource resource = entry.getValue();
-                dispatcher.dispatch(new XAPlusPrepareBranchRequestEvent(xid, branchXid, resource));
-            }
-        }
-    }
-
     private void check(XAPlusXid xid) throws InterruptedException {
-        if (state.check(xid)) {
-            XAPlusTransaction transaction = state.remove(xid);
-            dispatcher.dispatch(new XAPlusTransactionPreparedEvent(transaction));
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
+            if (transaction.isPrepared() && transaction.isReadied()) {
+                tracker.remove(xid);
+                dispatcher.dispatch(new XAPlusTransactionPreparedEvent(transaction));
+            }
         }
     }
 

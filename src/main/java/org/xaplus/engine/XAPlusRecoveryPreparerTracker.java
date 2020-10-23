@@ -12,8 +12,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-class XAPlusRecoveryPreparerState {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryPreparerState.class);
+class XAPlusRecoveryPreparerTracker {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryPreparerTracker.class);
 
     private boolean started;
     private Map<String, javax.sql.XAConnection> jdbcConnections;
@@ -24,7 +24,7 @@ class XAPlusRecoveryPreparerState {
     private Map<String, Map<XAPlusXid, Boolean>> danglingTransactions;
     private boolean failed;
 
-    XAPlusRecoveryPreparerState() {
+    XAPlusRecoveryPreparerTracker() {
         started = false;
         failed = false;
         jdbcConnections = new HashMap<>();
@@ -81,23 +81,33 @@ class XAPlusRecoveryPreparerState {
     }
 
     Map<String, XAConnection> getJdbcConnections() {
-        return jdbcConnections;
+        Map<String, XAConnection> result = new HashMap<>();
+        result.putAll(jdbcConnections);
+        return result;
     }
 
     Map<String, javax.jms.XAConnection> getJmsConnections() {
-        return jmsConnections;
+        Map<String, javax.jms.XAConnection> result = new HashMap<>();
+        result.putAll(jmsConnections);
+        return result;
     }
 
     Map<String, XAResource> getXaResources() {
-        return xaResources;
+        Map<String, XAResource> result = new HashMap<>();
+        result.putAll(xaResources);
+        return result;
     }
 
     Map<String, Set<XAPlusXid>> getRecoveredXids() {
-        return recoveredXids;
+        Map<String, Set<XAPlusXid>> result = new HashMap<>();
+        result.putAll(recoveredXids);
+        return result;
     }
 
     Map<String, Map<XAPlusXid, Boolean>> getDanglingTransactions() {
-        return danglingTransactions;
+        Map<String, Map<XAPlusXid, Boolean>> result = new HashMap<>();
+        result.putAll(danglingTransactions);
+        return result;
     }
 
     void close() {
@@ -107,7 +117,7 @@ class XAPlusRecoveryPreparerState {
                 connection.close();
             } catch (SQLException e) {
                 if (logger.isWarnEnabled()) {
-                    logger.warn("Close connection to {} failed, {}", uniqueName, e.getMessage());
+                    logger.warn("Close connection to {} failed as{}", uniqueName, e.getMessage());
                 }
             }
         }
@@ -117,7 +127,7 @@ class XAPlusRecoveryPreparerState {
                 connection.close();
             } catch (JMSException e) {
                 if (logger.isWarnEnabled()) {
-                    logger.warn("Close connection to {} failed, {}", uniqueName, e.getMessage());
+                    logger.warn("Close connection to {} failed as {}", uniqueName, e.getMessage());
                 }
             }
         }

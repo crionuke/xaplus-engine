@@ -43,7 +43,7 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
 
-        xaPlusPreparerService = new XAPlusPreparerService(properties, threadPool, dispatcher);
+        xaPlusPreparerService = new XAPlusPreparerService(properties, threadPool, dispatcher, new XAPlusTracker());
         xaPlusPreparerService.postConstruct();
 
         prepareBranchRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -157,13 +157,13 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
         dispatcher.dispatch(new XAPlusRemoteSubordinateReadyEvent(bxid3));
         // Wait transaction prepared event
         XAPlusTransactionPreparedEvent event = transactionPreparedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        // Check that it our transaction
+        // Check that it our getTransaction
         assertEquals(event.getTransaction().getXid(), transaction.getXid());
     }
 
     @Test
     public void testPrepareBranchFailed() throws InterruptedException {
-        // Create transaction and branch for xa resource
+        // Create transaction and branch for xa xaResource
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid bxid1 = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(),
                 properties.getServerId());
@@ -176,7 +176,7 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
         dispatcher.dispatch(new XAPlusPrepareBranchFailedEvent(transaction.getXid(), bxid1, new Exception("failed")));
         // Wait 2pc failed event
         XAPlus2pcFailedEvent event = twoPcFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        // Check that it our transaction
+        // Check that it our getTransaction
         assertEquals(event.getTransaction().getXid(), transaction.getXid());
     }
 

@@ -46,7 +46,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
 
         tlogMock = Mockito.mock(XAPlusTLog.class);
-        xaPlusJournalService = new XAPlusJournalService(properties, threadPool, dispatcher, engine, tlogMock);
+        xaPlusJournalService = new XAPlusJournalService(properties, threadPool, dispatcher, tlogMock);
         xaPlusJournalService.postConstruct();
 
         commitTransactionDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);

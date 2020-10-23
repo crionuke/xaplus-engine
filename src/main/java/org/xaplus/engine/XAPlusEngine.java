@@ -49,53 +49,53 @@ public final class XAPlusEngine {
     }
 
     public void recovery() throws InterruptedException {
-        if (logger.isDebugEnabled()) {
-            logger.debug("User start recovery");
+        if (logger.isInfoEnabled()) {
+            logger.info("User start recovery");
         }
         dispatcher.dispatch(new XAPlusRecoveryRequestEvent());
     }
 
     /**
-     * Register JDBC resource
+     * Register JDBC xaResource
      *
      * @param dataSource {@link javax.sql.XAConnection} factory
-     * @param uniqueName unique name for JDBC resource
+     * @param uniqueName unique name for JDBC xaResource
      */
     public void register(XADataSource dataSource, String uniqueName) {
         resources.register(dataSource, uniqueName);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resource registered, uniqueName={}, dataSource={}", uniqueName, dataSource);
+        if (logger.isInfoEnabled()) {
+            logger.info("Resource registered, uniqueName={}, dataSource={}", uniqueName, dataSource);
         }
     }
 
     /**
-     * Register JMS resource
+     * Register JMS xaResource
      *
      * @param connectionFactory {@link javax.jms.XAConnection} factory
-     * @param uniqueName        unique name for JMS resource
+     * @param uniqueName        unique name for JMS xaResource
      */
     public void register(XAConnectionFactory connectionFactory, String uniqueName) {
         resources.register(connectionFactory, uniqueName);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resource registered, uniqueName={}, connectionFactory={}", uniqueName, connectionFactory);
+        if (logger.isInfoEnabled()) {
+            logger.info("Resource registered, uniqueName={}, connectionFactory={}", uniqueName, connectionFactory);
         }
     }
 
     /**
-     * Register XAPlus resource
+     * Register XAPlus xaResource
      *
      * @param factory  {@link XAPlusResource} factory
-     * @param serverId unique name for XAPlus resource
+     * @param serverId unique name for XAPlus xaResource
      */
     public void register(XAPlusFactory factory, String serverId) {
         resources.register(factory, serverId);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resource registered, with serverId={}, factory={}", serverId, factory);
+        if (logger.isInfoEnabled()) {
+            logger.info("Resource registered, with serverId={}, factory={}", serverId, factory);
         }
     }
 
     /**
-     * Begin new XA/XA+ transaction
+     * Begin new XA/XA+ getTransaction
      */
     public void begin() {
         XAPlusThreadContext context = threadOfControl.getThreadContext();
@@ -107,40 +107,39 @@ public final class XAPlusEngine {
         XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getDefaultTimeoutInSeconds(),
                 properties.getServerId());
         context.setTransaction(transaction);
-        if (logger.isDebugEnabled()) {
-            logger.debug("User begin transaction with new xid={}", xid);
+        if (logger.isInfoEnabled()) {
+            logger.info("User begin transaction with new xid={}", xid);
         }
     }
 
     /**
-     * Begin XA transaction as part of global XA+ transaction
+     * Begin XA transaction as part of global XA+ getTransaction
      *
-     * @param xidString xid in string representation like "grtid:bqual" (in hex)
+     * @param xid xa+ transaction id
      */
-    public void join(String xidString) {
-        if (xidString == null) {
-            throw new NullPointerException("xidString is null");
+    public void join(XAPlusXid xid) {
+        if (xid == null) {
+            throw new NullPointerException("xid is null");
         }
         XAPlusThreadContext context = threadOfControl.getThreadContext();
         if (context.hasTransaction()) {
             throw new IllegalStateException("Nested transactions not supported");
         }
-        XAPlusXid xid = new XAPlusXid(xidString);
         XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getDefaultTimeoutInSeconds(),
                 properties.getServerId());
         context.setTransaction(transaction);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Joined to transaction with xid={}", xid);
+        if (logger.isInfoEnabled()) {
+            logger.info("Joined to transaction with xid={}", xid);
         }
     }
 
     /**
-     * Enlist JDBC resource
+     * Enlist JDBC xaResource
      *
-     * @param uniqueName name of resource
+     * @param uniqueName name of xaResource
      * @return {@link javax.sql.XAConnection} instance
-     * @throws SQLException access resource failed
-     * @throws XAException  start XA resource failed
+     * @throws SQLException access xaResource failed
+     * @throws XAException  start XA xaResource failed
      */
     public Connection enlistJdbc(String uniqueName) throws SQLException, XAException {
         if (uniqueName == null) {
@@ -152,29 +151,29 @@ public final class XAPlusEngine {
         }
         XAPlusTransaction transaction = context.getTransaction();
         if (logger.isTraceEnabled()) {
-            logger.trace("Enlisting resource, uniqueName={}, xid={}", uniqueName, transaction.getXid());
+            logger.trace("Enlisting xaResource, uniqueName={}, xid={}", uniqueName, transaction.getXid());
         }
         XAPlusResources.XADataSourceWrapper wrapper =
                 (XAPlusResources.XADataSourceWrapper) resources.get(uniqueName);
         if (wrapper == null) {
-            throw new IllegalArgumentException("Unknown resource, name=" + uniqueName);
+            throw new IllegalArgumentException("Unknown xaResource, name=" + uniqueName);
         }
         javax.sql.XAConnection connection = wrapper.get();
         XAPlusXid branchXid = createAndStartBranch(uniqueName, connection.getXAResource());
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resource enlisted, uniqueName={}, branchXid={}, xid={}",
+        if (logger.isInfoEnabled()) {
+            logger.info("Resource enlisted, uniqueName={}, branchXid={}, xid={}",
                     uniqueName, branchXid, transaction.getXid());
         }
         return connection.getConnection();
     }
 
     /**
-     * Enlist JMS resource
+     * Enlist JMS xaResource
      *
-     * @param uniqueName name of resource
+     * @param uniqueName name of xaResource
      * @return {@link Session} instance
-     * @throws JMSException access resource failed
-     * @throws XAException  start XA resource failed
+     * @throws JMSException access xaResource failed
+     * @throws XAException  start XA xaResource failed
      */
     public Session enlistJms(String uniqueName) throws JMSException, XAException {
         if (uniqueName == null) {
@@ -186,31 +185,31 @@ public final class XAPlusEngine {
         }
         XAPlusTransaction transaction = context.getTransaction();
         if (logger.isTraceEnabled()) {
-            logger.trace("Enlisting resource, uniqueName={}, xid={}", uniqueName, transaction.getXid());
+            logger.trace("Enlisting xaResource, uniqueName={}, xid={}", uniqueName, transaction.getXid());
         }
         XAPlusResources.XAConnectionFactoryWrapper wrapper =
                 (XAPlusResources.XAConnectionFactoryWrapper) resources.get(uniqueName);
         if (wrapper == null) {
-            throw new IllegalArgumentException("Unknown resource name=" + uniqueName);
+            throw new IllegalArgumentException("Unknown xaResource name=" + uniqueName);
         }
         javax.jms.XAConnection connection = wrapper.get();
         XASession session = connection.createXASession();
         XAPlusXid branchXid = createAndStartBranch(uniqueName, session.getXAResource());
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resource enlisted, uniqueName={}, branchXid={}, xid={}",
+        if (logger.isInfoEnabled()) {
+            logger.info("Resource enlisted, uniqueName={}, branchXid={}, xid={}",
                     uniqueName, branchXid, transaction.getXid());
         }
         return session.getSession();
     }
 
     /**
-     * Enlist XAPlus resource
+     * Enlist XAPlus xaResource
      *
-     * @param serverId name of resource
+     * @param serverId name of xaResource
      * @return {@link XAPlusXid} in string representation
-     * @throws XAException access resource failed or start XA resource failed
+     * @throws XAException access xaResource failed or start XA xaResource failed
      */
-    public String enlistXAPlus(String serverId) throws XAException {
+    public XAPlusXid enlistXAPlus(String serverId) throws XAException {
         if (serverId == null) {
             throw new NullPointerException("serverId is null");
         }
@@ -223,7 +222,7 @@ public final class XAPlusEngine {
             throw new IllegalStateException("Only superior has the right to enlist XA+ resources");
         }
         if (logger.isTraceEnabled()) {
-            logger.trace("Enlisting resource, serverId={}, xid={}", serverId, transaction.getXid());
+            logger.trace("Enlisting xaResource, serverId={}, xid={}", serverId, transaction.getXid());
         }
         XAPlusResources.XAPlusFactoryWrapper wrapper =
                 (XAPlusResources.XAPlusFactoryWrapper) resources.get(serverId);
@@ -232,11 +231,11 @@ public final class XAPlusEngine {
         }
         XAPlusResource resource = wrapper.get();
         XAPlusXid branchXid = createAndStartBranch(serverId, resource);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resource enlisted, uniqueName={}, branchXid={}, xid={}", serverId, branchXid,
+        if (logger.isInfoEnabled()) {
+            logger.info("Resource enlisted, uniqueName={}, branchXid={}, xid={}", serverId, branchXid,
                     transaction.getXid());
         }
-        return branchXid.toString();
+        return branchXid;
     }
 
     /**
@@ -251,8 +250,8 @@ public final class XAPlusEngine {
         }
         XAPlusTransaction transaction = context.getTransaction();
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
-        if (logger.isDebugEnabled()) {
-            logger.debug("User commit transaction, xid={}", context.getTransaction().getXid());
+        if (logger.isInfoEnabled()) {
+            logger.info("User commit getTransaction, xid={}", context.getTransaction().getXid());
         }
         return transaction.getFuture();
     }
@@ -269,8 +268,8 @@ public final class XAPlusEngine {
         }
         XAPlusTransaction transaction = context.getTransaction();
         dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
-        if (logger.isDebugEnabled()) {
-            logger.debug("User rollback transaction, xid={}", context.getTransaction().getXid());
+        if (logger.isInfoEnabled()) {
+            logger.info("User rollback getTransaction, xid={}", context.getTransaction().getXid());
         }
         return transaction.getFuture();
     }
@@ -290,7 +289,7 @@ public final class XAPlusEngine {
 
     private XAPlusXid createAndStartBranch(String uniqueName, XAResource resource) throws XAException {
         if (resource == null) {
-            throw new NullPointerException("resource is null");
+            throw new NullPointerException("xaResource is null");
         }
         XAPlusThreadContext context = threadOfControl.getThreadContext();
         if (!context.hasTransaction()) {
@@ -301,18 +300,18 @@ public final class XAPlusEngine {
                 properties.getServerId());
         transaction.enlist(branchXid, uniqueName, resource);
         if (logger.isTraceEnabled()) {
-            logger.trace("Starting branch, branchXid={}, resource={}", branchXid, resource);
+            logger.trace("Starting branch, branchXid={}, xaResource={}", branchXid, resource);
         }
         resource.start(branchXid, XAResource.TMNOFLAGS);
         if (logger.isDebugEnabled()) {
-            logger.debug("Branch started, branchXid={}, resource={}", branchXid, resource);
+            logger.debug("Branch started, branchXid={}, xaResource={}", branchXid, resource);
         }
         return branchXid;
     }
 
     private XAPlusXid createAndStartBranch(String serverId, XAPlusResource resource) throws XAException {
         if (resource == null) {
-            throw new NullPointerException("resource is null");
+            throw new NullPointerException("xaResource is null");
         }
         XAPlusThreadContext context = threadOfControl.getThreadContext();
         if (!context.hasTransaction()) {
@@ -322,11 +321,11 @@ public final class XAPlusEngine {
         XAPlusXid branchXid = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(), serverId);
         transaction.enlist(branchXid, serverId, resource);
         if (logger.isTraceEnabled()) {
-            logger.trace("Starting branch, branchXid={}, resource={}", branchXid, resource);
+            logger.trace("Starting branch, branchXid={}, xaResource={}", branchXid, resource);
         }
         resource.start(branchXid, XAResource.TMNOFLAGS);
         if (logger.isDebugEnabled()) {
-            logger.debug("Branch started, branchXid={}, resource={}", branchXid, resource);
+            logger.debug("Branch started, branchXid={}, xaResource={}", branchXid, resource);
         }
         return branchXid;
     }

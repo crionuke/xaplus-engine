@@ -24,7 +24,7 @@ public class XAPlusTickServiceTest extends XAPlusTest {
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
 
-        xaPlusTickService = new XAPlusTickService(threadPool, dispatcher);
+        xaPlusTickService = new XAPlusTickService(properties, threadPool, dispatcher);
         xaPlusTickService.postConstruct();
 
         tickEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);

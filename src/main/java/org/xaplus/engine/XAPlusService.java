@@ -35,7 +35,7 @@ class XAPlusService extends Bolt implements
     private final XAPlusDispatcher dispatcher;
 
     XAPlusService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
-        super("xaplus", properties.getQueueSize());
+        super(properties.getServerId() + "-xaplus", properties.getQueueSize());
         this.properties = properties;
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
@@ -196,11 +196,11 @@ class XAPlusService extends Bolt implements
             if (errorCode == XAException.XAER_NOTA) {
                 description = "Forgotten heuristic?";
             } else if (errorCode == XAException.XA_HEURCOM) {
-                description = "Heuristic decision compatible with the global state of this transaction. " +
+                description = "Heuristic decision compatible with the global state of this getTransaction. " +
                         "Forget this xid";
                 dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
             } else if (errorCode == XAException.XA_HEURHAZ || errorCode == XAException.XA_HEURMIX || errorCode == XAException.XA_HEURRB) {
-                description = "Heuristic decision incompatible with the global state of this transaction! " +
+                description = "Heuristic decision incompatible with the global state of this getTransaction! " +
                         "Forget this xid";
                 dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
                 success = false;
@@ -209,7 +209,7 @@ class XAPlusService extends Bolt implements
                 success = false;
             }
             if (logger.isWarnEnabled()) {
-                logger.warn("Commit recovered xid failed with errorCode={}. {}, xid={}, resource={}",
+                logger.warn("Commit recovered xid failed with errorCode={}. {}, xid={}, xaResource={}",
                         XAPlusConstantsDecoder.decodeXAExceptionErrorCode(committingException), description, xid,
                         uniqueName);
             }
@@ -246,11 +246,11 @@ class XAPlusService extends Bolt implements
             if (errorCode == XAException.XAER_NOTA) {
                 description = "Forgotten heuristic?";
             } else if (errorCode == XAException.XA_HEURRB) {
-                description = "Heuristic decision compatible with the global state of this transaction. " +
+                description = "Heuristic decision compatible with the global state of this getTransaction. " +
                         "Forget this xid";
                 dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
             } else if (errorCode == XAException.XA_HEURHAZ || errorCode == XAException.XA_HEURMIX || errorCode == XAException.XA_HEURCOM) {
-                description = "Heuristic decision incompatible with the global state of this transaction! " +
+                description = "Heuristic decision incompatible with the global state of this getTransaction! " +
                         "Forget this xid";
                 dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
                 success = false;
@@ -259,7 +259,7 @@ class XAPlusService extends Bolt implements
                 success = false;
             }
             if (logger.isWarnEnabled()) {
-                logger.warn("Rollback recovered xid failed with errorCode={}. {}, xid={}, resource={}",
+                logger.warn("Rollback recovered xid failed with errorCode={}. {}, xid={}, xaResource={}",
                         XAPlusConstantsDecoder.decodeXAExceptionErrorCode(rollingBackException), description, xid,
                         uniqueName);
             }
@@ -376,7 +376,7 @@ class XAPlusService extends Bolt implements
         String uniqueName = event.getUniqueName();
         XAResource resource = event.getResource();
         if (logger.isTraceEnabled()) {
-            logger.trace("Recovering resource, resource={}", uniqueName);
+            logger.trace("Recovering xaResource, xaResource={}", uniqueName);
         }
         XAPlusRecover resourceRecovery = new XAPlusRecover(properties.getServerId(), resource);
         try {
@@ -387,7 +387,7 @@ class XAPlusService extends Bolt implements
             dispatcher.dispatch(new XAPlusResourceRecoveredEvent(uniqueName, xids));
         } catch (XAException xae) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Recovery resource failed as {}, resource={} ", xae.getMessage(), uniqueName);
+                logger.warn("Recovery xaResource failed as {}, xaResource={} ", xae.getMessage(), uniqueName);
             }
             dispatcher.dispatch(new XAPlusRecoveryResourceFailedEvent(uniqueName, xae));
         }

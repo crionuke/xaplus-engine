@@ -29,7 +29,8 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusTest {
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_2);
 
-        xaPlusPrepareOrderWaiterService = new XAPlusPrepareOrderWaiterService(properties, threadPool, dispatcher);
+        xaPlusPrepareOrderWaiterService =
+                new XAPlusPrepareOrderWaiterService(properties, threadPool, dispatcher, new XAPlusTracker());
         xaPlusPrepareOrderWaiterService.postConstruct();
 
         waiterEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -52,7 +53,7 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusTest {
         // Send 2pc request
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction1));
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction2));
-        // Send order to prepare only for one transaction
+        // Send order to prepare only for one getTransaction
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(transaction2.getXid()));
         // Wating
         XAPlusPrepareTransactionEvent event = waiterEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -64,7 +65,7 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusTest {
     public void testFirstPrepareOrderAfter2pcRequest() throws InterruptedException {
         XAPlusTransaction transaction1 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
         XAPlusTransaction transaction2 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
-        // Send order to prepare only for one transaction
+        // Send order to prepare only for one getTransaction
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(transaction2.getXid()));
         // Send 2pc request
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction1));

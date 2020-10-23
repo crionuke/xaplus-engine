@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.XAPlusPrepareTransactionEvent;
 import org.xaplus.engine.events.XAPlusRollbackRequestEvent;
 import org.xaplus.engine.events.XAPlusTimeoutEvent;
+import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToPrepareEvent;
@@ -25,14 +26,14 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final XAPlusPrepareOrderWaiterState state;
+    private final XAPlusTracker tracker;
 
     XAPlusPrepareOrderWaiterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
-                                    XAPlusDispatcher dispatcher) {
-        super("prepare-order-waiter", properties.getQueueSize());
+                                    XAPlusDispatcher dispatcher, XAPlusTracker tracker) {
+        super(properties.getServerId() + "-prepare-order-waiter", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        this.state = new XAPlusPrepareOrderWaiterState();
+        this.tracker = tracker;
     }
 
     @Override
@@ -42,9 +43,12 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (transaction.isSubordinate()) {
-            if (state.track(transaction)) {
-                XAPlusXid xid = event.getTransaction().getXid();
-                check(xid);
+            if (tracker.track(transaction)) {
+                check(transaction.getXid());
+            } else {
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Transaction already tracked, {}", transaction);
+                }
             }
         } else {
             if (logger.isTraceEnabled()) {
@@ -60,7 +64,7 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        state.addPrepareOrder(xid);
+        tracker.addOrder(xid);
         check(xid);
     }
 
@@ -70,10 +74,10 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        XAPlusTransaction transaction = state.remove(xid);
-        if (transaction != null) {
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.remove(xid);
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled as transaction failed, {} ", transaction);
+                logger.debug("2pc protocol cancelled as transaction failed, {}", transaction);
             }
         }
     }
@@ -84,8 +88,8 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        XAPlusTransaction transaction = state.remove(xid);
-        if (transaction != null) {
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.remove(xid);
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled as transaction timed out, {}", transaction);
             }
@@ -99,8 +103,8 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        XAPlusTransaction transaction = state.remove(xid);
-        if (transaction != null) {
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.remove(xid);
             if (logger.isDebugEnabled()) {
                 logger.debug("2pc protocol cancelled as got order to rollback, {}", transaction);
             }
@@ -118,8 +122,8 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
     }
 
     private void check(XAPlusXid xid) throws InterruptedException {
-        if (state.check(xid)) {
-            XAPlusTransaction transaction = state.remove(xid);
+        if (tracker.contains(xid) && tracker.hasOrder(xid)) {
+            XAPlusTransaction transaction = tracker.remove(xid);
             dispatcher.dispatch(new XAPlusPrepareTransactionEvent(transaction));
         }
     }

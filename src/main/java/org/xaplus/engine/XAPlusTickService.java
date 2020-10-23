@@ -12,10 +12,12 @@ import org.xaplus.engine.events.XAPlusTickEvent;
 class XAPlusTickService extends Worker {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTickService.class);
 
+    private final XAPlusProperties properties;
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
 
-    XAPlusTickService(XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
+    XAPlusTickService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
+        this.properties = properties;
         this.dispatcher = dispatcher;
         this.threadPool = threadPool;
     }
@@ -23,7 +25,7 @@ class XAPlusTickService extends Worker {
     @Override
     public void run() {
         String oldThreadName = Thread.currentThread().getName();
-        Thread.currentThread().setName("tick-" + uid);
+        Thread.currentThread().setName(properties.getServerId() + "-tick-" + uid);
         logger.debug("{} started", this);
         looping = true;
         try {
