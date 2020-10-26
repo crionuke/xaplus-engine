@@ -3,7 +3,12 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.XAPlusTickEvent;
+import org.xaplus.engine.events.XAPlusTimerCancelledEvent;
+import org.xaplus.engine.events.XAPlusTransactionTimedOutEvent;
+import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
+import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
+import org.xaplus.engine.events.rollback.XAPlusRollbackRequestEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
@@ -28,11 +33,12 @@ class XAPlusTimerService extends Bolt implements
     private final XAPlusDispatcher dispatcher;
     private final XAPlusTimerState state;
 
-    XAPlusTimerService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
+    XAPlusTimerService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
+                       XAPlusTimerState state) {
         super(properties.getServerId() + "-timer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        state = new XAPlusTimerState();
+        this.state = state;
     }
 
     @Override
@@ -44,10 +50,6 @@ class XAPlusTimerService extends Bolt implements
         if (state.track(transaction)) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Track timeout, {}", transaction);
-            }
-        } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Transaction already tracked, {}", transaction);
             }
         }
     }
@@ -62,18 +64,17 @@ class XAPlusTimerService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Track timeout, {}", transaction);
             }
-        } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Transaction already tracked, {}", transaction);
-            }
         }
     }
 
     @Override
     public void handleTick(XAPlusTickEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
         List<XAPlusTransaction> expiredTransaction = state.removeExpiredTransactions();
         for (XAPlusTransaction transaction : expiredTransaction) {
-            dispatcher.dispatch(new XAPlusTimeoutEvent(transaction));
+            dispatcher.dispatch(new XAPlusTransactionTimedOutEvent(transaction));
         }
     }
 
@@ -88,10 +89,6 @@ class XAPlusTimerService extends Bolt implements
                 logger.debug("Timeout tracking cancelled as 2pc procotol done, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
-        } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Transaction not found, {}", transaction);
-            }
         }
     }
 
@@ -107,10 +104,6 @@ class XAPlusTimerService extends Bolt implements
                 logger.debug("Timeout tracking cancelled as rollback protocol done, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
-        } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Transaction not found, {}", transaction);
-            }
         }
     }
 
@@ -126,10 +119,6 @@ class XAPlusTimerService extends Bolt implements
                 logger.debug("Timeout tracking cancelled as 2pc protocol failed, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
-        } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Transaction not found, {}", transaction);
-            }
         }
     }
 
@@ -145,10 +134,6 @@ class XAPlusTimerService extends Bolt implements
                 logger.debug("Timeout tracking cancelled as rollback protocol failed, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
-        } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Transaction not found, {}", transaction);
-            }
         }
     }
 

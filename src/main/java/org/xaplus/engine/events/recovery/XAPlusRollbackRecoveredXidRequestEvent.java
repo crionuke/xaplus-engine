@@ -32,6 +32,12 @@ public final class XAPlusRollbackRecoveredXidRequestEvent extends Event<XAPlusRo
     }
 
     @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid +
+                ", uniqueName=" + uniqueName + ")";
+    }
+
+    @Override
     public void handle(Handler handler) throws InterruptedException {
         handler.handleRollbackRecoveredXidRequest(this);
     }

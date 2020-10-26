@@ -28,6 +28,11 @@ public final class XAPlusTimerCancelledEvent extends Event<XAPlusTimerCancelledE
         handler.handleTimerCancelled(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ")";
+    }
+
     public interface Handler {
         void handleTimerCancelled(XAPlusTimerCancelledEvent event) throws InterruptedException;
     }

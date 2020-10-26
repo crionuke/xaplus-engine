@@ -23,20 +23,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class XAPlusScenarioTest extends Assert {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusScenarioTest.class);
-
     static final int QUEUE_SIZE = 128;
     static final int DEFAULT_TIMEOUT_S = 10;
     static final int POLL_TIMIOUT_MS = 4000;
-
     static final String INSERT_VALUE = "INSERT INTO test (t_value) VALUES(?)";
-
     static final String XA_RESOURCE_DATABASE_1 = "database1";
     static final String XA_RESOURCE_DATABASE_2 = "database2";
-
     static final String XA_PLUS_SUPERIOR = "superior";
     static final String XA_PLUS_SUBORDINATE = "subordinate";
-
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusScenarioTest.class);
     DataSource tlog;
     PGXADataSource database1;
     PGXADataSource database2;
@@ -145,13 +140,19 @@ public class XAPlusScenarioTest extends Assert {
                 // Enlist and call subordinate
                 XAPlusXid branchXid = engine.enlistXAPlus(XA_PLUS_SUBORDINATE);
                 testDispatcher.dispatch(new XAPlusScenarioSubordinateRequestEvent(branchXid, value));
-                // Commit XA+ getTransaction
-                future = engine.commit();
+                if (event.isUserRollback()) {
+                    // User rollback simulation
+                    Thread.sleep(100);
+                    throw new Exception("user_rollback_simulaiton");
+                } else {
+                    // Commit XA+ transaction
+                    future = engine.commit();
+                }
             } catch (Exception e) {
                 if (logger.isWarnEnabled()) {
-                    logger.warn("Transaction failed as {}", e);
+                    logger.warn("Transaction failed as {}", e.getMessage());
                 }
-                // Rollback XA+ getTransaction
+                // Rollback XA+ transaction
                 future = engine.rollback();
             }
             // Wait result
@@ -203,13 +204,13 @@ public class XAPlusScenarioTest extends Assert {
                     statement.setInt(1, value);
                     statement.executeUpdate();
                 }
-                // Commit branch of XA+ getTransaction
+                // Commit branch of XA+ transaction
                 future = engine.commit();
             } catch (Exception e) {
                 if (logger.isWarnEnabled()) {
                     logger.warn("Transaction failed as {}", e);
                 }
-                // Rollback branch of XA+ getTransaction
+                // Rollback branch of XA+ transaction
                 future = engine.rollback();
             }
             // Wait result

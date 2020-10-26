@@ -24,6 +24,11 @@ public final class XAPlusRemoteSubordinateDoneEvent extends Event<XAPlusRemoteSu
         handler.handleRemoteSubordinateDone(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

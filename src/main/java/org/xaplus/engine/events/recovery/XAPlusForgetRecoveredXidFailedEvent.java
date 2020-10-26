@@ -29,6 +29,12 @@ public final class XAPlusForgetRecoveredXidFailedEvent extends Event<XAPlusForge
         handler.handleForgetRecoveredXidFailed(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid +
+                ", exception=" + exception + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

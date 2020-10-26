@@ -3,9 +3,9 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.*;
 import org.xaplus.engine.events.recovery.*;
 import org.xaplus.engine.events.xa.*;
+import org.xaplus.engine.events.xaplus.*;
 
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
@@ -196,11 +196,11 @@ class XAPlusService extends Bolt implements
             if (errorCode == XAException.XAER_NOTA) {
                 description = "Forgotten heuristic?";
             } else if (errorCode == XAException.XA_HEURCOM) {
-                description = "Heuristic decision compatible with the global state of this getTransaction. " +
+                description = "Heuristic decision compatible with the global state of this transaction. " +
                         "Forget this xid";
                 dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
             } else if (errorCode == XAException.XA_HEURHAZ || errorCode == XAException.XA_HEURMIX || errorCode == XAException.XA_HEURRB) {
-                description = "Heuristic decision incompatible with the global state of this getTransaction! " +
+                description = "Heuristic decision incompatible with the global state of this transaction! " +
                         "Forget this xid";
                 dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
                 success = false;
@@ -246,11 +246,11 @@ class XAPlusService extends Bolt implements
             if (errorCode == XAException.XAER_NOTA) {
                 description = "Forgotten heuristic?";
             } else if (errorCode == XAException.XA_HEURRB) {
-                description = "Heuristic decision compatible with the global state of this getTransaction. " +
+                description = "Heuristic decision compatible with the global state of this transaction. " +
                         "Forget this xid";
                 dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
             } else if (errorCode == XAException.XA_HEURHAZ || errorCode == XAException.XA_HEURMIX || errorCode == XAException.XA_HEURCOM) {
-                description = "Heuristic decision incompatible with the global state of this getTransaction! " +
+                description = "Heuristic decision incompatible with the global state of this transaction! " +
                         "Forget this xid";
                 dispatcher.dispatch(new XAPlusForgetRecoveredXidRequestEvent(xid, resource));
                 success = false;

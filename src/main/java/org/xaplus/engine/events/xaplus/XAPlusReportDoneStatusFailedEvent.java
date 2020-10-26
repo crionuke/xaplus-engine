@@ -1,4 +1,4 @@
-package org.xaplus.engine.events;
+package org.xaplus.engine.events.xaplus;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusXid;
@@ -27,6 +27,11 @@ public final class XAPlusReportDoneStatusFailedEvent extends Event<XAPlusReportD
     @Override
     public void handle(Handler handler) throws InterruptedException {
         handler.handleReportDoneStatusFailed(this);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid + ", exception=" + exception + ")";
     }
 
     public XAPlusXid getXid() {

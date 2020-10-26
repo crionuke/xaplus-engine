@@ -7,8 +7,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.*;
 import org.xaplus.engine.events.recovery.*;
+import org.xaplus.engine.events.xaplus.*;
 import org.xaplus.engine.stubs.XAPlusResourceStub;
 
 import javax.transaction.xa.XAException;

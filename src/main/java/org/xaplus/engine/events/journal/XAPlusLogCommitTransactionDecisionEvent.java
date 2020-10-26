@@ -24,6 +24,11 @@ public final class XAPlusLogCommitTransactionDecisionEvent extends Event<XAPlusL
         handler.handleLogCommitTransactionDecision(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ")";
+    }
+
     public XAPlusTransaction getTransaction() {
         return transaction;
     }

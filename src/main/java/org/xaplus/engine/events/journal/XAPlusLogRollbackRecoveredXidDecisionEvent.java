@@ -29,6 +29,12 @@ public final class XAPlusLogRollbackRecoveredXidDecisionEvent extends Event<XAPl
         handler.handleLogRollbackRecoveredXidDecision(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid +
+                ", uniqueName=" + uniqueName + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

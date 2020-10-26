@@ -39,7 +39,12 @@ public class XAPlusTest extends Assert {
     protected void createXAPlusComponents(String serverId, int defaultTimeoutInSeconds) {
         properties = new XAPlusProperties(serverId, QUEUE_SIZE, defaultTimeoutInSeconds);
         resources = new XAPlusResources();
-        initResources(resources);
+        resources.register(new XADataSourceStub(), XA_RESOURCE_1);
+        resources.register(new XADataSourceStub(), XA_RESOURCE_2);
+        resources.register(new XADataSourceStub(), XA_RESOURCE_3);
+        resources.register(new XAPlusFactoryStub(), XA_PLUS_RESOURCE_1);
+        resources.register(new XAPlusFactoryStub(), XA_PLUS_RESOURCE_2);
+        resources.register(new XAPlusFactoryStub(), XA_PLUS_RESOURCE_3);
         uidGenerator = new XAPlusUidGenerator();
         threadOfControl = new XAPlusThreadOfControl();
         engine = new XAPlusEngine(properties, dispatcher, resources, uidGenerator, threadOfControl);
@@ -76,15 +81,6 @@ public class XAPlusTest extends Assert {
         XAPlusXid bxid5 = createXAPlusXid(transaction, XA_PLUS_RESOURCE_3);
         transaction.enlist(bxid5, XA_PLUS_RESOURCE_3, new XAPlusResourceStub());
         return transaction;
-    }
-
-    private void initResources(XAPlusResources resources) {
-        resources.register(new XADataSourceStub(), XA_RESOURCE_1);
-        resources.register(new XADataSourceStub(), XA_RESOURCE_2);
-        resources.register(new XADataSourceStub(), XA_RESOURCE_3);
-        resources.register(new XAPlusFactoryStub(), XA_PLUS_RESOURCE_1);
-        resources.register(new XAPlusFactoryStub(), XA_PLUS_RESOURCE_2);
-        resources.register(new XAPlusFactoryStub(), XA_PLUS_RESOURCE_3);
     }
 
     class TestSuperiorDataSet {

@@ -6,19 +6,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusCommitTransactionEvent;
-import org.xaplus.engine.events.XAPlusTransactionPreparedEvent;
 import org.xaplus.engine.events.journal.XAPlusCommitTransactionDecisionLoggedEvent;
 import org.xaplus.engine.events.journal.XAPlusLogCommitTransactionDecisionEvent;
 import org.xaplus.engine.events.journal.XAPlusLogCommitTransactionDecisionFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
-import org.xaplus.engine.events.xa.XAPlusBranchCommittedEvent;
-import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
+import org.xaplus.engine.events.twopc.XAPlusCommitTransactionEvent;
+import org.xaplus.engine.events.twopc.XAPlusTransactionPreparedEvent;
 import org.xaplus.engine.events.xa.XAPlusCommitBranchRequestEvent;
-import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -40,7 +36,8 @@ public class XAPlusCommitterServiceTest extends XAPlusTest {
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
 
-        xaPlusCommitterService = new XAPlusCommitterService(properties, threadPool, dispatcher, new XAPlusTracker());
+        xaPlusCommitterService = new XAPlusCommitterService(properties, threadPool, dispatcher, resources,
+                new XAPlusTracker());
         xaPlusCommitterService.postConstruct();
 
         logCommitTransactionDecisionEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);

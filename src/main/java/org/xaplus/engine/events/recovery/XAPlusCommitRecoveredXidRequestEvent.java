@@ -36,6 +36,12 @@ public final class XAPlusCommitRecoveredXidRequestEvent extends Event<XAPlusComm
         handler.handleCommitRecoveredXidRequest(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid +
+                ", uniqueName=" + uniqueName + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

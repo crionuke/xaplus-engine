@@ -1,4 +1,4 @@
-package org.xaplus.engine.events;
+package org.xaplus.engine.events.journal;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusTransaction;
@@ -7,11 +7,11 @@ import org.xaplus.engine.XAPlusTransaction;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusTransactionPreparedEvent extends Event<XAPlusTransactionPreparedEvent.Handler> {
+public final class XAPlusCompletedTransactionLoggedEvent extends Event<XAPlusCompletedTransactionLoggedEvent.Handler> {
 
     private final XAPlusTransaction transaction;
 
-    public XAPlusTransactionPreparedEvent(XAPlusTransaction transaction) {
+    public XAPlusCompletedTransactionLoggedEvent(XAPlusTransaction transaction) {
         super();
         if (transaction == null) {
             throw new NullPointerException("transaction is null");
@@ -21,7 +21,11 @@ public final class XAPlusTransactionPreparedEvent extends Event<XAPlusTransactio
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleTransactionPrepared(this);
+        handler.handleCompletedTransactionLogged(this);
+    }
+
+    public XAPlusTransaction getTransaction() {
+        return transaction;
     }
 
     @Override
@@ -29,11 +33,7 @@ public final class XAPlusTransactionPreparedEvent extends Event<XAPlusTransactio
         return getClass().getSimpleName() + "=(transaction=" + transaction + ")";
     }
 
-    public XAPlusTransaction getTransaction() {
-        return transaction;
-    }
-
     public interface Handler {
-        void handleTransactionPrepared(XAPlusTransactionPreparedEvent event) throws InterruptedException;
+        void handleCompletedTransactionLogged(XAPlusCompletedTransactionLoggedEvent event) throws InterruptedException;
     }
 }

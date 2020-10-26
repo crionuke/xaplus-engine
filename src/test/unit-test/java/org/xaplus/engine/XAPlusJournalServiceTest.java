@@ -7,13 +7,12 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusReportDoneStatusRequestEvent;
 import org.xaplus.engine.events.journal.*;
 import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionCommittedEvent;
 import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionRolledBackEvent;
 import org.xaplus.engine.events.recovery.XAPlusRecoveredXidCommittedEvent;
 import org.xaplus.engine.events.recovery.XAPlusRecoveredXidRolledBackEvent;
-import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
+import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 
 import java.sql.SQLException;
@@ -167,13 +166,6 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusDanglingTransactionRolledBackEvent(transaction.getXid(), uniqueName));
         Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS)).logXidRolledBack(transaction.getXid(), uniqueName);
-    }
-
-    @Test
-    public void test2pcDone() throws InterruptedException, SQLException {
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
-        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS)).logTransactionCommitted(transaction);
     }
 
     @Test

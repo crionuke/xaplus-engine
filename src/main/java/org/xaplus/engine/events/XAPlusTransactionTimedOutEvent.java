@@ -7,11 +7,11 @@ import org.xaplus.engine.XAPlusTransaction;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusTimeoutEvent extends Event<XAPlusTimeoutEvent.Handler> {
+public final class XAPlusTransactionTimedOutEvent extends Event<XAPlusTransactionTimedOutEvent.Handler> {
 
     private final XAPlusTransaction transaction;
 
-    public XAPlusTimeoutEvent(XAPlusTransaction transaction) {
+    public XAPlusTransactionTimedOutEvent(XAPlusTransaction transaction) {
         super();
         if (transaction == null) {
             throw new NullPointerException("transaction is null");
@@ -25,10 +25,15 @@ public final class XAPlusTimeoutEvent extends Event<XAPlusTimeoutEvent.Handler> 
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleTimeout(this);
+        handler.handleTransactionTimedOut(this);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ")";
     }
 
     public interface Handler {
-        void handleTimeout(XAPlusTimeoutEvent event) throws InterruptedException;
+        void handleTransactionTimedOut(XAPlusTransactionTimedOutEvent event) throws InterruptedException;
     }
 }

@@ -24,6 +24,11 @@ public final class XAPlusLogRollbackTransactionDecisionEvent extends Event<XAPlu
         handler.handleLogRollbackTransactionDecision(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ")";
+    }
+
     public XAPlusTransaction getTransaction() {
         return transaction;
     }

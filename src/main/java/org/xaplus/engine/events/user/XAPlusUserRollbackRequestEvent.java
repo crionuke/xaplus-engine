@@ -24,6 +24,11 @@ public final class XAPlusUserRollbackRequestEvent extends Event<XAPlusUserRollba
         handler.handleUserRollbackRequest(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ")";
+    }
+
     public XAPlusTransaction getTransaction() {
         return transaction;
     }

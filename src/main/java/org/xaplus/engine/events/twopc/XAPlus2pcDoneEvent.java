@@ -24,6 +24,11 @@ public final class XAPlus2pcDoneEvent extends Event<XAPlus2pcDoneEvent.Handler> 
         handler.handle2pcDone(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ")";
+    }
+
     public XAPlusTransaction getTransaction() {
         return transaction;
     }

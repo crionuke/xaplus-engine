@@ -1,4 +1,4 @@
-package org.xaplus.engine.events;
+package org.xaplus.engine.events.xaplus;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusXid;
@@ -22,6 +22,11 @@ public final class XAPlusDoneStatusReportedEvent extends Event<XAPlusDoneStatusR
     @Override
     public void handle(Handler handler) throws InterruptedException {
         handler.handleDoneStatusReported(this);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid + ")";
     }
 
     public XAPlusXid getXid() {

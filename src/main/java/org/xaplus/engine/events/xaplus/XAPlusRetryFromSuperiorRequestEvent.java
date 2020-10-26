@@ -1,4 +1,4 @@
-package org.xaplus.engine.events;
+package org.xaplus.engine.events.xaplus;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusResource;
@@ -27,6 +27,11 @@ public final class XAPlusRetryFromSuperiorRequestEvent extends Event<XAPlusRetry
     @Override
     public void handle(Handler handler) throws InterruptedException {
         handler.handleRetryFromSuperiorRequest(this);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(serverId=" + serverId + ")";
     }
 
     public String getServerId() {

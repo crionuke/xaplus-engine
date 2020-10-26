@@ -24,6 +24,11 @@ public final class XAPlusRemoteSuperiorOrderToPrepareEvent extends Event<XAPlusR
         handler.handleRemoteSuperiorOrderToPrepare(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

@@ -7,33 +7,39 @@ import org.xaplus.engine.XAPlusTransaction;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusCommitTransactionDecisionLoggedEvent extends Event<XAPlusCommitTransactionDecisionLoggedEvent.Handler> {
+public final class XAPlusLogCompletedTransactionEvent extends Event<XAPlusLogCompletedTransactionEvent.Handler> {
 
     private final XAPlusTransaction transaction;
+    private final boolean status;
 
-    public XAPlusCommitTransactionDecisionLoggedEvent(XAPlusTransaction transaction) {
+    public XAPlusLogCompletedTransactionEvent(XAPlusTransaction transaction, boolean status) {
         super();
         if (transaction == null) {
             throw new NullPointerException("transaction is null");
         }
         this.transaction = transaction;
+        this.status = status;
     }
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleCommitTransactionDecisionLogged(this);
+        handler.handleLogTransactionCompleted(this);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "=(transaction=" + transaction + ")";
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ", status=" + status + ")";
     }
 
     public XAPlusTransaction getTransaction() {
         return transaction;
     }
 
+    public boolean isStatus() {
+        return status;
+    }
+
     public interface Handler {
-        void handleCommitTransactionDecisionLogged(XAPlusCommitTransactionDecisionLoggedEvent event) throws InterruptedException;
+        void handleLogTransactionCompleted(XAPlusLogCompletedTransactionEvent event) throws InterruptedException;
     }
 }

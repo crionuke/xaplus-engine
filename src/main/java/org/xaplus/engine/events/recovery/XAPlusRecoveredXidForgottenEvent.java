@@ -24,6 +24,11 @@ public final class XAPlusRecoveredXidForgottenEvent extends Event<XAPlusRecovere
         handler.handleDanglingTransactionForgot(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

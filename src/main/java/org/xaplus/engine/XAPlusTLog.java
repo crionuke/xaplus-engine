@@ -38,7 +38,7 @@ class XAPlusTLog {
 
     boolean isTransactionCompleted(XAPlusXid xid) throws SQLException {
         if (logger.isTraceEnabled()) {
-            logger.trace("Check getTransaction, xid={}", xid);
+            logger.trace("Check transaction, xid={}", xid);
         }
         DataSource tlogDataSource = engine.getTlogDataSource();
         try (Connection connection = tlogDataSource.getConnection()) {

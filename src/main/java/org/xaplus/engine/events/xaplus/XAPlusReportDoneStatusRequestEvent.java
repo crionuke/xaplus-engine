@@ -1,4 +1,4 @@
-package org.xaplus.engine.events;
+package org.xaplus.engine.events.xaplus;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusResource;
@@ -8,12 +8,12 @@ import org.xaplus.engine.XAPlusXid;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusReportReadyStatusRequestEvent extends Event<XAPlusReportReadyStatusRequestEvent.Handler> {
+public final class XAPlusReportDoneStatusRequestEvent extends Event<XAPlusReportDoneStatusRequestEvent.Handler> {
 
     private final XAPlusXid xid;
     private final XAPlusResource resource;
 
-    public XAPlusReportReadyStatusRequestEvent(XAPlusXid xid, XAPlusResource resource) {
+    public XAPlusReportDoneStatusRequestEvent(XAPlusXid xid, XAPlusResource resource) {
         super();
         if (xid == null) {
             throw new NullPointerException("xid is null");
@@ -27,7 +27,12 @@ public final class XAPlusReportReadyStatusRequestEvent extends Event<XAPlusRepor
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleReportReadyStatusRequest(this);
+        handler.handleReportDoneStatusRequest(this);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid + ")";
     }
 
     public XAPlusXid getXid() {
@@ -39,6 +44,6 @@ public final class XAPlusReportReadyStatusRequestEvent extends Event<XAPlusRepor
     }
 
     public interface Handler {
-        void handleReportReadyStatusRequest(XAPlusReportReadyStatusRequestEvent event) throws InterruptedException;
+        void handleReportDoneStatusRequest(XAPlusReportDoneStatusRequestEvent event) throws InterruptedException;
     }
 }

@@ -24,6 +24,12 @@ public final class XAPlusRecoveryResourceFailedEvent extends Event<XAPlusRecover
     }
 
     @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(uniqueName=" + uniqueName +
+                ", exception=" + exception + ")";
+    }
+
+    @Override
     public void handle(Handler handler) throws InterruptedException {
         handler.handleRecoveryResourceFailed(this);
     }

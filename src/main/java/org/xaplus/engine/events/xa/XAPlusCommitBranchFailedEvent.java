@@ -30,6 +30,12 @@ public final class XAPlusCommitBranchFailedEvent extends Event<XAPlusCommitBranc
     }
 
     @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid + ", branchXid=" + branchXid +
+                ", exception=" + exception + ")";
+    }
+
+    @Override
     public void handle(Handler handler) throws InterruptedException {
         handler.handleCommitBranchFailed(this);
     }

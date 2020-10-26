@@ -34,6 +34,12 @@ public final class XAPlusRollbackBranchFailedEvent extends Event<XAPlusRollbackB
         handler.handleRollbackBranchFailed(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid + ", branchXid=" + branchXid +
+                ", exception=" + exception + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

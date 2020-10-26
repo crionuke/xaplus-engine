@@ -3,14 +3,14 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusCommitTransactionEvent;
-import org.xaplus.engine.events.XAPlusTimeoutEvent;
-import org.xaplus.engine.events.XAPlusTransactionPreparedEvent;
+import org.xaplus.engine.events.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.journal.XAPlusCommitTransactionDecisionLoggedEvent;
 import org.xaplus.engine.events.journal.XAPlusLogCommitTransactionDecisionEvent;
 import org.xaplus.engine.events.journal.XAPlusLogCommitTransactionDecisionFailedEvent;
-import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
+import org.xaplus.engine.events.twopc.XAPlusCommitTransactionEvent;
+import org.xaplus.engine.events.twopc.XAPlusTransactionCommittedEvent;
+import org.xaplus.engine.events.twopc.XAPlusTransactionPreparedEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchCommittedEvent;
 import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
@@ -28,19 +28,20 @@ class XAPlusCommitterService extends Bolt implements
         XAPlusCommitBranchFailedEvent.Handler,
         XAPlusRemoteSubordinateDoneEvent.Handler,
         XAPlus2pcFailedEvent.Handler,
-        XAPlusTimeoutEvent.Handler {
+        XAPlusTransactionTimedOutEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusCommitterService.class);
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
+    private final XAPlusResources resources;
     private final XAPlusTracker tracker;
 
-
     XAPlusCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
-                           XAPlusTracker tracker) {
+                           XAPlusResources resources, XAPlusTracker tracker) {
         super(properties.getServerId() + "-committer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
+        this.resources = resources;
         this.tracker = tracker;
     }
 
@@ -147,24 +148,24 @@ class XAPlusCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.remove(xid);
+        XAPlusTransaction transaction = tracker.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled as transaction failed, {}", transaction);
+                logger.debug("Transaction removed, {}", transaction);
             }
         }
     }
 
     @Override
-    public void handleTimeout(XAPlusTimeoutEvent event) {
+    public void handleTransactionTimedOut(XAPlusTransactionTimedOutEvent event) {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.remove(xid);
+        XAPlusTransaction transaction = tracker.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled as transaction timed out, {}", transaction);
+                logger.debug("Transaction removed, {}", transaction);
             }
         }
     }
@@ -179,7 +180,7 @@ class XAPlusCommitterService extends Bolt implements
         dispatcher.subscribe(this, XAPlusCommitBranchFailedEvent.class);
         dispatcher.subscribe(this, XAPlusRemoteSubordinateDoneEvent.class);
         dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);
-        dispatcher.subscribe(this, XAPlusTimeoutEvent.class);
+        dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
     }
 
     private void check(XAPlusXid xid) throws InterruptedException {
@@ -187,7 +188,7 @@ class XAPlusCommitterService extends Bolt implements
             XAPlusTransaction transaction = tracker.getTransaction(xid);
             if (transaction.isCommitted() && transaction.isDone()) {
                 tracker.remove(xid);
-                dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
+                dispatcher.dispatch(new XAPlusTransactionCommittedEvent(transaction));
             }
         }
     }

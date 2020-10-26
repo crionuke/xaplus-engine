@@ -29,6 +29,11 @@ public final class XAPlusLogCommitTransactionDecisionFailedEvent extends Event<X
         handler.handleLogCommitTransactionDecisionFailed(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ", exception=" + exception + ")";
+    }
+
     public XAPlusTransaction getTransaction() {
         return transaction;
     }

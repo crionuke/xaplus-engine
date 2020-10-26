@@ -3,17 +3,12 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusRetryCommitOrderRequestEvent;
-import org.xaplus.engine.events.XAPlusRetryFromSuperiorRequestEvent;
-import org.xaplus.engine.events.XAPlusRetryRollbackOrderRequestEvent;
 import org.xaplus.engine.events.journal.XAPlusCommitRecoveredXidDecisionLoggedEvent;
 import org.xaplus.engine.events.journal.XAPlusLogCommitRecoveredXidDecisionEvent;
 import org.xaplus.engine.events.journal.XAPlusLogRollbackRecoveredXidDecisionEvent;
 import org.xaplus.engine.events.journal.XAPlusRollbackRecoveredXidDecisionLoggedEvent;
 import org.xaplus.engine.events.recovery.*;
-import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
-import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToCommitEvent;
-import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
+import org.xaplus.engine.events.xaplus.*;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 
 import javax.transaction.xa.XAResource;
@@ -232,7 +227,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     } else {
                         String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
                         if (superiorServerId.equals(properties.getServerId())) {
-                            // Rollback recovered getTransaction's xid as was no commit command found
+                            // Rollback recovered transaction's xid as was no commit command found
                             dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(
                                     xid, xaResource, uniqueName));
                         } else {

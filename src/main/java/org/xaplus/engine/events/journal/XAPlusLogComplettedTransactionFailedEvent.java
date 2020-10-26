@@ -1,4 +1,4 @@
-package org.xaplus.engine.events.twopc;
+package org.xaplus.engine.events.journal;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusTransaction;
@@ -7,18 +7,18 @@ import org.xaplus.engine.XAPlusTransaction;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlus2pcFailedEvent extends Event<XAPlus2pcFailedEvent.Handler> {
+public final class XAPlusLogComplettedTransactionFailedEvent extends Event<XAPlusLogComplettedTransactionFailedEvent.Handler> {
 
     private final XAPlusTransaction transaction;
     private final Exception exception;
 
-    public XAPlus2pcFailedEvent(XAPlusTransaction transaction, Exception exception) {
+    public XAPlusLogComplettedTransactionFailedEvent(XAPlusTransaction transaction, Exception exception) {
         super();
         if (transaction == null) {
             throw new NullPointerException("transaction is null");
         }
         if (exception == null) {
-            throw new NullPointerException("v is null");
+            throw new NullPointerException("exception is null");
         }
         this.transaction = transaction;
         this.exception = exception;
@@ -26,7 +26,7 @@ public final class XAPlus2pcFailedEvent extends Event<XAPlus2pcFailedEvent.Handl
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handle2pcFailed(this);
+        handler.handleLogCompletedTransactionFailed(this);
     }
 
     @Override
@@ -43,6 +43,6 @@ public final class XAPlus2pcFailedEvent extends Event<XAPlus2pcFailedEvent.Handl
     }
 
     public interface Handler {
-        void handle2pcFailed(XAPlus2pcFailedEvent event) throws InterruptedException;
+        void handleLogCompletedTransactionFailed(XAPlusLogComplettedTransactionFailedEvent event) throws InterruptedException;
     }
 }

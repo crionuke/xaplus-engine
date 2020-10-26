@@ -3,16 +3,15 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusReportDoneStatusRequestEvent;
-import org.xaplus.engine.events.XAPlusTransactionCompletedEvent;
+import org.xaplus.engine.events.XAPlusTransactionFinishedEvent;
 import org.xaplus.engine.events.journal.*;
 import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionCommittedEvent;
 import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionRolledBackEvent;
 import org.xaplus.engine.events.recovery.XAPlusRecoveredXidCommittedEvent;
 import org.xaplus.engine.events.recovery.XAPlusRecoveredXidRolledBackEvent;
-import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
+import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
 
 import java.sql.SQLException;
 import java.util.Comparator;
@@ -27,18 +26,18 @@ import java.util.TreeSet;
 class XAPlusJournalService extends Bolt implements
         XAPlusLogCommitTransactionDecisionEvent.Handler,
         XAPlusLogRollbackTransactionDecisionEvent.Handler,
+        XAPlusLogCompletedTransactionEvent.Handler,
         XAPlusLogCommitRecoveredXidDecisionEvent.Handler,
         XAPlusLogRollbackRecoveredXidDecisionEvent.Handler,
         XAPlusRecoveredXidCommittedEvent.Handler,
         XAPlusRecoveredXidRolledBackEvent.Handler,
         XAPlusDanglingTransactionCommittedEvent.Handler,
         XAPlusDanglingTransactionRolledBackEvent.Handler,
-        XAPlus2pcDoneEvent.Handler,
         XAPlusFindDanglingTransactionsRequestEvent.Handler,
         XAPlusReportTransactionStatusRequestEvent.Handler,
         XAPlusUserCommitRequestEvent.Handler,
         XAPlusUserRollbackRequestEvent.Handler,
-        XAPlusTransactionCompletedEvent.Handler {
+        XAPlusTransactionFinishedEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusJournalService.class);
 
     private final XAPlusThreadPool threadPool;
@@ -100,6 +99,32 @@ class XAPlusJournalService extends Bolt implements
                 logger.warn("Log rollback decision failed as {}, xid={}", sqle.getMessage(), xid);
             }
             dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionFailedEvent(transaction, sqle));
+        }
+    }
+
+    @Override
+    public void handleLogTransactionCompleted(XAPlusLogCompletedTransactionEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusTransaction transaction = event.getTransaction();
+        XAPlusXid xid = transaction.getXid();
+        try {
+            if (event.isStatus()) {
+                tlog.logTransactionCommitted(transaction);
+            } else {
+                tlog.logTransactionRolledBack(transaction);
+            }
+            if (logger.isDebugEnabled()) {
+                logger.debug("Completed transaction logged, xid={}", xid);
+            }
+            dispatcher.dispatch(new XAPlusCompletedTransactionLoggedEvent(transaction));
+        } catch (SQLException sqle) {
+            if (logger.isWarnEnabled()) {
+                logger.warn("Log completed transaction failed as {}, xid={}",
+                        sqle.getMessage(), xid);
+            }
+            dispatcher.dispatch(new XAPlusLogComplettedTransactionFailedEvent(transaction, sqle));
         }
     }
 
@@ -231,26 +256,6 @@ class XAPlusJournalService extends Bolt implements
     }
 
     @Override
-    public void handle2pcDone(XAPlus2pcDoneEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusTransaction transaction = event.getTransaction();
-        XAPlusXid xid = transaction.getXid();
-        try {
-            tlog.logTransactionCommitted(transaction);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Done status for 2pc transaction logged, xid={}", xid);
-            }
-        } catch (SQLException sqle) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Log done status for 2pc transaction failed as {}, xid={}",
-                        sqle.getMessage(), xid);
-            }
-        }
-    }
-
-    @Override
     public void handleFindDanglingTransactionsRequest(XAPlusFindDanglingTransactionsRequestEvent event)
             throws InterruptedException {
         if (logger.isTraceEnabled()) {
@@ -301,6 +306,9 @@ class XAPlusJournalService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         inFlightTransactions.add(transaction);
+        if (logger.isTraceEnabled()) {
+            logger.trace("Transaction added to in-flight list, {}", transaction);
+        }
     }
 
     @Override
@@ -310,32 +318,39 @@ class XAPlusJournalService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         inFlightTransactions.add(transaction);
+        if (logger.isTraceEnabled()) {
+            logger.trace("Transaction added to in-flight list, {}", transaction);
+        }
     }
 
     @Override
-    public void handleTransactionCompleted(XAPlusTransactionCompletedEvent event) throws InterruptedException {
+    public void handleTransactionFinished(XAPlusTransactionFinishedEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        inFlightTransactions.remove(transaction);
+        if (inFlightTransactions.remove(transaction)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Transaction removed from in-flight list, {}", transaction);
+            }
+        }
     }
 
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusLogCommitTransactionDecisionEvent.class);
         dispatcher.subscribe(this, XAPlusLogRollbackTransactionDecisionEvent.class);
+        dispatcher.subscribe(this, XAPlusLogCompletedTransactionEvent.class);
         dispatcher.subscribe(this, XAPlusLogCommitRecoveredXidDecisionEvent.class);
         dispatcher.subscribe(this, XAPlusLogRollbackRecoveredXidDecisionEvent.class);
         dispatcher.subscribe(this, XAPlusRecoveredXidCommittedEvent.class);
         dispatcher.subscribe(this, XAPlusRecoveredXidRolledBackEvent.class);
         dispatcher.subscribe(this, XAPlusDanglingTransactionCommittedEvent.class);
         dispatcher.subscribe(this, XAPlusDanglingTransactionRolledBackEvent.class);
-        dispatcher.subscribe(this, XAPlus2pcDoneEvent.class);
         dispatcher.subscribe(this, XAPlusFindDanglingTransactionsRequestEvent.class);
         dispatcher.subscribe(this, XAPlusReportTransactionStatusRequestEvent.class);
         dispatcher.subscribe(this, XAPlusUserCommitRequestEvent.class);
         dispatcher.subscribe(this, XAPlusUserRollbackRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusTransactionCompletedEvent.class);
+        dispatcher.subscribe(this, XAPlusTransactionFinishedEvent.class);
     }
 }

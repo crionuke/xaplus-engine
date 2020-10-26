@@ -24,6 +24,11 @@ public final class XAPlusUserCommitRequestEvent extends Event<XAPlusUserCommitRe
         handler.handleUserCommitRequest(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ")";
+    }
+
     public XAPlusTransaction getTransaction() {
         return transaction;
     }

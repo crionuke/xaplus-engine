@@ -6,9 +6,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusPrepareTransactionEvent;
-import org.xaplus.engine.events.XAPlusRollbackRequestEvent;
+import org.xaplus.engine.events.rollback.XAPlusRollbackRequestEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
+import org.xaplus.engine.events.twopc.XAPlusPrepareTransactionEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToPrepareEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
 
@@ -53,7 +53,7 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusTest {
         // Send 2pc request
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction1));
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction2));
-        // Send order to prepare only for one getTransaction
+        // Send order to prepare only for one transaction
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(transaction2.getXid()));
         // Wating
         XAPlusPrepareTransactionEvent event = waiterEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -65,7 +65,7 @@ public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusTest {
     public void testFirstPrepareOrderAfter2pcRequest() throws InterruptedException {
         XAPlusTransaction transaction1 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
         XAPlusTransaction transaction2 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
-        // Send order to prepare only for one getTransaction
+        // Send order to prepare only for one transaction
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(transaction2.getXid()));
         // Send 2pc request
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction1));

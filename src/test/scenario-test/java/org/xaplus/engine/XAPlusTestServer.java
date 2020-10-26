@@ -34,7 +34,7 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
             if (logger.isDebugEnabled()) {
-                logger.debug("Got prepare request for xid={} from superior server", xaPlusXid);
+                logger.debug("Send prepare request from superior server, xid={}", xaPlusXid);
             }
             dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(xaPlusXid));
         } catch (InterruptedException e) {
@@ -48,7 +48,7 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
             if (logger.isDebugEnabled()) {
-                logger.debug("Got ready status for xid={} from subordinate server", xid);
+                logger.debug("Send ready status from subordinate server, xid={}", xid);
             }
             dispatcher.dispatch(new XAPlusRemoteSubordinateReadyEvent(xaPlusXid));
         } catch (InterruptedException e) {
@@ -61,7 +61,7 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
             if (logger.isDebugEnabled()) {
-                logger.debug("Got commit request xid={} from superior server", xid);
+                logger.debug("Send commit request from superior server, xid={}", xid);
             }
             dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToCommitEvent(xaPlusXid));
         } catch (InterruptedException e) {
@@ -74,7 +74,7 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
             if (logger.isDebugEnabled()) {
-                logger.debug("Got rollback request for xid={} from superior server", xid);
+                logger.debug("Send rollback request from superior server, xid={}", xid);
             }
             dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(xaPlusXid));
         } catch (InterruptedException e) {
@@ -87,7 +87,7 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
             if (logger.isDebugEnabled()) {
-                logger.debug("Got done status for xid={} from subordinate server", xid);
+                logger.debug("Send done status from subordinate server, xid={}", xid);
             }
             dispatcher.dispatch(new XAPlusRemoteSubordinateDoneEvent(xaPlusXid));
         } catch (InterruptedException e) {
@@ -99,7 +99,7 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
     public void retry(String serverId) throws XAPlusException {
         try {
             if (logger.isDebugEnabled()) {
-                logger.debug("Got retry request from subordinate server={}", serverId);
+                logger.debug("Send retry request from subordinate server, serverId={}", serverId);
             }
             dispatcher.dispatch(new XAPlusRemoteSubordinateRetryRequestEvent(serverId));
         } catch (InterruptedException e) {

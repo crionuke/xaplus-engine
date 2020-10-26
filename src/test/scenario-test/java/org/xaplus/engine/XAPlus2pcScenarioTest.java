@@ -19,9 +19,19 @@ public class XAPlus2pcScenarioTest extends XAPlusScenarioTest {
     }
 
     @Test
-    public void testSimple2pcScenario() throws InterruptedException {
+    public void testUserCommitScenario() throws InterruptedException {
         int value = 100;
-        testDispatcher.dispatch(new XAPlusScenarioInitialRequestEvent(value));
+        testDispatcher.dispatch(new XAPlusScenarioInitialRequestEvent(value, false));
+        XAPlusScenarioFinishedEvent scenarioFinishedEvent = scenarioFinishedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(scenarioFinishedEvent);
+        assertEquals(value, scenarioFinishedEvent.getValue());
+    }
+
+    @Test
+    public void testUserRollbackScenario() throws InterruptedException {
+        int value = 100;
+        testDispatcher.dispatch(new XAPlusScenarioInitialRequestEvent(value, true));
         XAPlusScenarioFinishedEvent scenarioFinishedEvent = scenarioFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(scenarioFinishedEvent);

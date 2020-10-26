@@ -15,7 +15,9 @@ public class XAPlus {
     final XAPlusPreparerService preparerService;
     final XAPlusCommitOrderWaiterService commitOrderWaiterService;
     final XAPlusCommitterService committerService;
+    final XAPlus2pcCompleterService twoPcCompleterService;
     final XAPlusRollbackService rollbackService;
+    final XAPlusRollbackCompleterService rollbackCompleterService;
     final XAPlusRecoveryPreparerService recoveryPreparerService;
     final XAPlusRecoveryCommitterService recoveryCommitterService;
     final XAPlusJournalService journalService;
@@ -29,14 +31,19 @@ public class XAPlus {
         engine = new XAPlusEngine(properties, dispatcher, resources, new XAPlusUidGenerator(),
                 new XAPlusThreadOfControl());
         tickService = new XAPlusTickService(properties, threadPool, dispatcher);
-        timerService = new XAPlusTimerService(properties, threadPool, dispatcher);
+        timerService = new XAPlusTimerService(properties, threadPool, dispatcher, new XAPlusTimerState());
         managerService = new XAPlusManagerService(properties, threadPool, dispatcher, resources);
         prepareOrderWaiterService =
                 new XAPlusPrepareOrderWaiterService(properties, threadPool, dispatcher, new XAPlusTracker());
         preparerService = new XAPlusPreparerService(properties, threadPool, dispatcher, new XAPlusTracker());
         commitOrderWaiterService = new XAPlusCommitOrderWaiterService(properties, threadPool, dispatcher, resources);
-        committerService = new XAPlusCommitterService(properties, threadPool, dispatcher, new XAPlusTracker());
+        committerService = new XAPlusCommitterService(properties, threadPool, dispatcher, resources,
+                new XAPlusTracker());
+        twoPcCompleterService = new XAPlus2pcCompleterService(properties, threadPool, dispatcher, resources,
+                new XAPlusTracker());
         rollbackService = new XAPlusRollbackService(properties, threadPool, dispatcher, new XAPlusTracker());
+        rollbackCompleterService = new XAPlusRollbackCompleterService(properties, threadPool, dispatcher, resources,
+                new XAPlusTracker());
         recoveryPreparerService = new XAPlusRecoveryPreparerService(properties, threadPool, dispatcher, resources,
                 new XAPlusRecoveryPreparerTracker());
         recoveryCommitterService = new XAPlusRecoveryCommitterService(properties, threadPool, dispatcher, resources,
@@ -54,7 +61,9 @@ public class XAPlus {
         preparerService.postConstruct();
         commitOrderWaiterService.postConstruct();
         committerService.postConstruct();
+        twoPcCompleterService.postConstruct();
         rollbackService.postConstruct();
+        rollbackCompleterService.postConstruct();
         recoveryPreparerService.postConstruct();
         recoveryCommitterService.postConstruct();
         journalService.postConstruct();

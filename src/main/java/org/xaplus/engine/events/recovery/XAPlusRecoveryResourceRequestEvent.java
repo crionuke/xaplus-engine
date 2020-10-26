@@ -30,6 +30,11 @@ public final class XAPlusRecoveryResourceRequestEvent extends Event<XAPlusRecove
         handler.handleRecoveryResourceRequest(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(uniqueName=" + uniqueName + ")";
+    }
+
     public String getUniqueName() {
         return uniqueName;
     }

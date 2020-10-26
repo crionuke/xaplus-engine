@@ -3,12 +3,11 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusPrepareTransactionEvent;
-import org.xaplus.engine.events.XAPlusRollbackRequestEvent;
-import org.xaplus.engine.events.XAPlusTimeoutEvent;
-import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
+import org.xaplus.engine.events.XAPlusTransactionTimedOutEvent;
+import org.xaplus.engine.events.rollback.XAPlusRollbackRequestEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
+import org.xaplus.engine.events.twopc.XAPlusPrepareTransactionEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToPrepareEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
 
@@ -20,7 +19,7 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         XAPlus2pcRequestEvent.Handler,
         XAPlusRemoteSuperiorOrderToPrepareEvent.Handler,
         XAPlus2pcFailedEvent.Handler,
-        XAPlusTimeoutEvent.Handler,
+        XAPlusTransactionTimedOutEvent.Handler,
         XAPlusRemoteSuperiorOrderToRollbackEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusPrepareOrderWaiterService.class);
 
@@ -44,15 +43,10 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         if (transaction.isSubordinate()) {
             if (tracker.track(transaction)) {
-                check(transaction.getXid());
-            } else {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Transaction already tracked, {}", transaction);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Wait prepare order for transaction, {}", transaction);
                 }
-            }
-        } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Transaction is not subordinate, {}", transaction);
+                check(transaction.getXid());
             }
         }
     }
@@ -65,6 +59,9 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         tracker.addOrder(xid);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Order to xid added, xid={}", xid);
+        }
         check(xid);
     }
 
@@ -74,24 +71,24 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.remove(xid);
+        XAPlusTransaction transaction = tracker.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled as transaction failed, {}", transaction);
+                logger.debug("Transaction removed, {}", transaction);
             }
         }
     }
 
     @Override
-    public void handleTimeout(XAPlusTimeoutEvent event) {
+    public void handleTransactionTimedOut(XAPlusTransactionTimedOutEvent event) {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.remove(xid);
+        XAPlusTransaction transaction = tracker.remove(xid);
+        if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled as transaction timed out, {}", transaction);
+                logger.debug("Transaction removed, {}", transaction);
             }
         }
     }
@@ -117,7 +114,7 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         dispatcher.subscribe(this, XAPlus2pcRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRemoteSuperiorOrderToPrepareEvent.class);
         dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);
-        dispatcher.subscribe(this, XAPlusTimeoutEvent.class);
+        dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
         dispatcher.subscribe(this, XAPlusRemoteSuperiorOrderToRollbackEvent.class);
     }
 

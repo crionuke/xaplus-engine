@@ -23,6 +23,11 @@ public final class XAPlusFindDanglingTransactionsFailedEvent extends Event<XAPlu
         handler.handleFindDanglingTransactionsFailed(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(exception=" + exception + ")";
+    }
+
     public Exception getException() {
         return exception;
     }

@@ -29,6 +29,12 @@ public final class XAPlusCommitRecoveredXidDecisionLoggedEvent extends Event<XAP
         handler.handleCommitRecoveredXidDecisionLogged(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid +
+                ", uniqueName=" + uniqueName + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

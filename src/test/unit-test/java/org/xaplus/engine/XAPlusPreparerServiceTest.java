@@ -6,11 +6,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusPrepareTransactionEvent;
-import org.xaplus.engine.events.XAPlusRollbackRequestEvent;
-import org.xaplus.engine.events.XAPlusTransactionPreparedEvent;
+import org.xaplus.engine.events.rollback.XAPlusRollbackRequestEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
+import org.xaplus.engine.events.twopc.XAPlusPrepareTransactionEvent;
+import org.xaplus.engine.events.twopc.XAPlusTransactionPreparedEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchPreparedEvent;
 import org.xaplus.engine.events.xa.XAPlusPrepareBranchFailedEvent;
 import org.xaplus.engine.events.xa.XAPlusPrepareBranchRequestEvent;
@@ -137,14 +137,12 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
     public void testTransactionPrepared() throws InterruptedException {
         // Create transaction and branches for xa and xa+ resources
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        XAPlusXid bxid1 = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(),
-                properties.getServerId());
+        XAPlusXid bxid1 = createJdbcXid(transaction);
         transaction.enlist(bxid1, "db1", new XAResourceStub());
-        XAPlusXid bxid2 = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(),
-                properties.getServerId());
+        XAPlusXid bxid2 = createJdbcXid(transaction);
         transaction.enlist(bxid2, "db2", new XAResourceStub());
-        XAPlusXid bxid3 = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(), "service1");
-        transaction.enlist(bxid3, "service1", new XAPlusResourceStub());
+        XAPlusXid bxid3 = createXAPlusXid(transaction, XA_PLUS_RESOURCE_2);
+        transaction.enlist(bxid3, XA_PLUS_RESOURCE_2, new XAPlusResourceStub());
         logger.info("Transaction {} created", transaction);
         logger.info("Branch1 has xid={}", bxid1);
         logger.info("Branch2 has xid={}", bxid2);
@@ -154,10 +152,12 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
         // Emulate branch preparation
         dispatcher.dispatch(new XAPlusBranchPreparedEvent(transaction.getXid(), bxid1));
         dispatcher.dispatch(new XAPlusBranchPreparedEvent(transaction.getXid(), bxid2));
+        dispatcher.dispatch(new XAPlusBranchPreparedEvent(transaction.getXid(), bxid3));
         dispatcher.dispatch(new XAPlusRemoteSubordinateReadyEvent(bxid3));
         // Wait transaction prepared event
         XAPlusTransactionPreparedEvent event = transactionPreparedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        // Check that it our getTransaction
+        // Check that it our transaction
+        assertNotNull(event);
         assertEquals(event.getTransaction().getXid(), transaction.getXid());
     }
 
@@ -176,7 +176,7 @@ public class XAPlusPreparerServiceTest extends XAPlusTest {
         dispatcher.dispatch(new XAPlusPrepareBranchFailedEvent(transaction.getXid(), bxid1, new Exception("failed")));
         // Wait 2pc failed event
         XAPlus2pcFailedEvent event = twoPcFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        // Check that it our getTransaction
+        // Check that it our transaction
         assertEquals(event.getTransaction().getXid(), transaction.getXid());
     }
 

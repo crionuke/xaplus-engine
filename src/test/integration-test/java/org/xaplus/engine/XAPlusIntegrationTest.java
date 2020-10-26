@@ -18,8 +18,8 @@ public class XAPlusIntegrationTest extends XAPlusTest {
 
     protected void createXADataSource() {
         xaDataSource = new PGXADataSource();
-        xaDataSource.setUrl("jdbc:postgresql://localhost:5432/testpg");
-        xaDataSource.setUser("testpg");
+        xaDataSource.setUrl("jdbc:postgresql://localhost:10001/test");
+        xaDataSource.setUser("test");
         xaDataSource.setPassword("qwe123");
     }
 

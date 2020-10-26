@@ -30,6 +30,11 @@ public final class XAPlusReportTransactionStatusRequestEvent extends Event<XAPlu
         handler.handleReportTransactionStatusRequest(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

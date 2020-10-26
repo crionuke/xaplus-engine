@@ -29,6 +29,12 @@ public final class XAPlusDanglingTransactionCommittedEvent extends Event<XAPlusD
         handler.handleDanglingTransactionCommitted(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid +
+                ", uniqueName=" + uniqueName + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

@@ -2,7 +2,7 @@ package org.xaplus.engine;
 
 import java.util.*;
 
-final class XAPlusTimerState {
+class XAPlusTimerState {
     private final Map<XAPlusXid, XAPlusTransaction> transactions;
 
     XAPlusTimerState() {

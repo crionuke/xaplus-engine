@@ -24,6 +24,11 @@ public final class XAPlusRemoteSuperiorOrderToRollbackEvent extends Event<XAPlus
         handler.handleRemoteSuperiorOrderToRollback(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

@@ -1,4 +1,4 @@
-package org.xaplus.engine.events;
+package org.xaplus.engine.events.rollback;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusTransaction;
@@ -24,17 +24,22 @@ public final class XAPlusRollbackFailedEvent extends Event<XAPlusRollbackFailedE
         this.exception = exception;
     }
 
+    @Override
+    public void handle(Handler handler) throws InterruptedException {
+        handler.handleRollbackFailed(this);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ", exception=" + exception + ")";
+    }
+
     public XAPlusTransaction getTransaction() {
         return transaction;
     }
 
     public Exception getException() {
         return exception;
-    }
-
-    @Override
-    public void handle(Handler handler) throws InterruptedException {
-        handler.handleRollbackFailed(this);
     }
 
     public interface Handler {

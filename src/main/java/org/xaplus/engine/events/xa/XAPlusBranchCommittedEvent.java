@@ -29,6 +29,11 @@ public final class XAPlusBranchCommittedEvent extends Event<XAPlusBranchCommitte
         handler.handleBranchCommitted(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid + ", branchXid=" + branchXid + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

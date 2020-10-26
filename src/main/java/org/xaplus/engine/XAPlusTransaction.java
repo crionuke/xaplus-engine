@@ -43,6 +43,11 @@ public class XAPlusTransaction {
                 + "=(superiorServerId=" + superiorServerId
                 + ", isSuperior=" + isSuperior()
                 + ", isSubordinate=" + isSubordinate()
+                + ", isPrepared=" + isPrepared()
+                + ", isReadied=" + isReadied()
+                + ", isCommitted=" + isCommitted()
+                + ", isRolledBack=" + isRolledBack()
+                + ", isDone=" + isDone()
                 + ", " + (expireTimeInMillis - System.currentTimeMillis()) + " ms to expire"
                 + ", enlisted " + xaBranches.size() + " XA and " + xaPlusBranches.size() + " XA+ resources"
                 + ", xid=" + xid;
@@ -72,14 +77,6 @@ public class XAPlusTransaction {
             branches.put(branch.getBranchXid(), branch.getUniqueName());
         }
         return branches;
-    }
-
-    Map<XAPlusXid, XAPlusXid> createBranchToTransactionMap() {
-        Map<XAPlusXid, XAPlusXid> map = new HashMap<>();
-        for (XAPlusBranch branch : xaPlusBranches.values()) {
-            map.put(branch.getBranchXid(), xid);
-        }
-        return map;
     }
 
     long getCreationTimeInMillis() {
@@ -220,7 +217,7 @@ public class XAPlusTransaction {
 
     void branchDone(XAPlusXid branchXid) {
         if (xaPlusBranches.containsKey(branchXid)) {
-            xaPlusBranches.get(branchXid).markAsReadied();
+            xaPlusBranches.get(branchXid).markAsDone();
         }
     }
 
@@ -313,7 +310,7 @@ public class XAPlusTransaction {
         volatile boolean readied;
         volatile boolean done;
 
-        XAPlusBranch(XAPlusXid xid, XAPlusXid branchXid,  XAPlusResource resource, String uniqueName) {
+        XAPlusBranch(XAPlusXid xid, XAPlusXid branchXid, XAPlusResource resource, String uniqueName) {
             super(xid, branchXid, resource, uniqueName);
             this.xaPlusResource = resource;
             readied = false;

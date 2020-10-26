@@ -20,6 +20,11 @@ public final class XAPlusTickEvent extends Event<XAPlusTickEvent.Handler> {
         handler.handleTick(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(index=" + index + ")";
+    }
+
     public int getIndex() {
         return index;
     }

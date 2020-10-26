@@ -29,6 +29,12 @@ public final class XAPlusRollbackRecoveredXidFailedEvent extends Event<XAPlusRol
         handler.handleRollbackRecoveredXidFailed(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid +
+                ", uniqueName=" + uniqueName + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

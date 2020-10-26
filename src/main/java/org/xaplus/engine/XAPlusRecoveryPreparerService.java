@@ -11,7 +11,6 @@ import org.xaplus.engine.events.recovery.*;
 import javax.jms.JMSException;
 import javax.transaction.xa.XAResource;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.Map;
 
 class XAPlusRecoveryPreparerService extends Bolt implements

@@ -23,6 +23,11 @@ public final class XAPlusRemoteSubordinateRetryRequestEvent extends Event<XAPlus
         handler.handleRemoteSubordinateRetryRequest(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(subordinateServerId=" + subordinateServerId + ")";
+    }
+
     public String getSubordinateServerId() {
         return subordinateServerId;
     }

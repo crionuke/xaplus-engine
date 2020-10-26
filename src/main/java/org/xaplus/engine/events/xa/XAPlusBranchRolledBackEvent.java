@@ -25,6 +25,11 @@ public final class XAPlusBranchRolledBackEvent extends Event<XAPlusBranchRolledB
     }
 
     @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid + ", branchXid=" + branchXid + ")";
+    }
+
+    @Override
     public void handle(Handler handler) throws InterruptedException {
         handler.handleBranchRolledBack(this);
     }

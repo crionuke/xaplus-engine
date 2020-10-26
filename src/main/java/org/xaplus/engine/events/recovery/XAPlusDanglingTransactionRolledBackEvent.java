@@ -29,6 +29,12 @@ public final class XAPlusDanglingTransactionRolledBackEvent extends Event<XAPlus
         handler.handleDanglingTransactionRolledBack(this);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(xid=" + xid +
+                ", uniqueName=" + uniqueName + ")";
+    }
+
     public XAPlusXid getXid() {
         return xid;
     }

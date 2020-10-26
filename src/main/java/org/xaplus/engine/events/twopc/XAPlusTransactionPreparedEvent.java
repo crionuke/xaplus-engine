@@ -1,4 +1,4 @@
-package org.xaplus.engine.events;
+package org.xaplus.engine.events.twopc;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusTransaction;
@@ -7,11 +7,11 @@ import org.xaplus.engine.XAPlusTransaction;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusRollbackDoneEvent extends Event<XAPlusRollbackDoneEvent.Handler> {
+public final class XAPlusTransactionPreparedEvent extends Event<XAPlusTransactionPreparedEvent.Handler> {
 
     private final XAPlusTransaction transaction;
 
-    public XAPlusRollbackDoneEvent(XAPlusTransaction transaction) {
+    public XAPlusTransactionPreparedEvent(XAPlusTransaction transaction) {
         super();
         if (transaction == null) {
             throw new NullPointerException("transaction is null");
@@ -21,7 +21,12 @@ public final class XAPlusRollbackDoneEvent extends Event<XAPlusRollbackDoneEvent
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleRollbackDone(this);
+        handler.handleTransactionPrepared(this);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ")";
     }
 
     public XAPlusTransaction getTransaction() {
@@ -29,6 +34,6 @@ public final class XAPlusRollbackDoneEvent extends Event<XAPlusRollbackDoneEvent
     }
 
     public interface Handler {
-        void handleRollbackDone(XAPlusRollbackDoneEvent event) throws InterruptedException;
+        void handleTransactionPrepared(XAPlusTransactionPreparedEvent event) throws InterruptedException;
     }
 }
