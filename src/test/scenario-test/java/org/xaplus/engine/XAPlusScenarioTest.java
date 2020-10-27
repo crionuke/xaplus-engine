@@ -39,6 +39,9 @@ public class XAPlusScenarioTest extends Assert {
     XAPlus superiorXAPlus;
     XAPlus subordinateXAPLus;
 
+    XAPlusTestScenario superiorScenario;
+    XAPlusTestScenario subordinateScenario;
+
     XAPlusTestServer superiorServer;
     XAPlusTestServer subordinateServer;
 
@@ -59,8 +62,11 @@ public class XAPlusScenarioTest extends Assert {
         superiorXAPlus = new XAPlus(XA_PLUS_SUPERIOR, DEFAULT_TIMEOUT_S);
         subordinateXAPLus = new XAPlus(XA_PLUS_SUBORDINATE, DEFAULT_TIMEOUT_S);
 
-        superiorServer = new XAPlusTestServer(superiorXAPlus.dispatcher);
-        subordinateServer = new XAPlusTestServer(subordinateXAPLus.dispatcher);
+        superiorScenario = new XAPlusTestScenario();
+        subordinateScenario = new XAPlusTestScenario();
+
+        superiorServer = new XAPlusTestServer(superiorScenario, superiorXAPlus.dispatcher);
+        subordinateServer = new XAPlusTestServer(subordinateScenario, subordinateXAPLus.dispatcher);
 
         scenarioFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         scenarioFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -127,27 +133,27 @@ public class XAPlusScenarioTest extends Assert {
             if (logger.isTraceEnabled()) {
                 logger.trace("Handle {}", event);
             }
-            int value = event.getValue();
+            long value = event.getValue();
             XAPlusFuture future;
             try {
                 engine.begin();
                 // Enlist and change XA xaResource
                 Connection connection = engine.enlistJdbc(XA_RESOURCE_DATABASE_1);
                 try (PreparedStatement statement = connection.prepareStatement(INSERT_VALUE)) {
-                    statement.setInt(1, value);
+                    statement.setLong(1, value);
                     statement.executeUpdate();
                 }
                 // Enlist and call subordinate
                 XAPlusXid branchXid = engine.enlistXAPlus(XA_PLUS_SUBORDINATE);
-                testDispatcher.dispatch(new XAPlusScenarioSubordinateRequestEvent(branchXid, value));
-                if (event.isUserRollback()) {
-                    // User rollback simulation
-                    Thread.sleep(100);
-                    throw new Exception("user_rollback_simulaiton");
-                } else {
-                    // Commit XA+ transaction
-                    future = engine.commit();
+                if (event.isBeforeRequestException()) {
+                    throw new Exception("fail");
                 }
+                testDispatcher.dispatch(new XAPlusScenarioSubordinateRequestEvent(branchXid, value));
+                if (event.isBeforeCommitException()) {
+                    throw new Exception("fail");
+                }
+                // Commit XA+ transaction
+                future = engine.commit();
             } catch (Exception e) {
                 if (logger.isWarnEnabled()) {
                     logger.warn("Transaction failed as {}", e.getMessage());
@@ -194,14 +200,14 @@ public class XAPlusScenarioTest extends Assert {
                 logger.trace("Handle {}", event);
             }
             XAPlusXid xid = event.getXid();
-            int value = event.getValue();
+            long value = event.getValue();
             XAPlusFuture future;
             try {
                 engine.join(xid);
                 // Enlist and change XA xaResource
                 Connection connection = engine.enlistJdbc(XA_RESOURCE_DATABASE_2);
                 try (PreparedStatement statement = connection.prepareStatement(INSERT_VALUE)) {
-                    statement.setInt(1, value);
+                    statement.setLong(1, value);
                     statement.executeUpdate();
                 }
                 // Commit branch of XA+ transaction

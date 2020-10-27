@@ -91,6 +91,8 @@ public class XAPlusTransaction {
         return future;
     }
 
+    // TODO: enlist and connections too, to close by engine when transaction completed
+
     void enlist(XAPlusXid branchXid, String uniqueName, XAResource resource) {
         xaBranches.put(branchXid, new XABranch(xid, branchXid, resource, uniqueName));
     }
@@ -230,6 +232,21 @@ public class XAPlusTransaction {
         return true;
     }
 
+    void branchAbsent(XAPlusXid branchXid) {
+        if (xaPlusBranches.containsKey(branchXid)) {
+            xaPlusBranches.get(branchXid).markAsAbsent();
+        }
+    }
+
+    boolean isDoneOrAbsent() {
+        for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
+            if (!xaPlusBranch.isDone() && !xaPlusBranch.isAbsent()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     class XABranch {
         final XAPlusXid xid;
         final XAPlusXid branchXid;
@@ -309,12 +326,14 @@ public class XAPlusTransaction {
 
         volatile boolean readied;
         volatile boolean done;
+        volatile boolean absent;
 
         XAPlusBranch(XAPlusXid xid, XAPlusXid branchXid, XAPlusResource resource, String uniqueName) {
             super(xid, branchXid, resource, uniqueName);
             this.xaPlusResource = resource;
             readied = false;
             done = false;
+            absent = false;
         }
 
         XAPlusResource getXaPlusResource() {
@@ -335,6 +354,14 @@ public class XAPlusTransaction {
 
         boolean isDone() {
             return done;
+        }
+
+        void markAsAbsent() {
+            absent = true;
+        }
+
+        boolean isAbsent() {
+            return absent;
         }
     }
 }

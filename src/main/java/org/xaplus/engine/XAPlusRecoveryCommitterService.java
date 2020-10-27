@@ -61,6 +61,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     event.getRecoveredXids(), event.getDanglingTransactions());
             retryOrders();
             recoveryResources();
+            // TODO: close all connections opened to recover resources
         }
     }
 
@@ -82,7 +83,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     dispatcher.dispatch(new XAPlusLogCommitRecoveredXidDecisionEvent(branchXid, uniqueName));
                 } else {
                     if (logger.isWarnEnabled()) {
-                        logger.warn("Unknown XA xaResource to commit branch, xaResource={}, xid={}",
+                        logger.warn("Unknown XA xaResource to commit branch, resource={}, xid={}",
                                 uniqueName, branchXid);
                     }
                 }
@@ -107,7 +108,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     dispatcher.dispatch(new XAPlusLogRollbackRecoveredXidDecisionEvent(branchXid, uniqueName));
                 } else {
                     if (logger.isWarnEnabled()) {
-                        logger.warn("Unknown XA xaResource to rollback branch, xaResource={}, xid={}",
+                        logger.warn("Unknown XA xaResource to rollback branch, resource={}, xid={}",
                                 uniqueName, branchXid);
                     }
                 }
@@ -128,7 +129,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, xaResource, uniqueName));
         } else {
             if (logger.isWarnEnabled()) {
-                logger.warn("Unknown XA xaResource to commit recovered branch, xaResource={}, xid={}",
+                logger.warn("Unknown XA xaResource to commit recovered branch, resource={}, xid={}",
                         uniqueName, xid);
             }
         }
@@ -147,7 +148,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, xaResource, uniqueName));
         } else {
             if (logger.isWarnEnabled()) {
-                logger.warn("Unknown XA xaResource to rollback recovered branch, xaResource={}, xid={}",
+                logger.warn("Unknown XA xaResource to rollback recovered branch, resource={}, xid={}",
                         uniqueName, xid);
             }
         }
@@ -199,7 +200,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     }
                 } catch (XAPlusSystemException e) {
                     if (logger.isErrorEnabled()) {
-                        logger.error("Internal error. Retry order for non XA+ or unknown xaResource, xaResource={}",
+                        logger.error("Internal error. Retry order for non XA+ or unknown rsesource, xaResource={}",
                                 uniqueName);
                     }
                 }
@@ -238,7 +239,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                                             resources.getXAPlusResource(superiorServerId)));
                                 } catch (XAPlusSystemException e) {
                                     if (logger.isWarnEnabled()) {
-                                        logger.warn("Unknown XA+ xaResource to retry orders, xaResource={}",
+                                        logger.warn("Unknown XA+ resource to retry orders, xaResource={}",
                                                 superiorServerId);
                                     }
                                 }
@@ -248,7 +249,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                 }
             } else {
                 if (logger.isWarnEnabled()) {
-                    logger.warn("Unknown XA xaResource to recovery, xaResource={}", uniqueName);
+                    logger.warn("Unknown XA resource to recovery, xaResource={}", uniqueName);
                 }
             }
         }

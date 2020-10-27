@@ -18,12 +18,20 @@ public interface XAPlusResource extends XAResource {
     void ready(Xid xid) throws XAPlusException;
 
     /**
-     * Report to superior that a transaction branch {@code xid} has been committed by subordinate
+     * Report to superior that a transaction branch {@code xid} has been committed or rolled back by subordinate
      *
      * @param xid a transaction branch identifier
      * @throws XAPlusException an error has occurred
      */
     void done(Xid xid) throws XAPlusException;
+
+    /**
+     * Report to superior that a {@code xid} requested to commit or rollback previously not found by subordinate
+     *
+     * @param xid a transaction branch identifier
+     * @throws XAPlusException an error has occurred
+     */
+    void absent(Xid xid) throws XAPlusException;
 
     /**
      * Request global transactions status from superior

@@ -11,13 +11,16 @@ import javax.transaction.xa.Xid;
 class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTestServer.class);
 
+    private final XAPlusTestScenario scenario;
     private final XAPlusDispatcher dispatcher;
 
-    XAPlusTestServer(XAPlusDispatcher dispatcher) {
+    XAPlusTestServer(XAPlusTestScenario scenario, XAPlusDispatcher dispatcher) {
+        this.scenario = scenario;
         this.dispatcher = dispatcher;
     }
 
-    @Override public XAPlusResource createXAPlusResource() throws XAPlusException {
+    @Override
+    public XAPlusResource createXAPlusResource() throws XAPlusException {
         return this;
     }
 
@@ -31,6 +34,9 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public int prepare(Xid xid) throws XAException {
+        if (!scenario.prepareException) {
+            throw new XAPlusException("fail");
+        }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
             if (logger.isDebugEnabled()) {
@@ -45,6 +51,9 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public void ready(Xid xid) throws XAPlusException {
+        if (!scenario.readyException) {
+            throw new XAPlusException("fail");
+        }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
             if (logger.isDebugEnabled()) {
@@ -58,6 +67,9 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public void commit(Xid xid, boolean onePhase) throws XAException {
+        if (!scenario.commitException) {
+            throw new XAException("fail");
+        }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
             if (logger.isDebugEnabled()) {
@@ -71,6 +83,9 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public void rollback(Xid xid) throws XAException {
+        if (!scenario.rollbackException) {
+            throw new XAException("fail");
+        }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
             if (logger.isDebugEnabled()) {
@@ -84,6 +99,9 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public void done(Xid xid) throws XAPlusException {
+        if (!scenario.doneException) {
+            throw new XAPlusException("fail");
+        }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
             if (logger.isDebugEnabled()) {
@@ -97,11 +115,30 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public void retry(String serverId) throws XAPlusException {
+        if (!scenario.retryException) {
+            throw new XAPlusException("fail");
+        }
         try {
             if (logger.isDebugEnabled()) {
                 logger.debug("Send retry request from subordinate server, serverId={}", serverId);
             }
             dispatcher.dispatch(new XAPlusRemoteSubordinateRetryRequestEvent(serverId));
+        } catch (InterruptedException e) {
+            throw new XAPlusException(e.getMessage());
+        }
+    }
+
+    @Override
+    public void absent(Xid xid) throws XAPlusException {
+        if (!scenario.absentException) {
+            throw new XAPlusException("fail");
+        }
+        XAPlusXid xaPlusXid = new XAPlusXid(xid);
+        try {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Send absent report, xid={}", xid);
+            }
+            dispatcher.dispatch(new XAPlusRemoteSubordinateHasAbsenceXidEvent(xaPlusXid));
         } catch (InterruptedException e) {
             throw new XAPlusException(e.getMessage());
         }

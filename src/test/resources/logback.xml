@@ -7,7 +7,7 @@
     </appender>
 
     <logger name="com.crionuke.bolts" level="DEBUG"/>
-    <logger name="org.xaplus.engine" level="TRACE"/>
+    <logger name="org.xaplus.engine" level="DEBUG"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

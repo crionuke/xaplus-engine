@@ -20,18 +20,28 @@ public class XAPlus2pcScenarioTest extends XAPlusScenarioTest {
 
     @Test
     public void testUserCommitScenario() throws InterruptedException {
-        int value = 100;
-        testDispatcher.dispatch(new XAPlusScenarioInitialRequestEvent(value, false));
-        XAPlusScenarioFinishedEvent scenarioFinishedEvent = scenarioFinishedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(scenarioFinishedEvent);
-        assertEquals(value, scenarioFinishedEvent.getValue());
+        finishedRequest(false, false);
     }
 
     @Test
-    public void testUserRollbackScenario() throws InterruptedException {
-        int value = 100;
-        testDispatcher.dispatch(new XAPlusScenarioInitialRequestEvent(value, true));
+    public void testUserRollbackBeforeRequestScenario() throws InterruptedException {
+        finishedRequest(true, false);
+    }
+
+    @Test
+    public void testUserRollbackBeforeCommitScenario() throws InterruptedException {
+        finishedRequest(false, true);
+    }
+
+    @Test
+    public void testFromSuperiorToSubordinatePrepareFailed() throws InterruptedException {
+        subordinateScenario.prepareException = false;
+    }
+
+    void finishedRequest(boolean beforeRequestException, boolean beforeCommitException) throws InterruptedException {
+        long value = Math.round(100000 + Math.random() * 899999);
+        testDispatcher.dispatch(
+                new XAPlusScenarioInitialRequestEvent(value, beforeRequestException, beforeCommitException));
         XAPlusScenarioFinishedEvent scenarioFinishedEvent = scenarioFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(scenarioFinishedEvent);

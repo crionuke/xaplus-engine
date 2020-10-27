@@ -3,7 +3,7 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusTransactionTimedOutEvent;
+import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.journal.XAPlusCompletedTransactionLoggedEvent;
 import org.xaplus.engine.events.journal.XAPlusLogCompletedTransactionEvent;
 import org.xaplus.engine.events.journal.XAPlusLogComplettedTransactionFailedEvent;

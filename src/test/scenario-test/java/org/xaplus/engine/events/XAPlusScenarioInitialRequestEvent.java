@@ -8,13 +8,16 @@ import com.crionuke.bolts.Event;
  */
 public final class XAPlusScenarioInitialRequestEvent extends Event<XAPlusScenarioInitialRequestEvent.Handler> {
 
-    private final int value;
-    private final boolean userRollback;
+    private final long value;
+    private final boolean beforeRequestException;
+    private final boolean beforeCommitException;
 
-    public XAPlusScenarioInitialRequestEvent(int value, boolean userRollback) {
+    public XAPlusScenarioInitialRequestEvent(long value, boolean beforeRequestException,
+                                             boolean beforeCommitException) {
         super();
         this.value = value;
-        this.userRollback = userRollback;
+        this.beforeRequestException = beforeRequestException;
+        this.beforeCommitException = beforeCommitException;
     }
 
     @Override
@@ -22,12 +25,16 @@ public final class XAPlusScenarioInitialRequestEvent extends Event<XAPlusScenari
         handler.handleScenarioInitialRequest(this);
     }
 
-    public int getValue() {
+    public long getValue() {
         return value;
     }
 
-    public boolean isUserRollback() {
-        return userRollback;
+    public boolean isBeforeRequestException() {
+        return beforeRequestException;
+    }
+
+    public boolean isBeforeCommitException() {
+        return beforeCommitException;
     }
 
     public interface Handler {

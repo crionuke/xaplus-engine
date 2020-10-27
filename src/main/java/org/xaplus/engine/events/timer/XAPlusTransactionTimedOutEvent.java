@@ -1,4 +1,4 @@
-package org.xaplus.engine.events;
+package org.xaplus.engine.events.timer;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusTransaction;

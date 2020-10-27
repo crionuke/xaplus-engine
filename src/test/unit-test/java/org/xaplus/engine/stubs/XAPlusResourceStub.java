@@ -18,6 +18,11 @@ public class XAPlusResourceStub extends XAResourceStub implements XAPlusResource
     }
 
     @Override
+    public void absent(Xid xid) throws XAPlusException {
+
+    }
+
+    @Override
     public void retry(String serverId) throws XAPlusException {
 
     }

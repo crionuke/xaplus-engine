@@ -3,7 +3,7 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusTransactionFinishedEvent;
+import org.xaplus.engine.events.tm.XAPlusTransactionFinishedEvent;
 import org.xaplus.engine.events.journal.*;
 import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionCommittedEvent;
 import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionRolledBackEvent;
@@ -11,6 +11,7 @@ import org.xaplus.engine.events.recovery.XAPlusRecoveredXidCommittedEvent;
 import org.xaplus.engine.events.recovery.XAPlusRecoveredXidRolledBackEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
+import org.xaplus.engine.events.xaplus.XAPlusReportAbsenceXidRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
 
 import java.sql.SQLException;
@@ -287,10 +288,15 @@ class XAPlusJournalService extends Bolt implements
         }
         try {
             XAPlusXid xid = event.getXid();
-            boolean completed = tlog.isTransactionCompleted(xid);
-            if (completed) {
-                XAPlusResource resource = event.getResource();
+            XAPlusResource resource = event.getResource();
+
+            XAPlusTLog.TransactionStatus status = tlog.getTransactionStatus(xid);
+            if (!status.found) {
+                dispatcher.dispatch(new XAPlusReportAbsenceXidRequestEvent(xid, resource));
+            } else if (status.completed) {
                 dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
+            } else {
+                // TODO: what i can do here?
             }
         } catch (SQLException e) {
             if (logger.isWarnEnabled()) {

@@ -8,10 +8,10 @@ import com.crionuke.bolts.Event;
  */
 public final class XAPlusScenarioFailedEvent extends Event<XAPlusScenarioFailedEvent.Handler> {
 
-    private final int value;
+    private final long value;
     private final Exception exception;
 
-    public XAPlusScenarioFailedEvent(int value, Exception exception) {
+    public XAPlusScenarioFailedEvent(long value, Exception exception) {
         super();
         this.value = value;
         this.exception = exception;
@@ -22,7 +22,7 @@ public final class XAPlusScenarioFailedEvent extends Event<XAPlusScenarioFailedE
         handler.handleScenarioFinished(this);
     }
 
-    public int getValue() {
+    public long getValue() {
         return value;
     }
 

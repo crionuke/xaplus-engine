@@ -195,7 +195,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         XAPlusResource resource = resources.getXAPlusResource(XA_PLUS_RESOURCE_2);
         XAPlusXid xid = transaction.getXid();
-        Mockito.when(tlogMock.isTransactionCompleted(xid)).thenReturn(true);
+        Mockito.when(tlogMock.getTransactionStatus(xid)).thenReturn(XAPlusTLog.completedStatus());
         dispatcher.dispatch(new XAPlusReportTransactionStatusRequestEvent(xid, resource));
         XAPlusReportDoneStatusRequestEvent event = reportDoneStatusRequestEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);

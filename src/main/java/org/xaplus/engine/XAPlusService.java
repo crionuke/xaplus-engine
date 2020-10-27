@@ -26,6 +26,7 @@ class XAPlusService extends Bolt implements
         XAPlusForgetRecoveredXidRequestEvent.Handler,
         XAPlusReportReadyStatusRequestEvent.Handler,
         XAPlusReportDoneStatusRequestEvent.Handler,
+        XAPlusReportAbsenceXidRequestEvent.Handler,
         XAPlusRetryFromSuperiorRequestEvent.Handler,
         XAPlusRecoveryResourceRequestEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusService.class);
@@ -297,8 +298,7 @@ class XAPlusService extends Bolt implements
     }
 
     @Override
-    public void handleReportReadyStatusRequest(XAPlusReportReadyStatusRequestEvent event)
-            throws InterruptedException {
+    public void handleReportReadyStatusRequest(XAPlusReportReadyStatusRequestEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -318,6 +318,30 @@ class XAPlusService extends Bolt implements
                 logger.warn("Report ready status for xid failed as {}, xid={}", readyException.getMessage(), xid);
             }
             dispatcher.dispatch(new XAPlusReportReadyStatusFailedEvent(xid, readyException));
+        }
+    }
+
+    @Override
+    public void handleReportAbsentXidRequest(XAPlusReportAbsenceXidRequestEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        XAPlusResource resource = event.getResource();
+        try {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Reporting absence xid, xid={}", xid);
+            }
+            resource.absent(xid);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Absence xid reported, xid={}", xid);
+            }
+            dispatcher.dispatch(new XAPlusAbsenceXidReportedEvent(xid));
+        } catch (XAPlusException absentException) {
+            if (logger.isWarnEnabled()) {
+                logger.warn("Report absence xid failed as {}, xid={}", absentException.getMessage(), xid);
+            }
+            dispatcher.dispatch(new XAPlusReportAbsenceXidFailedEvent(xid, absentException));
         }
     }
 
@@ -404,6 +428,7 @@ class XAPlusService extends Bolt implements
         dispatcher.subscribe(this, XAPlusRollbackRecoveredXidRequestEvent.class);
         dispatcher.subscribe(this, XAPlusForgetRecoveredXidRequestEvent.class);
         dispatcher.subscribe(this, XAPlusReportReadyStatusRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusReportAbsenceXidRequestEvent.class);
         dispatcher.subscribe(this, XAPlusReportDoneStatusRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRetryFromSuperiorRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRecoveryResourceRequestEvent.class);

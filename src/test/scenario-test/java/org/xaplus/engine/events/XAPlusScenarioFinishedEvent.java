@@ -8,9 +8,9 @@ import com.crionuke.bolts.Event;
  */
 public final class XAPlusScenarioFinishedEvent extends Event<XAPlusScenarioFinishedEvent.Handler> {
 
-    private final int value;
+    private final long value;
 
-    public XAPlusScenarioFinishedEvent(int value) {
+    public XAPlusScenarioFinishedEvent(long value) {
         super();
         this.value = value;
     }
@@ -20,7 +20,7 @@ public final class XAPlusScenarioFinishedEvent extends Event<XAPlusScenarioFinis
         handler.handleScenarioFinished(this);
     }
 
-    public int getValue() {
+    public long getValue() {
         return value;
     }
 

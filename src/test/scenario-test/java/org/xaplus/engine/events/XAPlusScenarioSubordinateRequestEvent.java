@@ -10,9 +10,9 @@ import org.xaplus.engine.XAPlusXid;
 public final class XAPlusScenarioSubordinateRequestEvent extends Event<XAPlusScenarioSubordinateRequestEvent.Handler> {
 
     private final XAPlusXid xid;
-    private final int value;
+    private final long value;
 
-    public XAPlusScenarioSubordinateRequestEvent(XAPlusXid xid, int value) {
+    public XAPlusScenarioSubordinateRequestEvent(XAPlusXid xid, long value) {
         super();
         if (xid == null) {
             throw new NullPointerException("xid is null");
@@ -30,7 +30,7 @@ public final class XAPlusScenarioSubordinateRequestEvent extends Event<XAPlusSce
         return xid;
     }
 
-    public int getValue() {
+    public long getValue() {
         return value;
     }
 
