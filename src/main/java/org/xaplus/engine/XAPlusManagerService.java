@@ -3,12 +3,12 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.tm.XAPlusTransactionFinishedEvent;
-import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.journal.XAPlusReportTransactionStatusRequestEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackRequestEvent;
+import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
+import org.xaplus.engine.events.tm.XAPlusTransactionFinishedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
@@ -16,7 +16,6 @@ import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToCommitEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
-import org.xaplus.engine.exceptions.XAPlusCommitException;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 import org.xaplus.engine.exceptions.XAPlusTimeoutException;
@@ -91,7 +90,7 @@ class XAPlusManagerService extends Bolt implements
                 logger.info("Transaction done, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTransactionFinishedEvent(transaction));
-            transaction.getFuture().put(new XAPlusResult());
+            transaction.getFuture().put(new XAPlusResult(true));
         }
     }
 
@@ -106,7 +105,7 @@ class XAPlusManagerService extends Bolt implements
                 logger.info("Transaction rolled back, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTransactionFinishedEvent(transaction));
-            transaction.getFuture().put(new XAPlusResult());
+            transaction.getFuture().put(new XAPlusResult(false));
         }
     }
 
@@ -115,14 +114,15 @@ class XAPlusManagerService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusTransaction transaction = tracker.remove(event.getTransaction().getXid());
-        Exception exception = event.getException();
-        if (transaction != null) {
+        XAPlusXid xid = event.getTransaction().getXid();
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
+            Exception exception = event.getException();
             if (logger.isInfoEnabled()) {
-                logger.info("Transaction 2pc failed as {}, {}", exception.getMessage(), transaction);
+                logger.info("Transaction 2pc failed as {}, start rollback protocol, {}",
+                        exception.getMessage(), transaction);
             }
-            dispatcher.dispatch(new XAPlusTransactionFinishedEvent(transaction));
-            transaction.getFuture().put(new XAPlusResult(new XAPlusCommitException(exception)));
+            dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
         }
     }
 

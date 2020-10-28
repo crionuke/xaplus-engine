@@ -11,7 +11,6 @@ import org.xaplus.engine.events.XAPlusScenarioFailedEvent;
 import org.xaplus.engine.events.XAPlusScenarioFinishedEvent;
 import org.xaplus.engine.events.XAPlusScenarioInitialRequestEvent;
 import org.xaplus.engine.events.XAPlusScenarioSubordinateRequestEvent;
-import org.xaplus.engine.exceptions.XAPlusCommitException;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
 import org.xaplus.engine.exceptions.XAPlusTimeoutException;
 
@@ -163,10 +162,8 @@ public class XAPlusScenarioTest extends Assert {
             }
             // Wait result
             try {
-                boolean result = future.get();
-                testDispatcher.dispatch(new XAPlusScenarioFinishedEvent(value));
-            } catch (XAPlusCommitException commitException) {
-                testDispatcher.dispatch(new XAPlusScenarioFailedEvent(value, commitException));
+                boolean status = future.get();
+                testDispatcher.dispatch(new XAPlusScenarioFinishedEvent(status, value));
             } catch (XAPlusRollbackException rollbackException) {
                 testDispatcher.dispatch(new XAPlusScenarioFailedEvent(value, rollbackException));
             } catch (XAPlusTimeoutException timeoutException) {
@@ -221,10 +218,7 @@ public class XAPlusScenarioTest extends Assert {
             }
             // Wait result
             try {
-                boolean result = future.get();
-                assertEquals(true, result);
-            } catch (XAPlusCommitException commitException) {
-                fail(commitException.getMessage());
+                future.get();
             } catch (XAPlusRollbackException rollbackException) {
                 fail(rollbackException.getMessage());
             } catch (XAPlusTimeoutException timeoutException) {

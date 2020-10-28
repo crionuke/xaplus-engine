@@ -1,6 +1,5 @@
 package org.xaplus.engine;
 
-import org.xaplus.engine.exceptions.XAPlusCommitException;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
 import org.xaplus.engine.exceptions.XAPlusTimeoutException;
 
@@ -21,13 +20,13 @@ public final class XAPlusFuture {
     }
 
     public boolean get()
-            throws InterruptedException, XAPlusCommitException, XAPlusRollbackException, XAPlusTimeoutException {
+            throws InterruptedException, XAPlusRollbackException, XAPlusTimeoutException {
         XAPlusResult result = container.take();
         return result.get();
     }
 
     public boolean get(long timeout, TimeUnit unit)
-            throws InterruptedException, XAPlusCommitException, XAPlusRollbackException, XAPlusTimeoutException {
+            throws InterruptedException, XAPlusRollbackException, XAPlusTimeoutException {
         XAPlusResult result = container.poll(timeout, unit);
         return result.get();
     }

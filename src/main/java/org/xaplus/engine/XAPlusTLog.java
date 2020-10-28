@@ -27,15 +27,12 @@ class XAPlusTLog {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTLog.class);
 
     static private final int FETCH_SIZE = 50;
+    private final String serverId;
+    private final XAPlusEngine engine;
 
-    static class TransactionStatus {
-        final boolean found;
-        final boolean completed;
-
-        TransactionStatus(boolean found, boolean completed) {
-            this.found = found;
-            this.completed = completed;
-        }
+    XAPlusTLog(String serverId, XAPlusEngine engine) {
+        this.serverId = serverId;
+        this.engine = engine;
     }
 
     static TransactionStatus notFoundStatus() {
@@ -48,14 +45,6 @@ class XAPlusTLog {
 
     static TransactionStatus completedStatus() {
         return new TransactionStatus(true, true);
-    }
-
-    private final String serverId;
-    private final XAPlusEngine engine;
-
-    XAPlusTLog(String serverId, XAPlusEngine engine) {
-        this.serverId = serverId;
-        this.engine = engine;
     }
 
     TransactionStatus getTransactionStatus(XAPlusXid xid) throws SQLException {
@@ -204,6 +193,16 @@ class XAPlusTLog {
                 }
                 statement.executeBatch();
             }
+        }
+    }
+
+    static class TransactionStatus {
+        final boolean found;
+        final boolean completed;
+
+        TransactionStatus(boolean found, boolean completed) {
+            this.found = found;
+            this.completed = completed;
         }
     }
 }

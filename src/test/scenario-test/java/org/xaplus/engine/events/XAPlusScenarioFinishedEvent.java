@@ -8,16 +8,22 @@ import com.crionuke.bolts.Event;
  */
 public final class XAPlusScenarioFinishedEvent extends Event<XAPlusScenarioFinishedEvent.Handler> {
 
+    private final boolean status;
     private final long value;
 
-    public XAPlusScenarioFinishedEvent(long value) {
+    public XAPlusScenarioFinishedEvent(boolean status, long value) {
         super();
+        this.status = status;
         this.value = value;
     }
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
         handler.handleScenarioFinished(this);
+    }
+
+    public boolean getStatus() {
+        return status;
     }
 
     public long getValue() {

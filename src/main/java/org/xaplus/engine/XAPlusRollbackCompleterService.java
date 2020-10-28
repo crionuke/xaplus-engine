@@ -3,13 +3,13 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.journal.XAPlusCompletedTransactionLoggedEvent;
 import org.xaplus.engine.events.journal.XAPlusLogCompletedTransactionEvent;
 import org.xaplus.engine.events.journal.XAPlusLogComplettedTransactionFailedEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
 import org.xaplus.engine.events.rollback.XAPlusTransactionRolledBackEvent;
+import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.xaplus.XAPlusDoneStatusReportedEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
@@ -89,6 +89,9 @@ class XAPlusRollbackCompleterService extends Bolt implements
         XAPlusXid xid = event.getTransaction().getXid();
         if (tracker.contains(xid)) {
             XAPlusTransaction transaction = tracker.remove(xid);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Completed transaction logged, {}", transaction);
+            }
             dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
         }
     }

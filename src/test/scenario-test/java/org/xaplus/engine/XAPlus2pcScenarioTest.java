@@ -20,25 +20,30 @@ public class XAPlus2pcScenarioTest extends XAPlusScenarioTest {
 
     @Test
     public void testUserCommitScenario() throws InterruptedException {
-        finishedRequest(false, false);
+        boolean status = finishedRequest(false, false);
+        assertTrue(status);
     }
 
     @Test
     public void testUserRollbackBeforeRequestScenario() throws InterruptedException {
-        finishedRequest(true, false);
+        boolean status = finishedRequest(true, false);
+        assertFalse(status);
     }
 
     @Test
     public void testUserRollbackBeforeCommitScenario() throws InterruptedException {
-        finishedRequest(false, true);
+        boolean status = finishedRequest(false, true);
+        assertFalse(status);
     }
 
     @Test
     public void testFromSuperiorToSubordinatePrepareFailed() throws InterruptedException {
         subordinateScenario.prepareException = false;
+        boolean status = finishedRequest(false, false);
+        assertFalse(status);
     }
 
-    void finishedRequest(boolean beforeRequestException, boolean beforeCommitException) throws InterruptedException {
+    boolean finishedRequest(boolean beforeRequestException, boolean beforeCommitException) throws InterruptedException {
         long value = Math.round(100000 + Math.random() * 899999);
         testDispatcher.dispatch(
                 new XAPlusScenarioInitialRequestEvent(value, beforeRequestException, beforeCommitException));
@@ -46,5 +51,6 @@ public class XAPlus2pcScenarioTest extends XAPlusScenarioTest {
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(scenarioFinishedEvent);
         assertEquals(value, scenarioFinishedEvent.getValue());
+        return scenarioFinishedEvent.getStatus();
     }
 }
