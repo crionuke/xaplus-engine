@@ -58,7 +58,7 @@ class XAPlusManagerService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         if (tracker.track(transaction)) {
             if (logger.isInfoEnabled()) {
-                logger.info("Start 2pc protocol, {}", transaction);
+                logger.info("User start 2pc protocol, {}", transaction);
             }
             dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
         }
@@ -72,7 +72,7 @@ class XAPlusManagerService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         if (tracker.track(transaction)) {
             if (logger.isInfoEnabled()) {
-                logger.info("Start rollback protocol, {}", transaction);
+                logger.info("User start rollback protocol, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
         }
@@ -165,6 +165,10 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         if (tracker.getTransaction(xid) == null) {
+            if (logger.isInfoEnabled()) {
+                logger.info("Remote superior order to commit, " +
+                        "but transaction manager has not such in-flight transaction, xid={}", xid);
+            }
             reportTransactionStatus(xid);
         }
     }
@@ -177,6 +181,10 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         if (tracker.getTransaction(xid) == null) {
+            if (logger.isInfoEnabled()) {
+                logger.info("Remote superior order to rollback, " +
+                        "but transaction manager has not such in-flight transaction, xid={}", xid);
+            }
             reportTransactionStatus(xid);
         }
     }
@@ -204,8 +212,8 @@ class XAPlusManagerService extends Bolt implements
             dispatcher.dispatch(new XAPlusReportTransactionStatusRequestEvent(xid, resource));
         } catch (XAPlusSystemException e) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Internal error. Report transaction status for non XA+ " +
-                        "or unknown xaResource with name={}", superiorServerId);
+                logger.warn("Report transaction status for non XA+ " +
+                        "or unknown resource with name={}, xid={}", superiorServerId, xid);
             }
         }
     }

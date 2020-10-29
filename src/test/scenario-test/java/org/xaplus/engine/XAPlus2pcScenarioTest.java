@@ -38,7 +38,7 @@ public class XAPlus2pcScenarioTest extends XAPlusScenarioTest {
 
     @Test
     public void testFromSuperiorToSubordinatePrepareFailed() throws InterruptedException {
-        subordinateScenario.prepareException = false;
+        subordinateScenario.prepareException = true;
         boolean status = finishedRequest(false, false);
         assertFalse(status);
     }

@@ -10,15 +10,16 @@ import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
 import org.xaplus.engine.events.rollback.XAPlusTransactionRolledBackEvent;
 import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
+import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.xaplus.XAPlusDoneStatusReportedEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 
 class XAPlusRollbackCompleterService extends Bolt implements
         XAPlusTransactionRolledBackEvent.Handler,
-        XAPlusDoneStatusReportedEvent.Handler,
         XAPlusCompletedTransactionLoggedEvent.Handler,
         XAPlusLogComplettedTransactionFailedEvent.Handler,
+        XAPlusDoneStatusReportedEvent.Handler,
         XAPlusRollbackFailedEvent.Handler,
         XAPlusTransactionTimedOutEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRollbackCompleterService.class);
@@ -44,38 +45,9 @@ class XAPlusRollbackCompleterService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (tracker.track(transaction)) {
-            if (transaction.isSuperior()) {
-                dispatcher.dispatch(new XAPlusLogCompletedTransactionEvent(transaction, false));
-            } else {
-                // Report done from subordinate to superior
-                XAPlusXid xid = transaction.getXid();
-                String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
-                try {
-                    XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
-                    dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
-                } catch (XAPlusSystemException doneException) {
-                    if (logger.isWarnEnabled()) {
-                        logger.warn("Subordinate transaction failed as {}, {}",
-                                doneException.getMessage(), transaction);
-                    }
-                    dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction, doneException));
-                }
+            if (logger.isDebugEnabled()) {
+                logger.debug("Log completed transaction, {}", transaction);
             }
-        } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Transaction already tracked, {}", transaction);
-            }
-        }
-    }
-
-    @Override
-    public void handleDoneStatusReported(XAPlusDoneStatusReportedEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid xid = event.getXid();
-        if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.getTransaction(xid);
             dispatcher.dispatch(new XAPlusLogCompletedTransactionEvent(transaction, true));
         }
     }
@@ -88,11 +60,28 @@ class XAPlusRollbackCompleterService extends Bolt implements
         }
         XAPlusXid xid = event.getTransaction().getXid();
         if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.remove(xid);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Completed transaction logged, {}", transaction);
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
+            if (transaction.isSuperior()) {
+                tracker.remove(xid);
+                dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
+            } else {
+                // Report done from subordinate to superior
+                String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
+                try {
+                    XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Report done status to superior, superiorServerId={}, {}",
+                                superiorServerId, transaction);
+                    }
+                    dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
+                } catch (XAPlusSystemException doneException) {
+                    if (logger.isWarnEnabled()) {
+                        logger.warn("Report done status for non XA+ or unknown resource with name={}, {}",
+                                superiorServerId, transaction);
+                    }
+                    dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction, doneException));
+                }
             }
-            dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
         }
     }
 
@@ -110,12 +99,34 @@ class XAPlusRollbackCompleterService extends Bolt implements
     }
 
     @Override
+    public void handleDoneStatusReported(XAPlusDoneStatusReportedEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Done status reported, 2pc finished, {}", transaction);
+            }
+            dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
+        }
+    }
+
+
+
+    @Override
     public void handleRollbackFailed(XAPlusRollbackFailedEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        tracker.remove(xid);
+        XAPlusTransaction transaction = tracker.remove(xid);
+        if (transaction != null) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Transaction removed as rollback failed, {}", transaction);
+            }
+        }
     }
 
     @Override
@@ -127,7 +138,7 @@ class XAPlusRollbackCompleterService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Transaction removed, {}", transaction);
+                logger.debug("Transaction removed as timed out, {}", transaction);
             }
         }
     }

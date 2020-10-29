@@ -47,18 +47,19 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         if (transaction.isSubordinate()) {
             if (tracker.track(transaction)) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Wait commit order for transaction, {}", transaction);
-                }
                 XAPlusXid xid = transaction.getXid();
                 String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
                 try {
                     XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Report ready to commit status to superior, superiorServerId={}, {}",
+                                superiorServerId, transaction);
+                    }
                     dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(xid, resource));
                 } catch (XAPlusSystemException readyException) {
                     if (logger.isWarnEnabled()) {
-                        logger.warn("Subordinate transaction failed as {}, {}",
-                                readyException.getMessage(), transaction);
+                        logger.warn("Report ready status for non XA+ or unknown resource with name={}, {}",
+                                superiorServerId, transaction);
                     }
                     dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, readyException));
                 }
@@ -75,6 +76,11 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
         XAPlusXid xid = event.getXid();
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
+            if (logger.isDebugEnabled()) {
+                String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
+                logger.debug("Got commit order from superior, superiorServerId={} {}",
+                        superiorServerId, transaction);
+            }
             dispatcher.dispatch(new XAPlusCommitTransactionEvent(transaction));
         }
     }
@@ -88,7 +94,7 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Transaction removed, {}", transaction);
+                logger.debug("Transaction removed as 2pc failed, {}", transaction);
             }
         }
     }
@@ -102,7 +108,7 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Transaction removed, {}", transaction);
+                logger.debug("Transaction removed as timed out, {}", transaction);
             }
         }
     }

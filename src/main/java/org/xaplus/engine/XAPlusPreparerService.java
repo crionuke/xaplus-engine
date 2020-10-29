@@ -109,9 +109,12 @@ class XAPlusPreparerService extends Bolt implements
         XAPlusXid branchXid = event.getXid();
         XAPlusXid transactionXid = tracker.getTransactionXid(branchXid);
         if (transactionXid != null && tracker.contains(transactionXid)) {
-            tracker.getTransaction(transactionXid).branchReadied(branchXid);
+            XAPlusTransaction transaction = tracker.getTransaction(transactionXid);
+            transaction.branchReadied(branchXid);
             if (logger.isDebugEnabled()) {
-                logger.debug("Branch ready, xid={}, {}", branchXid, tracker.getTransaction(transactionXid));
+                String subordinateServerId = branchXid.getGlobalTransactionIdUid().extractServerId();
+                logger.debug("Branch ready, subordinateServerId={}, xid={}, {}",
+                        subordinateServerId, branchXid, transaction);
             }
             check(transactionXid);
         }
@@ -126,7 +129,7 @@ class XAPlusPreparerService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Transaction removed, {}", transaction);
+                logger.debug("Transaction removed as 2pc failed, {}", transaction);
             }
         }
     }
@@ -140,7 +143,7 @@ class XAPlusPreparerService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Transaction removed, {}", transaction);
+                logger.debug("Transaction removed as timed out, {}", transaction);
             }
         }
     }
@@ -155,19 +158,11 @@ class XAPlusPreparerService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled as got order to rollback, {}", transaction);
+                String superiorServerId = transaction.getXid().getGlobalTransactionIdUid().extractServerId();
+                logger.debug("2pc protocol cancelled as got order to rollback from superior, superiorServerId={}, {}",
+                        superiorServerId, transaction);
             }
             dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
-        }
-    }
-
-    private void check(XAPlusXid xid) throws InterruptedException {
-        if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.getTransaction(xid);
-            if (transaction.isPrepared() && transaction.isReadied()) {
-                tracker.remove(xid);
-                dispatcher.dispatch(new XAPlusTransactionPreparedEvent(transaction));
-            }
         }
     }
 
@@ -181,5 +176,15 @@ class XAPlusPreparerService extends Bolt implements
         dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);
         dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
         dispatcher.subscribe(this, XAPlusRemoteSuperiorOrderToRollbackEvent.class);
+    }
+
+    private void check(XAPlusXid xid) throws InterruptedException {
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
+            if (transaction.isPrepared() && transaction.isReadied()) {
+                tracker.remove(xid);
+                dispatcher.dispatch(new XAPlusTransactionPreparedEvent(transaction));
+            }
+        }
     }
 }

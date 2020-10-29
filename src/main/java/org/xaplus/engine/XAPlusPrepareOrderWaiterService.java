@@ -44,7 +44,9 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         if (transaction.isSubordinate()) {
             if (tracker.track(transaction)) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Wait prepare order for transaction, {}", transaction);
+                    String superiorServerId = transaction.getXid().getGlobalTransactionIdUid().extractServerId();
+                    logger.debug("Wait order to prepare for transaction from superior, superiorServerId={}, {}",
+                            superiorServerId, transaction);
                 }
                 check(transaction.getXid());
             }
@@ -60,7 +62,9 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         XAPlusXid xid = event.getXid();
         tracker.addOrder(xid);
         if (logger.isDebugEnabled()) {
-            logger.debug("Order to xid added, xid={}", xid);
+            String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
+            logger.debug("Got prepare order from superior, superiorServerId={} xid={}",
+                    superiorServerId, xid);
         }
         check(xid);
     }
@@ -74,7 +78,7 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Transaction removed, {}", transaction);
+                logger.debug("Transaction removed as 2pc failed, {}", transaction);
             }
         }
     }
@@ -88,7 +92,7 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Transaction removed, {}", transaction);
+                logger.debug("Transaction removed as timed out, {}", transaction);
             }
         }
     }
@@ -103,7 +107,9 @@ class XAPlusPrepareOrderWaiterService extends Bolt implements
         if (tracker.contains(xid)) {
             XAPlusTransaction transaction = tracker.remove(xid);
             if (logger.isDebugEnabled()) {
-                logger.debug("2pc protocol cancelled as got order to rollback, {}", transaction);
+                String superiorServerId = transaction.getXid().getGlobalTransactionIdUid().extractServerId();
+                logger.debug("2pc protocol cancelled as got order to rollback from superior, superiorServerId={}, {}",
+                        superiorServerId, transaction);
             }
             dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
         }

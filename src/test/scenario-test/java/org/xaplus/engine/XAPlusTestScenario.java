@@ -10,12 +10,12 @@ class XAPlusTestScenario {
     volatile boolean absentException;
 
     XAPlusTestScenario() {
-        this.prepareException = true;
-        this.readyException = true;
-        this.commitException = true;
-        this.rollbackException = true;
-        this.doneException = true;
-        this.retryException = true;
-        this.absentException = true;
+        this.prepareException = false;
+        this.readyException = false;
+        this.commitException = false;
+        this.rollbackException = false;
+        this.doneException = false;
+        this.retryException = false;
+        this.absentException = false;
     }
 }

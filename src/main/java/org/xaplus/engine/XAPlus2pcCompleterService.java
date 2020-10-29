@@ -16,9 +16,9 @@ import org.xaplus.engine.exceptions.XAPlusSystemException;
 
 class XAPlus2pcCompleterService extends Bolt implements
         XAPlusTransactionCommittedEvent.Handler,
-        XAPlusDoneStatusReportedEvent.Handler,
         XAPlusCompletedTransactionLoggedEvent.Handler,
         XAPlusLogComplettedTransactionFailedEvent.Handler,
+        XAPlusDoneStatusReportedEvent.Handler,
         XAPlus2pcFailedEvent.Handler,
         XAPlusTransactionTimedOutEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlus2pcCompleterService.class);
@@ -44,38 +44,9 @@ class XAPlus2pcCompleterService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (tracker.track(transaction)) {
-            if (transaction.isSuperior()) {
-                dispatcher.dispatch(new XAPlusLogCompletedTransactionEvent(transaction, true));
-            } else {
-                // Report done from subordinate to superior
-                XAPlusXid xid = transaction.getXid();
-                String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
-                try {
-                    XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
-                    dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
-                } catch (XAPlusSystemException doneException) {
-                    if (logger.isWarnEnabled()) {
-                        logger.warn("Subordinate transaction failed as {}, {}",
-                                doneException.getMessage(), transaction);
-                    }
-                    dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, doneException));
-                }
+            if (logger.isDebugEnabled()) {
+                logger.debug("Log completed transaction, {}", transaction);
             }
-        } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Transaction already tracked, {}", transaction);
-            }
-        }
-    }
-
-    @Override
-    public void handleDoneStatusReported(XAPlusDoneStatusReportedEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid xid = event.getXid();
-        if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.getTransaction(xid);
             dispatcher.dispatch(new XAPlusLogCompletedTransactionEvent(transaction, true));
         }
     }
@@ -88,8 +59,28 @@ class XAPlus2pcCompleterService extends Bolt implements
         }
         XAPlusXid xid = event.getTransaction().getXid();
         if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.remove(xid);
-            dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
+            if (transaction.isSuperior()) {
+                tracker.remove(xid);
+                dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
+            } else {
+                // Report done from subordinate to superior
+                String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
+                try {
+                    XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Report done status to superior, superiorServerId={}, {}",
+                                superiorServerId, transaction);
+                    }
+                    dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
+                } catch (XAPlusSystemException doneException) {
+                    if (logger.isWarnEnabled()) {
+                        logger.warn("Report done status for non XA+ or unknown resource with name={}, {}",
+                                superiorServerId, transaction);
+                    }
+                    dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, doneException));
+                }
+            }
         }
     }
 
@@ -107,12 +98,32 @@ class XAPlus2pcCompleterService extends Bolt implements
     }
 
     @Override
+    public void handleDoneStatusReported(XAPlusDoneStatusReportedEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        if (tracker.contains(xid)) {
+            XAPlusTransaction transaction = tracker.remove(xid);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Done status reporte§d, 2pc finished, {}", transaction);
+            }
+            dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
+        }
+    }
+
+    @Override
     public void handle2pcFailed(XAPlus2pcFailedEvent event) {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getTransaction().getXid();
-        tracker.remove(xid);
+        XAPlusTransaction transaction = tracker.remove(xid);
+        if (transaction != null) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Transaction removed as 2pc failed, {}", transaction);
+            }
+        }
     }
 
     @Override
@@ -124,7 +135,7 @@ class XAPlus2pcCompleterService extends Bolt implements
         XAPlusTransaction transaction = tracker.remove(xid);
         if (transaction != null) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Transaction removed, {}", transaction);
+                logger.debug("Transaction removed as timed out, {}", transaction);
             }
         }
     }
@@ -132,9 +143,9 @@ class XAPlus2pcCompleterService extends Bolt implements
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusTransactionCommittedEvent.class);
-        dispatcher.subscribe(this, XAPlusDoneStatusReportedEvent.class);
         dispatcher.subscribe(this, XAPlusCompletedTransactionLoggedEvent.class);
         dispatcher.subscribe(this, XAPlusLogComplettedTransactionFailedEvent.class);
+        dispatcher.subscribe(this, XAPlusDoneStatusReportedEvent.class);
         dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);
         dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
     }

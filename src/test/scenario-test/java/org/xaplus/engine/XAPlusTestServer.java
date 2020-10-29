@@ -34,8 +34,8 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public int prepare(Xid xid) throws XAException {
-        if (!scenario.prepareException) {
-            throw new XAPlusException("prepare request failed synthetic");
+        if (scenario.prepareException) {
+            throw new XAPlusException("prepare request exception");
         }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
@@ -51,8 +51,8 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public void ready(Xid xid) throws XAPlusException {
-        if (!scenario.readyException) {
-            throw new XAPlusException("ready request failed synthetic");
+        if (scenario.readyException) {
+            throw new XAPlusException("ready request exception");
         }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
@@ -67,8 +67,8 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public void commit(Xid xid, boolean onePhase) throws XAException {
-        if (!scenario.commitException) {
-            throw new XAPlusException("commit request failed synthetic");
+        if (scenario.commitException) {
+            throw new XAPlusException("commit request exception");
         }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
@@ -83,8 +83,8 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public void rollback(Xid xid) throws XAException {
-        if (!scenario.rollbackException) {
-            throw new XAPlusException("rollback request failed synthetic");
+        if (scenario.rollbackException) {
+            throw new XAPlusException("rollback request exception");
         }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
@@ -99,8 +99,8 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public void done(Xid xid) throws XAPlusException {
-        if (!scenario.doneException) {
-            throw new XAPlusException("done request failed synthetic");
+        if (scenario.doneException) {
+            throw new XAPlusException("done request exception");
         }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
@@ -115,8 +115,8 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public void retry(String serverId) throws XAPlusException {
-        if (!scenario.retryException) {
-            throw new XAPlusException("retry request failed synthetic");
+        if (scenario.retryException) {
+            throw new XAPlusException("retry request exception");
         }
         try {
             if (logger.isDebugEnabled()) {
@@ -130,8 +130,8 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public void absent(Xid xid) throws XAPlusException {
-        if (!scenario.absentException) {
-            throw new XAPlusException("absent request failed synthetic");
+        if (scenario.absentException) {
+            throw new XAPlusException("absent request exception");
         }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {

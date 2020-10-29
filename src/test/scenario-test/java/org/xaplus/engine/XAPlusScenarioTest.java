@@ -145,11 +145,11 @@ public class XAPlusScenarioTest extends Assert {
                 // Enlist and call subordinate
                 XAPlusXid branchXid = engine.enlistXAPlus(XA_PLUS_SUBORDINATE);
                 if (event.isBeforeRequestException()) {
-                    throw new Exception("fail");
+                    throw new Exception("before request exception");
                 }
                 testDispatcher.dispatch(new XAPlusScenarioSubordinateRequestEvent(branchXid, value));
                 if (event.isBeforeCommitException()) {
-                    throw new Exception("fail");
+                    throw new Exception("before commit exception");
                 }
                 // Commit XA+ transaction
                 future = engine.commit();
