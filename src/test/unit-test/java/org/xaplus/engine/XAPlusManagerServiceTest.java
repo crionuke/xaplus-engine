@@ -6,13 +6,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.journal.XAPlusReportTransactionStatusRequestEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackRequestEvent;
+import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
-import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
@@ -107,7 +106,7 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
             throws InterruptedException, XAPlusRollbackException, XAPlusTimeoutException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
-        dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction, new Exception("rollback_exception")));
+        dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
         transaction.getFuture().get();
     }
 

@@ -7,10 +7,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.XAPlusTickEvent;
-import org.xaplus.engine.events.timer.XAPlusTimerCancelledEvent;
-import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackRequestEvent;
+import org.xaplus.engine.events.timer.XAPlusTimerCancelledEvent;
+import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
@@ -87,7 +87,7 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
     public void test2pcRequestFailed() throws InterruptedException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
-        dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, new Exception("2pc failed")));
+        dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, false));
         XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timerCancelledEvent);
         assertEquals(timerCancelledEvent.getTransaction().getXid(), transaction.getXid());
@@ -109,7 +109,7 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
     public void testRollbackRequestFailed() throws InterruptedException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
-        dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction, new Exception("rollback failed")));
+        dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
         XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timerCancelledEvent);
         assertEquals(timerCancelledEvent.getTransaction().getXid(), transaction.getXid());

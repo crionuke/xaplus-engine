@@ -77,9 +77,10 @@ class XAPlusPreparerService extends Bolt implements
         XAPlusXid xid = event.getXid();
         if (tracker.contains(xid)) {
             XAPlusXid branchXid = event.getBranchXid();
-            tracker.getTransaction(xid).branchPrepared(branchXid);
+            XAPlusTransaction transaction = tracker.getTransaction(xid);
+            transaction.branchPrepared(branchXid, false);
             if (logger.isDebugEnabled()) {
-                logger.debug("Branch prepared, xid={}, {}", branchXid, tracker.getTransaction(xid));
+                logger.debug("Branch prepared, xid={}, {}", branchXid, transaction);
             }
             check(xid);
         }
@@ -92,12 +93,13 @@ class XAPlusPreparerService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         if (tracker.contains(xid)) {
+            XAPlusXid branchXid = event.getBranchXid();
             XAPlusTransaction transaction = tracker.getTransaction(xid);
-            Exception exception = event.getException();
+            transaction.branchPrepared(branchXid, true);
             if (logger.isDebugEnabled()) {
-                logger.debug("Prepare branch failed, xid={}, {}", event.getBranchXid(), transaction);
+                logger.debug("Prepare branch failed, xid={}, {}", branchXid, transaction);
             }
-            dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, exception));
+            check(xid);
         }
     }
 
@@ -181,9 +183,12 @@ class XAPlusPreparerService extends Bolt implements
     private void check(XAPlusXid xid) throws InterruptedException {
         if (tracker.contains(xid)) {
             XAPlusTransaction transaction = tracker.getTransaction(xid);
-            if (transaction.isPrepared() && transaction.isReadied()) {
-                tracker.remove(xid);
-                dispatcher.dispatch(new XAPlusTransactionPreparedEvent(transaction));
+            if (transaction.isPrepared()) {
+                if (transaction.hasFailures()) {
+                    dispatcher.dispatch(new XAPlus2pcFailedEvent(tracker.remove(xid), true));
+                } else if (transaction.isReadied()) {
+                    dispatcher.dispatch(new XAPlusTransactionPreparedEvent(tracker.remove(xid)));
+                }
             }
         }
     }

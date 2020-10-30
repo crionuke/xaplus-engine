@@ -10,18 +10,13 @@ import org.xaplus.engine.XAPlusTransaction;
 public final class XAPlusRollbackFailedEvent extends Event<XAPlusRollbackFailedEvent.Handler> {
 
     private final XAPlusTransaction transaction;
-    private final Exception exception;
 
-    public XAPlusRollbackFailedEvent(XAPlusTransaction transaction, Exception exception) {
+    public XAPlusRollbackFailedEvent(XAPlusTransaction transaction) {
         super();
         if (transaction == null) {
             throw new NullPointerException("transaction is null");
         }
-        if (exception == null) {
-            throw new NullPointerException("exception is null");
-        }
         this.transaction = transaction;
-        this.exception = exception;
     }
 
     @Override
@@ -31,15 +26,11 @@ public final class XAPlusRollbackFailedEvent extends Event<XAPlusRollbackFailedE
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "=(transaction=" + transaction + ", exception=" + exception + ")";
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ")";
     }
 
     public XAPlusTransaction getTransaction() {
         return transaction;
-    }
-
-    public Exception getException() {
-        return exception;
     }
 
     public interface Handler {

@@ -78,7 +78,7 @@ class XAPlus2pcCompleterService extends Bolt implements
                         logger.warn("Report done status for non XA+ or unknown resource with name={}, {}",
                                 superiorServerId, transaction);
                     }
-                    dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, doneException));
+                    dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, false));
                 }
             }
         }
@@ -93,7 +93,7 @@ class XAPlus2pcCompleterService extends Bolt implements
         XAPlusXid xid = event.getTransaction().getXid();
         if (tracker.contains(xid)) {
             XAPlusTransaction transaction = tracker.getTransaction(xid);
-            dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, event.getException()));
+            dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, false));
         }
     }
 
@@ -106,7 +106,7 @@ class XAPlus2pcCompleterService extends Bolt implements
         if (tracker.contains(xid)) {
             XAPlusTransaction transaction = tracker.remove(xid);
             if (logger.isDebugEnabled()) {
-                logger.debug("Done status reporte§d, 2pc finished, {}", transaction);
+                logger.debug("Done status reported, 2pc finished, {}", transaction);
             }
             dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
         }

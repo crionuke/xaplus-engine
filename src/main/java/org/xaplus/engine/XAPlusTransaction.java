@@ -178,27 +178,27 @@ public class XAPlusTransaction {
         return true;
     }
 
-    void branchPrepared(XAPlusXid branchXid) {
+    void branchPrepared(XAPlusXid branchXid, boolean failed) {
         if (xaBranches.containsKey(branchXid)) {
-            xaBranches.get(branchXid).markAsPrepared();
+            xaBranches.get(branchXid).markAsPrepared(failed);
         } else if (xaPlusBranches.containsKey(branchXid)) {
-            xaPlusBranches.get(branchXid).markAsPrepared();
+            xaPlusBranches.get(branchXid).markAsPrepared(failed);
         }
     }
 
-    void branchCommitted(XAPlusXid branchXid) {
+    void branchCommitted(XAPlusXid branchXid, boolean failed) {
         if (xaBranches.containsKey(branchXid)) {
-            xaBranches.get(branchXid).markAsCommitted();
+            xaBranches.get(branchXid).markAsCommitted(failed);
         } else if (xaPlusBranches.containsKey(branchXid)) {
-            xaPlusBranches.get(branchXid).markAsCommitted();
+            xaPlusBranches.get(branchXid).markAsCommitted(failed);
         }
     }
 
-    void branchRolledBack(XAPlusXid branchXid) {
+    void branchRolledBack(XAPlusXid branchXid, boolean failed) {
         if (xaBranches.containsKey(branchXid)) {
-            xaBranches.get(branchXid).markAsRolledback();
+            xaBranches.get(branchXid).markAsRolledback(failed);
         } else if (xaPlusBranches.containsKey(branchXid)) {
-            xaPlusBranches.get(branchXid).markAsRolledback();
+            xaPlusBranches.get(branchXid).markAsRolledback(failed);
         }
     }
 
@@ -247,6 +247,29 @@ public class XAPlusTransaction {
         return true;
     }
 
+    void resetFailures() {
+        for (XABranch xaBranch : xaBranches.values()) {
+            xaBranch.resetFail();
+        }
+        for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
+            xaPlusBranch.resetFail();
+        }
+    }
+
+    boolean hasFailures() {
+        for (XABranch xaBranch : xaBranches.values()) {
+            if (xaBranch.isFailed()) {
+                return true;
+            }
+        }
+        for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
+            if (xaPlusBranch.isFailed()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     class XABranch {
         final XAPlusXid xid;
         final XAPlusXid branchXid;
@@ -256,6 +279,7 @@ public class XAPlusTransaction {
         volatile boolean prepared;
         volatile boolean committed;
         volatile boolean rolledBack;
+        volatile boolean failed;
 
         XABranch(XAPlusXid xid, XAPlusXid branchXid, XAResource xaResource, String uniqueName) {
             this.xid = xid;
@@ -265,6 +289,7 @@ public class XAPlusTransaction {
             prepared = false;
             committed = false;
             rolledBack = false;
+            failed = false;
         }
 
         XAPlusXid getXid() {
@@ -291,7 +316,10 @@ public class XAPlusTransaction {
             return prepared;
         }
 
-        void markAsPrepared() {
+        void markAsPrepared(boolean failed) {
+            if (failed) {
+                this.failed = true;
+            }
             prepared = true;
         }
 
@@ -299,7 +327,10 @@ public class XAPlusTransaction {
             dispatcher.dispatch(new XAPlusCommitBranchRequestEvent(xid, branchXid, xaResource));
         }
 
-        void markAsCommitted() {
+        void markAsCommitted(boolean failed) {
+            if (failed) {
+                this.failed = true;
+            }
             committed = true;
         }
 
@@ -311,12 +342,23 @@ public class XAPlusTransaction {
             dispatcher.dispatch(new XAPlusRollbackBranchRequestEvent(xid, branchXid, xaResource));
         }
 
-        void markAsRolledback() {
+        void markAsRolledback(boolean failed) {
+            if (failed) {
+                this.failed = true;
+            }
             rolledBack = true;
         }
 
         boolean isRolledBack() {
             return rolledBack;
+        }
+
+        boolean isFailed() {
+            return failed;
+        }
+
+        void resetFail() {
+            failed = false;
         }
     }
 

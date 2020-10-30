@@ -100,11 +100,10 @@ class XAPlusCommitterService extends Bolt implements
         XAPlusXid xid = event.getTransaction().getXid();
         if (tracker.contains(xid)) {
             XAPlusTransaction transaction = tracker.getTransaction(xid);
-            Exception exception = event.getException();
             if (logger.isDebugEnabled()) {
                 logger.debug("Log commit decision failed, {}", transaction);
             }
-            dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, exception));
+            dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, true));
         }
     }
 
@@ -120,7 +119,7 @@ class XAPlusCommitterService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Branch committed, xid={}, {}", branchXid, transaction);
             }
-            transaction.branchCommitted(branchXid);
+            transaction.branchCommitted(branchXid, false);
             check(xid);
         }
     }
@@ -132,12 +131,13 @@ class XAPlusCommitterService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         if (tracker.contains(xid)) {
+            XAPlusXid branchXid = event.getBranchXid();
             XAPlusTransaction transaction = tracker.getTransaction(xid);
-            Exception exception = event.getException();
             if (logger.isDebugEnabled()) {
-                logger.debug("Prepare branch failed, xid={}, {}", event.getBranchXid(), transaction);
+                logger.debug("Commit branch failed, xid={}, {}", branchXid, transaction);
             }
-            dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, exception));
+            transaction.branchCommitted(branchXid, true);
+            check(xid);
         }
     }
 
@@ -204,9 +204,12 @@ class XAPlusCommitterService extends Bolt implements
     private void check(XAPlusXid xid) throws InterruptedException {
         if (tracker.contains(xid)) {
             XAPlusTransaction transaction = tracker.getTransaction(xid);
-            if (transaction.isCommitted() && transaction.isDone()) {
-                tracker.remove(xid);
-                dispatcher.dispatch(new XAPlusTransactionCommittedEvent(transaction));
+            if (transaction.isCommitted()) {
+                if (transaction.hasFailures()) {
+                    dispatcher.dispatch(new XAPlus2pcFailedEvent(tracker.remove(xid), false));
+                } else if (transaction.isDone()) {
+                    dispatcher.dispatch(new XAPlusTransactionCommittedEvent(tracker.remove(xid)));
+                }
             }
         }
     }

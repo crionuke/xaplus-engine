@@ -116,13 +116,20 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusXid xid = event.getTransaction().getXid();
         if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.getTransaction(xid);
-            Exception exception = event.getException();
-            if (logger.isInfoEnabled()) {
-                logger.info("Transaction 2pc failed as {}, start rollback protocol, {}",
-                        exception.getMessage(), transaction);
+            if (event.needRollback()) {
+                XAPlusTransaction transaction = tracker.getTransaction(xid);
+                if (logger.isInfoEnabled()) {
+                    logger.info("Transaction 2pc failed, start rollback protocol, {}", transaction);
+                }
+                dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
+            } else {
+                XAPlusTransaction transaction = tracker.remove(xid);
+                if (logger.isInfoEnabled()) {
+                    logger.info("Transaction 2pc failed, finish transaction, {}", transaction);
+                }
+                dispatcher.dispatch(new XAPlusTransactionFinishedEvent(transaction));
+                transaction.getFuture().put(new XAPlusResult(false));
             }
-            dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
         }
     }
 
@@ -132,13 +139,12 @@ class XAPlusManagerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = tracker.remove(event.getTransaction().getXid());
-        Exception exception = event.getException();
         if (transaction != null) {
             if (logger.isInfoEnabled()) {
-                logger.info("Transaction rollback failed as {}, {}", exception.getMessage(), transaction);
+                logger.info("Transaction rollback failed, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTransactionFinishedEvent(transaction));
-            transaction.getFuture().put(new XAPlusResult(new XAPlusRollbackException(exception)));
+            transaction.getFuture().put(new XAPlusResult(new XAPlusRollbackException()));
         }
     }
 

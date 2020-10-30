@@ -10,18 +10,15 @@ import org.xaplus.engine.XAPlusTransaction;
 public final class XAPlus2pcFailedEvent extends Event<XAPlus2pcFailedEvent.Handler> {
 
     private final XAPlusTransaction transaction;
-    private final Exception exception;
+    private final boolean rollback;
 
-    public XAPlus2pcFailedEvent(XAPlusTransaction transaction, Exception exception) {
+    public XAPlus2pcFailedEvent(XAPlusTransaction transaction, boolean rollback) {
         super();
         if (transaction == null) {
             throw new NullPointerException("transaction is null");
         }
-        if (exception == null) {
-            throw new NullPointerException("v is null");
-        }
         this.transaction = transaction;
-        this.exception = exception;
+        this.rollback = rollback;
     }
 
     @Override
@@ -31,15 +28,15 @@ public final class XAPlus2pcFailedEvent extends Event<XAPlus2pcFailedEvent.Handl
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "=(transaction=" + transaction + ", exception=" + exception + ")";
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ", v=" + rollback + ")";
     }
 
     public XAPlusTransaction getTransaction() {
         return transaction;
     }
 
-    public Exception getException() {
-        return exception;
+    public boolean needRollback() {
+        return rollback;
     }
 
     public interface Handler {

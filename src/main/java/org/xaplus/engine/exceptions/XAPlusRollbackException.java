@@ -6,7 +6,7 @@ package org.xaplus.engine.exceptions;
  */
 public class XAPlusRollbackException extends Exception {
 
-    public XAPlusRollbackException(Throwable cause) {
-        super(cause);
+    public XAPlusRollbackException() {
+        super();
     }
 }

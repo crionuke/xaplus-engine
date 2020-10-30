@@ -56,12 +56,12 @@ class XAPlusCommitOrderWaiterService extends Bolt implements
                                 superiorServerId, transaction);
                     }
                     dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(xid, resource));
-                } catch (XAPlusSystemException readyException) {
+                } catch (XAPlusSystemException e) {
                     if (logger.isWarnEnabled()) {
                         logger.warn("Report ready status for non XA+ or unknown resource with name={}, {}",
                                 superiorServerId, transaction);
                     }
-                    dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, readyException));
+                    dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, true));
                 }
             }
         }

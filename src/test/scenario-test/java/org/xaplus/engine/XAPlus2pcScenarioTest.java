@@ -43,6 +43,13 @@ public class XAPlus2pcScenarioTest extends XAPlusScenarioTest {
         assertFalse(status);
     }
 
+    @Test
+    public void testFromSuperiorToSubordinateCommitFailed() throws InterruptedException {
+        subordinateScenario.commitException = true;
+        boolean status = finishedRequest(false, false);
+        assertFalse(status);
+    }
+
     boolean finishedRequest(boolean beforeRequestException, boolean beforeCommitException) throws InterruptedException {
         long value = Math.round(100000 + Math.random() * 899999);
         testDispatcher.dispatch(
