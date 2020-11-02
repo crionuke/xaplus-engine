@@ -11,14 +11,16 @@ public final class XAPlusScenarioSubordinateRequestEvent extends Event<XAPlusSce
 
     private final XAPlusXid xid;
     private final long value;
+    private final boolean beforeCommitException;
 
-    public XAPlusScenarioSubordinateRequestEvent(XAPlusXid xid, long value) {
+    public XAPlusScenarioSubordinateRequestEvent(XAPlusXid xid, long value, boolean beforeCommitException) {
         super();
         if (xid == null) {
             throw new NullPointerException("xid is null");
         }
         this.xid = xid;
         this.value = value;
+        this.beforeCommitException = beforeCommitException;
     }
 
     @Override
@@ -32,6 +34,10 @@ public final class XAPlusScenarioSubordinateRequestEvent extends Event<XAPlusSce
 
     public long getValue() {
         return value;
+    }
+
+    public boolean isBeforeCommitException() {
+        return beforeCommitException;
     }
 
     public interface Handler {

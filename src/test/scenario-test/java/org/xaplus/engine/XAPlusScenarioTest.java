@@ -7,10 +7,7 @@ import org.junit.Assert;
 import org.postgresql.xa.PGXADataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusScenarioFailedEvent;
-import org.xaplus.engine.events.XAPlusScenarioFinishedEvent;
-import org.xaplus.engine.events.XAPlusScenarioInitialRequestEvent;
-import org.xaplus.engine.events.XAPlusScenarioSubordinateRequestEvent;
+import org.xaplus.engine.events.*;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
 import org.xaplus.engine.exceptions.XAPlusTimeoutException;
 
@@ -23,8 +20,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class XAPlusScenarioTest extends Assert {
     static final int QUEUE_SIZE = 128;
-    static final int DEFAULT_TIMEOUT_S = 10;
-    static final int POLL_TIMIOUT_MS = 4000;
+    static final int DEFAULT_TIMEOUT_S = 4;
+    static final int POLL_TIMIOUT_MS = 2000;
     static final String INSERT_VALUE = "INSERT INTO test (t_value) VALUES(?)";
     static final String XA_RESOURCE_DATABASE_1 = "database1";
     static final String XA_RESOURCE_DATABASE_2 = "database2";
@@ -44,8 +41,10 @@ public class XAPlusScenarioTest extends Assert {
     XAPlusTestServer superiorServer;
     XAPlusTestServer subordinateServer;
 
-    BlockingQueue<XAPlusScenarioFinishedEvent> scenarioFinishedEvents;
-    BlockingQueue<XAPlusScenarioFailedEvent> scenarioFailedEvents;
+    BlockingQueue<XAPlusScenarioSuperiorFinishedEvent> scenarioSuperiorFinishedEvents;
+    BlockingQueue<XAPlusScenarioSuperiorFailedEvent> scenarioSuperiorFailedEvents;
+    BlockingQueue<XAPlusScenarioSubordinateFinishedEvent> scenarioSubordinateFinishedEvents;
+    BlockingQueue<XAPlusScenarioSubordinateFailedEvent> scenarioSubordinateFailedEvents;
 
     ExecutorService testThreadPool;
     Dispatcher testDispatcher;
@@ -67,8 +66,10 @@ public class XAPlusScenarioTest extends Assert {
         superiorServer = new XAPlusTestServer(superiorScenario, superiorXAPlus.dispatcher);
         subordinateServer = new XAPlusTestServer(subordinateScenario, subordinateXAPLus.dispatcher);
 
-        scenarioFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        scenarioFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        scenarioSuperiorFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        scenarioSuperiorFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        scenarioSubordinateFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        scenarioSubordinateFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
         testThreadPool = Executors.newFixedThreadPool(16);
         testDispatcher = new Dispatcher();
@@ -144,11 +145,12 @@ public class XAPlusScenarioTest extends Assert {
                 }
                 // Enlist and call subordinate
                 XAPlusXid branchXid = engine.enlistXAPlus(XA_PLUS_SUBORDINATE);
-                if (event.isBeforeRequestException()) {
+                if (event.isSuperiorBeforeRequestException()) {
                     throw new Exception("before request exception");
                 }
-                testDispatcher.dispatch(new XAPlusScenarioSubordinateRequestEvent(branchXid, value));
-                if (event.isBeforeCommitException()) {
+                testDispatcher.dispatch(new XAPlusScenarioSubordinateRequestEvent(branchXid, value,
+                        event.isSubordinateBeforeCommitException()));
+                if (event.isSuperiorBeforeCommitException()) {
                     throw new Exception("before commit exception");
                 }
                 // Commit XA+ transaction
@@ -163,11 +165,14 @@ public class XAPlusScenarioTest extends Assert {
             // Wait result
             try {
                 boolean status = future.get();
-                testDispatcher.dispatch(new XAPlusScenarioFinishedEvent(status, value));
+                logger.info("Superior side of transaction finished, status={}", status);
+                testDispatcher.dispatch(new XAPlusScenarioSuperiorFinishedEvent(status, value));
             } catch (XAPlusRollbackException rollbackException) {
-                testDispatcher.dispatch(new XAPlusScenarioFailedEvent(value, rollbackException));
+                logger.info("Superior side had rollback exception, {}", rollbackException.getMessage());
+                testDispatcher.dispatch(new XAPlusScenarioSuperiorFailedEvent(value, rollbackException));
             } catch (XAPlusTimeoutException timeoutException) {
-                testDispatcher.dispatch(new XAPlusScenarioFailedEvent(value, timeoutException));
+                logger.info("Superior side had timeout exception, {}", timeoutException.getMessage());
+                testDispatcher.dispatch(new XAPlusScenarioSuperiorFailedEvent(value, timeoutException));
             }
         }
 
@@ -207,22 +212,29 @@ public class XAPlusScenarioTest extends Assert {
                     statement.setLong(1, value);
                     statement.executeUpdate();
                 }
+                if (event.isBeforeCommitException()) {
+                    throw new Exception("before commit exception");
+                }
                 // Commit branch of XA+ transaction
                 future = engine.commit();
             } catch (Exception e) {
                 if (logger.isWarnEnabled()) {
-                    logger.warn("Transaction failed as {}", e);
+                    logger.warn("Transaction failed as {}", e.getMessage());
                 }
                 // Rollback branch of XA+ transaction
                 future = engine.rollback();
             }
             // Wait result
             try {
-                future.get();
+                boolean status = future.get();
+                logger.info("Subordinate side of transaction finished, status={}", status);
+                testDispatcher.dispatch(new XAPlusScenarioSubordinateFinishedEvent(status, value));
             } catch (XAPlusRollbackException rollbackException) {
-                fail(rollbackException.getMessage());
+                logger.info("Subordinate side had rollback exception, {}", rollbackException.getMessage());
+                testDispatcher.dispatch(new XAPlusScenarioSubordinateFailedEvent(value, rollbackException));
             } catch (XAPlusTimeoutException timeoutException) {
-                fail(timeoutException.getMessage());
+                logger.info("Subordinate side had timeout exception, {}", timeoutException.getMessage());
+                testDispatcher.dispatch(new XAPlusScenarioSubordinateFailedEvent(value, timeoutException));
             }
         }
 
@@ -233,27 +245,41 @@ public class XAPlusScenarioTest extends Assert {
     }
 
     class Controller extends Bolt implements
-            XAPlusScenarioFinishedEvent.Handler,
-            XAPlusScenarioFailedEvent.Handler {
+            XAPlusScenarioSuperiorFinishedEvent.Handler,
+            XAPlusScenarioSuperiorFailedEvent.Handler,
+            XAPlusScenarioSubordinateFinishedEvent.Handler,
+            XAPlusScenarioSubordinateFailedEvent.Handler {
 
         Controller() {
             super("controller", QUEUE_SIZE);
         }
 
         @Override
-        public void handleScenarioFinished(XAPlusScenarioFinishedEvent event) throws InterruptedException {
-            scenarioFinishedEvents.put(event);
+        public void handleScenarioSuperiorFinished(XAPlusScenarioSuperiorFinishedEvent event) throws InterruptedException {
+            scenarioSuperiorFinishedEvents.put(event);
         }
 
         @Override
-        public void handleScenarioFinished(XAPlusScenarioFailedEvent event) throws InterruptedException {
-            scenarioFailedEvents.put(event);
+        public void handleScenarioSuperiorFailed(XAPlusScenarioSuperiorFailedEvent event) throws InterruptedException {
+            scenarioSuperiorFailedEvents.put(event);
+        }
+
+        @Override
+        public void handleScenarioSubordinateFinished(XAPlusScenarioSubordinateFinishedEvent event) throws InterruptedException {
+            scenarioSubordinateFinishedEvents.put(event);
+        }
+
+        @Override
+        public void handleScenarioSubordinateFailed(XAPlusScenarioSubordinateFailedEvent event) throws InterruptedException {
+            scenarioSubordinateFailedEvents.put(event);
         }
 
         void postConstruct() {
             testThreadPool.execute(this);
-            testDispatcher.subscribe(this, XAPlusScenarioFinishedEvent.class);
-            testDispatcher.subscribe(this, XAPlusScenarioFailedEvent.class);
+            testDispatcher.subscribe(this, XAPlusScenarioSuperiorFinishedEvent.class);
+            testDispatcher.subscribe(this, XAPlusScenarioSuperiorFailedEvent.class);
+            testDispatcher.subscribe(this, XAPlusScenarioSubordinateFinishedEvent.class);
+            testDispatcher.subscribe(this, XAPlusScenarioSubordinateFailedEvent.class);
         }
     }
 }
