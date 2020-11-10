@@ -19,95 +19,95 @@ import java.util.concurrent.TimeUnit;
 public class XAPlusPrepareOrderWaiterServiceTest extends XAPlusTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusPrepareOrderWaiterServiceTest.class);
 
-    XAPlusPrepareOrderWaiterService xaPlusPrepareOrderWaiterService;
-
-    BlockingQueue<XAPlusPrepareTransactionEvent> waiterEvents;
-    BlockingQueue<XAPlusRollbackRequestEvent> rollbackRequestEvents;
-    ConsumerStub consumerStub;
-
-    @Before
-    public void beforeTest() {
-        createXAPlusComponents(XA_PLUS_RESOURCE_2);
-
-        xaPlusPrepareOrderWaiterService =
-                new XAPlusPrepareOrderWaiterService(properties, threadPool, dispatcher, new XAPlusTracker());
-        xaPlusPrepareOrderWaiterService.postConstruct();
-
-        waiterEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        rollbackRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-
-        consumerStub = new ConsumerStub();
-        consumerStub.postConstruct();
-    }
-
-    @After
-    public void afterTest() {
-        xaPlusPrepareOrderWaiterService.finish();
-        consumerStub.finish();
-    }
-
-    @Test
-    public void testFirst2pcRequestAfterPrepareOrder() throws InterruptedException {
-        XAPlusTransaction transaction1 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
-        XAPlusTransaction transaction2 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
-        // Send 2pc request
-        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction1));
-        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction2));
-        // Send order to prepare only for one transaction
-        dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(transaction2.getXid()));
-        // Wating
-        XAPlusPrepareTransactionEvent event = waiterEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event);
-        assertEquals(event.getTransaction().getXid(), transaction2.getXid());
-    }
-
-    @Test
-    public void testFirstPrepareOrderAfter2pcRequest() throws InterruptedException {
-        XAPlusTransaction transaction1 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
-        XAPlusTransaction transaction2 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
-        // Send order to prepare only for one transaction
-        dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(transaction2.getXid()));
-        // Send 2pc request
-        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction1));
-        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction2));
-        // Wating
-        XAPlusPrepareTransactionEvent event = waiterEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event);
-        assertEquals(event.getTransaction().getXid(), transaction2.getXid());
-    }
-
-    @Test
-    public void testRemoteSuperiorOrderToRollback() throws InterruptedException {
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
-        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
-        dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(transaction.getXid()));
-        XAPlusRollbackRequestEvent event = rollbackRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event);
-        assertEquals(transaction, event.getTransaction());
-    }
-
-    private class ConsumerStub extends Bolt implements
-            XAPlusPrepareTransactionEvent.Handler,
-            XAPlusRollbackRequestEvent.Handler {
-
-        ConsumerStub() {
-            super("consumer-stub", QUEUE_SIZE);
-        }
-
-        @Override
-        public void handlePrepareTransaction(XAPlusPrepareTransactionEvent event) throws InterruptedException {
-            waiterEvents.put(event);
-        }
-
-        @Override
-        public void handleRollbackRequest(XAPlusRollbackRequestEvent event) throws InterruptedException {
-            rollbackRequestEvents.put(event);
-        }
-
-        void postConstruct() {
-            threadPool.execute(this);
-            dispatcher.subscribe(this, XAPlusPrepareTransactionEvent.class);
-            dispatcher.subscribe(this, XAPlusRollbackRequestEvent.class);
-        }
-    }
+//    XAPlusPrepareOrderWaiterService xaPlusPrepareOrderWaiterService;
+//
+//    BlockingQueue<XAPlusPrepareTransactionEvent> waiterEvents;
+//    BlockingQueue<XAPlusRollbackRequestEvent> rollbackRequestEvents;
+//    ConsumerStub consumerStub;
+//
+//    @Before
+//    public void beforeTest() {
+//        createXAPlusComponents(XA_PLUS_RESOURCE_2);
+//
+//        xaPlusPrepareOrderWaiterService =
+//                new XAPlusPrepareOrderWaiterService(properties, threadPool, dispatcher, new XAPlusTracker());
+//        xaPlusPrepareOrderWaiterService.postConstruct();
+//
+//        waiterEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+//        rollbackRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+//
+//        consumerStub = new ConsumerStub();
+//        consumerStub.postConstruct();
+//    }
+//
+//    @After
+//    public void afterTest() {
+//        xaPlusPrepareOrderWaiterService.finish();
+//        consumerStub.finish();
+//    }
+//
+//    @Test
+//    public void testFirst2pcRequestAfterPrepareOrder() throws InterruptedException {
+//        XAPlusTransaction transaction1 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
+//        XAPlusTransaction transaction2 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
+//        // Send 2pc request
+//        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction1));
+//        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction2));
+//        // Send order to prepare only for one transaction
+//        dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(transaction2.getXid()));
+//        // Wating
+//        XAPlusPrepareTransactionEvent event = waiterEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//        assertNotNull(event);
+//        assertEquals(event.getTransaction().getXid(), transaction2.getXid());
+//    }
+//
+//    @Test
+//    public void testFirstPrepareOrderAfter2pcRequest() throws InterruptedException {
+//        XAPlusTransaction transaction1 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
+//        XAPlusTransaction transaction2 = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
+//        // Send order to prepare only for one transaction
+//        dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(transaction2.getXid()));
+//        // Send 2pc request
+//        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction1));
+//        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction2));
+//        // Wating
+//        XAPlusPrepareTransactionEvent event = waiterEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//        assertNotNull(event);
+//        assertEquals(event.getTransaction().getXid(), transaction2.getXid());
+//    }
+//
+//    @Test
+//    public void testRemoteSuperiorOrderToRollback() throws InterruptedException {
+//        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
+//        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
+//        dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(transaction.getXid()));
+//        XAPlusRollbackRequestEvent event = rollbackRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//        assertNotNull(event);
+//        assertEquals(transaction, event.getTransaction());
+//    }
+//
+//    private class ConsumerStub extends Bolt implements
+//            XAPlusPrepareTransactionEvent.Handler,
+//            XAPlusRollbackRequestEvent.Handler {
+//
+//        ConsumerStub() {
+//            super("consumer-stub", QUEUE_SIZE);
+//        }
+//
+//        @Override
+//        public void handlePrepareTransaction(XAPlusPrepareTransactionEvent event) throws InterruptedException {
+//            waiterEvents.put(event);
+//        }
+//
+//        @Override
+//        public void handleRollbackRequest(XAPlusRollbackRequestEvent event) throws InterruptedException {
+//            rollbackRequestEvents.put(event);
+//        }
+//
+//        void postConstruct() {
+//            threadPool.execute(this);
+//            dispatcher.subscribe(this, XAPlusPrepareTransactionEvent.class);
+//            dispatcher.subscribe(this, XAPlusRollbackRequestEvent.class);
+//        }
+//    }
 }

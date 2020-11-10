@@ -11,13 +11,17 @@ public class XAPlus {
     final XAPlusTickService tickService;
     final XAPlusTimerService timerService;
     final XAPlusManagerService managerService;
-    final XAPlusPrepareOrderWaiterService prepareOrderWaiterService;
-    final XAPlusPreparerService preparerService;
-    final XAPlusCommitOrderWaiterService commitOrderWaiterService;
-    final XAPlusCommitterService committerService;
-    final XAPlus2pcCompleterService twoPcCompleterService;
-    final XAPlusRollbackService rollbackService;
-    final XAPlusRollbackCompleterService rollbackCompleterService;
+
+    final XAPlusSubordinateCommitterService subordinateCommitterService;
+    final XAPlusSubordinateCompleterService subordinateCompleterService;
+    final XAPlusSubordinatePreparerService subordinatePreparerService;
+    final XAPlusSubordinateRollbackService subordinateRollbackService;
+
+    final XAPlusSuperiorCommitterService superiorCommitterService;
+    final XAPlusSuperiorCompleterService superiorCompleterService;
+    final XAPlusSuperiorPreparerService superiorPreparerService;
+    final XAPlusSuperiorRollbackService superiorRollbackService;
+
     final XAPlusRecoveryPreparerService recoveryPreparerService;
     final XAPlusRecoveryCommitterService recoveryCommitterService;
     final XAPlusJournalService journalService;
@@ -33,16 +37,21 @@ public class XAPlus {
         tickService = new XAPlusTickService(properties, threadPool, dispatcher);
         timerService = new XAPlusTimerService(properties, threadPool, dispatcher, new XAPlusTimerState());
         managerService = new XAPlusManagerService(properties, threadPool, dispatcher, resources);
-        prepareOrderWaiterService =
-                new XAPlusPrepareOrderWaiterService(properties, threadPool, dispatcher, new XAPlusTracker());
-        preparerService = new XAPlusPreparerService(properties, threadPool, dispatcher, new XAPlusTracker());
-        commitOrderWaiterService = new XAPlusCommitOrderWaiterService(properties, threadPool, dispatcher, resources);
-        committerService = new XAPlusCommitterService(properties, threadPool, dispatcher, resources,
+
+        subordinateCommitterService = new XAPlusSubordinateCommitterService(properties, threadPool, dispatcher,
+                resources, new XAPlusTracker());
+        subordinateCompleterService = new XAPlusSubordinateCompleterService(properties, threadPool, dispatcher,
+                resources, new XAPlusTracker());
+        subordinatePreparerService = new XAPlusSubordinatePreparerService(properties, threadPool, dispatcher,
+                resources, new XAPlusTracker());
+        subordinateRollbackService = new XAPlusSubordinateRollbackService(properties, threadPool, dispatcher,
                 new XAPlusTracker());
-        twoPcCompleterService = new XAPlus2pcCompleterService(properties, threadPool, dispatcher, resources,
-                new XAPlusTracker());
-        rollbackService = new XAPlusRollbackService(properties, threadPool, dispatcher, new XAPlusTracker());
-        rollbackCompleterService = new XAPlusRollbackCompleterService(properties, threadPool, dispatcher, resources,
+        superiorCommitterService = new XAPlusSuperiorCommitterService(properties, threadPool, dispatcher,
+                resources, new XAPlusTracker());
+        superiorCompleterService = new XAPlusSuperiorCompleterService(properties, threadPool, dispatcher);
+        superiorPreparerService = new XAPlusSuperiorPreparerService(properties, threadPool, dispatcher,
+                resources, new XAPlusTracker());
+        superiorRollbackService = new XAPlusSuperiorRollbackService(properties, threadPool, dispatcher,
                 new XAPlusTracker());
         recoveryPreparerService = new XAPlusRecoveryPreparerService(properties, threadPool, dispatcher, resources,
                 new XAPlusRecoveryPreparerTracker());
@@ -57,13 +66,14 @@ public class XAPlus {
         tickService.postConstruct();
         timerService.postConstruct();
         managerService.postConstruct();
-        prepareOrderWaiterService.postConstruct();
-        preparerService.postConstruct();
-        commitOrderWaiterService.postConstruct();
-        committerService.postConstruct();
-        twoPcCompleterService.postConstruct();
-        rollbackService.postConstruct();
-        rollbackCompleterService.postConstruct();
+        subordinateCommitterService.postConstruct();
+        subordinateCompleterService.postConstruct();
+        subordinatePreparerService.postConstruct();
+        subordinateRollbackService.postConstruct();
+        superiorCommitterService.postConstruct();
+        superiorCompleterService.postConstruct();
+        superiorPreparerService.postConstruct();
+        superiorRollbackService.postConstruct();
         recoveryPreparerService.postConstruct();
         recoveryCommitterService.postConstruct();
         journalService.postConstruct();

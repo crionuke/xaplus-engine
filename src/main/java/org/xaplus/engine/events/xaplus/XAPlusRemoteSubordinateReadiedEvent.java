@@ -7,11 +7,11 @@ import org.xaplus.engine.XAPlusXid;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusRemoteSubordinateReadyEvent extends Event<XAPlusRemoteSubordinateReadyEvent.Handler> {
+public final class XAPlusRemoteSubordinateReadiedEvent extends Event<XAPlusRemoteSubordinateReadiedEvent.Handler> {
 
     private final XAPlusXid xid;
 
-    public XAPlusRemoteSubordinateReadyEvent(XAPlusXid xid) {
+    public XAPlusRemoteSubordinateReadiedEvent(XAPlusXid xid) {
         super();
         if (xid == null) {
             throw new NullPointerException("xid is null");
@@ -21,7 +21,7 @@ public final class XAPlusRemoteSubordinateReadyEvent extends Event<XAPlusRemoteS
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleRemoteSubordinateReady(this);
+        handler.handleRemoteSubordinateReadied(this);
     }
 
     @Override
@@ -34,6 +34,6 @@ public final class XAPlusRemoteSubordinateReadyEvent extends Event<XAPlusRemoteS
     }
 
     public interface Handler {
-        void handleRemoteSubordinateReady(XAPlusRemoteSubordinateReadyEvent event) throws InterruptedException;
+        void handleRemoteSubordinateReadied(XAPlusRemoteSubordinateReadiedEvent event) throws InterruptedException;
     }
 }

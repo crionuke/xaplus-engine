@@ -11,7 +11,6 @@ import org.xaplus.engine.events.recovery.XAPlusRecoveredXidRolledBackEvent;
 import org.xaplus.engine.events.tm.XAPlusTransactionFinishedEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
-import org.xaplus.engine.events.xaplus.XAPlusReportAbsenceXidRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
 
 import java.sql.SQLException;
@@ -110,8 +109,9 @@ class XAPlusJournalService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         XAPlusXid xid = transaction.getXid();
+        boolean status = event.getStatus();
         try {
-            if (event.isStatus()) {
+            if (status) {
                 tlog.logTransactionCommitted(transaction);
             } else {
                 tlog.logTransactionRolledBack(transaction);
@@ -119,13 +119,13 @@ class XAPlusJournalService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Completed transaction logged, xid={}", xid);
             }
-            dispatcher.dispatch(new XAPlusCompletedTransactionLoggedEvent(transaction));
+            dispatcher.dispatch(new XAPlusCompletedTransactionLoggedEvent(transaction, status));
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
                 logger.warn("Log completed transaction failed as {}, xid={}",
                         sqle.getMessage(), xid);
             }
-            dispatcher.dispatch(new XAPlusLogComplettedTransactionFailedEvent(transaction, sqle));
+            dispatcher.dispatch(new XAPlusLogComplettedTransactionFailedEvent(transaction, status, sqle));
         }
     }
 
@@ -292,7 +292,8 @@ class XAPlusJournalService extends Bolt implements
 
             XAPlusTLog.TransactionStatus status = tlog.getTransactionStatus(xid);
             if (!status.found) {
-                dispatcher.dispatch(new XAPlusReportAbsenceXidRequestEvent(xid, resource));
+                // TODO: or send some special event for unknown (non in-flight and non logged) branch?
+                dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
             } else if (status.completed) {
                 dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
             } else {

@@ -10,13 +10,15 @@ import org.xaplus.engine.XAPlusTransaction;
 public final class XAPlusCompletedTransactionLoggedEvent extends Event<XAPlusCompletedTransactionLoggedEvent.Handler> {
 
     private final XAPlusTransaction transaction;
+    private final boolean status;
 
-    public XAPlusCompletedTransactionLoggedEvent(XAPlusTransaction transaction) {
+    public XAPlusCompletedTransactionLoggedEvent(XAPlusTransaction transaction, boolean status) {
         super();
         if (transaction == null) {
             throw new NullPointerException("transaction is null");
         }
         this.transaction = transaction;
+        this.status = status;
     }
 
     @Override
@@ -28,9 +30,13 @@ public final class XAPlusCompletedTransactionLoggedEvent extends Event<XAPlusCom
         return transaction;
     }
 
+    public boolean getStatus() {
+        return status;
+    }
+
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "=(transaction=" + transaction + ")";
+        return getClass().getSimpleName() + "=(transaction=" + transaction + ", status=" + status + ")";
     }
 
     public interface Handler {

@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.recovery.XAPlusRecoveryRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
+import org.xaplus.engine.events.user.XAPlusUserCreateTransactionEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 
 import javax.jms.JMSException;
@@ -97,7 +98,7 @@ public final class XAPlusEngine {
     /**
      * Begin new XA/XA+ transaction
      */
-    public void begin() {
+    public void begin() throws InterruptedException {
         XAPlusThreadContext context = threadOfControl.getThreadContext();
         if (context.hasTransaction()) {
             throw new IllegalStateException("Nested transactions not supported");
@@ -107,6 +108,7 @@ public final class XAPlusEngine {
         XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getDefaultTimeoutInSeconds(),
                 properties.getServerId());
         context.setTransaction(transaction);
+        dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
         if (logger.isInfoEnabled()) {
             logger.info("User begin transaction with new xid={}", xid);
         }
@@ -117,7 +119,7 @@ public final class XAPlusEngine {
      *
      * @param xid xa+ transaction id
      */
-    public void join(XAPlusXid xid) {
+    public void join(XAPlusXid xid) throws InterruptedException {
         if (xid == null) {
             throw new NullPointerException("xid is null");
         }
@@ -128,6 +130,7 @@ public final class XAPlusEngine {
         XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getDefaultTimeoutInSeconds(),
                 properties.getServerId());
         context.setTransaction(transaction);
+        dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
         if (logger.isInfoEnabled()) {
             logger.info("Joined to transaction with xid={}", xid);
         }
@@ -141,7 +144,7 @@ public final class XAPlusEngine {
      * @throws SQLException access resource failed
      * @throws XAException  start XA resource failed
      */
-    public Connection enlistJdbc(String uniqueName) throws SQLException, XAException {
+    public Connection enlistJdbc(String uniqueName) throws InterruptedException, SQLException, XAException {
         if (uniqueName == null) {
             throw new NullPointerException("Unique name is null");
         }
@@ -175,7 +178,7 @@ public final class XAPlusEngine {
      * @throws JMSException access resource failed
      * @throws XAException  start XA resource failed
      */
-    public Session enlistJms(String uniqueName) throws JMSException, XAException {
+    public Session enlistJms(String uniqueName) throws InterruptedException, JMSException, XAException {
         if (uniqueName == null) {
             throw new NullPointerException("Unique name is null");
         }
@@ -209,7 +212,7 @@ public final class XAPlusEngine {
      * @return {@link XAPlusXid} in string representation
      * @throws XAException access resource failed or start XA resource failed
      */
-    public XAPlusXid enlistXAPlus(String serverId) throws XAException {
+    public XAPlusXid enlistXAPlus(String serverId) throws InterruptedException, XAException {
         if (serverId == null) {
             throw new NullPointerException("serverId is null");
         }
@@ -250,10 +253,10 @@ public final class XAPlusEngine {
         }
         XAPlusTransaction transaction = context.getTransaction();
         context.clearTransaction();
-        dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         if (logger.isInfoEnabled()) {
             logger.info("User commit transaction, {}", transaction);
         }
+        dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         return transaction.getFuture();
     }
 

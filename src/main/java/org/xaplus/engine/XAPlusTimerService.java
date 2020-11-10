@@ -6,11 +6,12 @@ import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.XAPlusTickEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
-import org.xaplus.engine.events.rollback.XAPlusRollbackRequestEvent;
 import org.xaplus.engine.events.timer.XAPlusTimerCancelledEvent;
 import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
-import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
+import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
+import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
+import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 
 import java.util.List;
 
@@ -19,10 +20,11 @@ import java.util.List;
  * @since 1.0.0
  */
 class XAPlusTimerService extends Bolt implements
-        XAPlus2pcRequestEvent.Handler,
-        XAPlusRollbackRequestEvent.Handler,
+        XAPlusUserCommitRequestEvent.Handler,
+        XAPlusUserRollbackRequestEvent.Handler,
         XAPlusTickEvent.Handler,
         XAPlus2pcDoneEvent.Handler,
+        XAPlus2pcFailedEvent.Handler,
         XAPlusRollbackDoneEvent.Handler,
         XAPlusRollbackFailedEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTimerService.class);
@@ -40,7 +42,7 @@ class XAPlusTimerService extends Bolt implements
     }
 
     @Override
-    public void handle2pcRequest(XAPlus2pcRequestEvent event) throws InterruptedException {
+    public void handleUserCommitRequest(XAPlusUserCommitRequestEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -53,7 +55,7 @@ class XAPlusTimerService extends Bolt implements
     }
 
     @Override
-    public void handleRollbackRequest(XAPlusRollbackRequestEvent event) throws InterruptedException {
+    public void handleUserRollbackRequest(XAPlusUserRollbackRequestEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -71,6 +73,11 @@ class XAPlusTimerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         List<XAPlusTransaction> expiredTransaction = state.removeExpiredTransactions();
+        if (logger.isDebugEnabled()) {
+            if (expiredTransaction.size() > 0) {
+                logger.debug("Found {} expired transactions", expiredTransaction.size());
+            }
+        }
         for (XAPlusTransaction transaction : expiredTransaction) {
             dispatcher.dispatch(new XAPlusTransactionTimedOutEvent(transaction));
         }
@@ -85,6 +92,20 @@ class XAPlusTimerService extends Bolt implements
         if (state.remove(transaction.getXid())) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Timeout tracking cancelled as 2pc procotol done, {}", transaction);
+            }
+            dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
+        }
+    }
+
+    @Override
+    public void handle2pcFailed(XAPlus2pcFailedEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusTransaction transaction = event.getTransaction();
+        if (state.remove(transaction.getXid())) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Timeout tracking cancelled as 2pc procotol failed, {}", transaction);
             }
             dispatcher.dispatch(new XAPlusTimerCancelledEvent(transaction));
         }
@@ -122,10 +143,11 @@ class XAPlusTimerService extends Bolt implements
 
     void postConstruct() {
         threadPool.execute(this);
-        dispatcher.subscribe(this, XAPlus2pcRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusRollbackRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusUserCommitRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusUserRollbackRequestEvent.class);
         dispatcher.subscribe(this, XAPlusTickEvent.class);
         dispatcher.subscribe(this, XAPlus2pcDoneEvent.class);
+        dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackDoneEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackFailedEvent.class);
     }

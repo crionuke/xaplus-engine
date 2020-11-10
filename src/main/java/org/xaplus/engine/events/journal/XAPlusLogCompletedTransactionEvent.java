@@ -35,7 +35,7 @@ public final class XAPlusLogCompletedTransactionEvent extends Event<XAPlusLogCom
         return transaction;
     }
 
-    public boolean isStatus() {
+    public boolean getStatus() {
         return status;
     }
 

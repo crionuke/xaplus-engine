@@ -10,9 +10,11 @@ import org.xaplus.engine.XAPlusTransaction;
 public final class XAPlusLogComplettedTransactionFailedEvent extends Event<XAPlusLogComplettedTransactionFailedEvent.Handler> {
 
     private final XAPlusTransaction transaction;
+    private final boolean status;
     private final Exception exception;
 
-    public XAPlusLogComplettedTransactionFailedEvent(XAPlusTransaction transaction, Exception exception) {
+    public XAPlusLogComplettedTransactionFailedEvent(XAPlusTransaction transaction, boolean status,
+                                                     Exception exception) {
         super();
         if (transaction == null) {
             throw new NullPointerException("transaction is null");
@@ -21,6 +23,7 @@ public final class XAPlusLogComplettedTransactionFailedEvent extends Event<XAPlu
             throw new NullPointerException("exception is null");
         }
         this.transaction = transaction;
+        this.status = status;
         this.exception = exception;
     }
 
@@ -40,6 +43,10 @@ public final class XAPlusLogComplettedTransactionFailedEvent extends Event<XAPlu
 
     public Exception getException() {
         return exception;
+    }
+
+    public boolean getStatus() {
+        return status;
     }
 
     public interface Handler {

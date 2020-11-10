@@ -8,36 +8,18 @@ import java.util.Set;
 class XAPlusTracker {
 
     private final Map<XAPlusXid, XAPlusTransaction> transactions;
-    private final Map<XAPlusXid, XAPlusXid> branchToTransactionXid;
-    private final Set<XAPlusXid> orders;
 
     XAPlusTracker() {
         transactions = new HashMap<>();
-        branchToTransactionXid = new HashMap<>();
-        orders = new HashSet<>();
     }
 
     boolean track(XAPlusTransaction transaction) {
         XAPlusXid xid = transaction.getXid();
-        if (transactions.put(xid, transaction) == null) {
-            transaction.getAllXids()
-                    .forEach((branchXid) -> branchToTransactionXid.put(branchXid, xid));
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    void addOrder(XAPlusXid xid) {
-        orders.add(xid);
+        return transactions.put(xid, transaction) == null;
     }
 
     boolean contains(XAPlusXid xid) {
         return transactions.containsKey(xid);
-    }
-
-    boolean hasOrder(XAPlusXid xid) {
-        return orders.contains(xid);
     }
 
     XAPlusTransaction getTransaction(XAPlusXid xid) {
@@ -45,16 +27,15 @@ class XAPlusTracker {
     }
 
     XAPlusXid getTransactionXid(XAPlusXid branchXid) {
-        return branchToTransactionXid.get(branchXid);
+        for (XAPlusTransaction transaction : transactions.values()) {
+            if (transaction.contains(branchXid)) {
+                return transaction.getXid();
+            }
+        }
+        return null;
     }
 
     XAPlusTransaction remove(XAPlusXid xid) {
-        XAPlusTransaction transaction = transactions.remove(xid);
-        if (transaction != null) {
-            transaction.getAllXids()
-                    .forEach((branchXid) -> branchToTransactionXid.remove(branchXid, xid));
-        }
-        orders.remove(xid);
-        return transaction;
+        return transactions.remove(xid);
     }
 }

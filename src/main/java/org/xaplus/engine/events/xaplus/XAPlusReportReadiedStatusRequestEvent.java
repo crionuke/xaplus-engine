@@ -8,12 +8,12 @@ import org.xaplus.engine.XAPlusXid;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusReportAbsenceXidRequestEvent extends Event<XAPlusReportAbsenceXidRequestEvent.Handler> {
+public final class XAPlusReportReadiedStatusRequestEvent extends Event<XAPlusReportReadiedStatusRequestEvent.Handler> {
 
     private final XAPlusXid xid;
     private final XAPlusResource resource;
 
-    public XAPlusReportAbsenceXidRequestEvent(XAPlusXid xid, XAPlusResource resource) {
+    public XAPlusReportReadiedStatusRequestEvent(XAPlusXid xid, XAPlusResource resource) {
         super();
         if (xid == null) {
             throw new NullPointerException("xid is null");
@@ -27,7 +27,7 @@ public final class XAPlusReportAbsenceXidRequestEvent extends Event<XAPlusReport
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleReportAbsentXidRequest(this);
+        handler.handleReportReadiedStatusRequest(this);
     }
 
     @Override
@@ -44,6 +44,6 @@ public final class XAPlusReportAbsenceXidRequestEvent extends Event<XAPlusReport
     }
 
     public interface Handler {
-        void handleReportAbsentXidRequest(XAPlusReportAbsenceXidRequestEvent event) throws InterruptedException;
+        void handleReportReadiedStatusRequest(XAPlusReportReadiedStatusRequestEvent event) throws InterruptedException;
     }
 }

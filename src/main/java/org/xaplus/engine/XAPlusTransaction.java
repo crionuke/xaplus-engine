@@ -25,6 +25,7 @@ public class XAPlusTransaction {
     private final Map<XAPlusXid, XABranch> xaBranches;
     private final Map<XAPlusXid, XAPlusBranch> xaPlusBranches;
     private final XAPlusFuture future;
+    private volatile boolean rollbackOnly;
 
     XAPlusTransaction(XAPlusXid xid, int timeoutInSeconds, String serverId) {
         this.xid = xid;
@@ -35,19 +36,13 @@ public class XAPlusTransaction {
         xaBranches = new ConcurrentHashMap<>();
         xaPlusBranches = new ConcurrentHashMap<>();
         future = new XAPlusFuture();
+        rollbackOnly = false;
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName()
                 + "=(superiorServerId=" + superiorServerId
-                + ", isSuperior=" + isSuperior()
-                + ", isSubordinate=" + isSubordinate()
-                + ", isPrepared=" + isPrepared()
-                + ", isReadied=" + isReadied()
-                + ", isCommitted=" + isCommitted()
-                + ", isRolledBack=" + isRolledBack()
-                + ", isDone=" + isDone()
                 + ", " + (expireTimeInMillis - System.currentTimeMillis()) + " ms to expire"
                 + ", enlisted " + xaBranches.size() + " XA and " + xaPlusBranches.size() + " XA+ resources"
                 + ", xid=" + xid;
@@ -101,6 +96,10 @@ public class XAPlusTransaction {
         xaPlusBranches.put(branchXid, new XAPlusBranch(xid, branchXid, resource, serverId));
     }
 
+    boolean contains(XAPlusXid branchXid) {
+        return xaBranches.containsKey(branchXid) || xaPlusBranches.containsKey(branchXid);
+    }
+
     boolean isSubordinate() {
         return !superiorServerId.equals(serverId);
     }
@@ -109,12 +108,64 @@ public class XAPlusTransaction {
         return superiorServerId.equals(serverId);
     }
 
+    boolean isPrepareDone() {
+        for (XABranch xaBranch : xaBranches.values()) {
+            if (!xaBranch.isPrepared()) {
+                return false;
+            }
+        }
+        for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
+            if (!xaPlusBranch.isPrepared()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    boolean isCommitDone() {
+        for (XABranch xaBranch : xaBranches.values()) {
+            if (!xaBranch.isCommitted()) {
+                return false;
+            }
+        }
+        for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
+            if (!xaPlusBranch.isCommitted()) {
+                return false;
+            }
+            if (!xaPlusBranch.isFailed()) {
+                if (!xaPlusBranch.isDone()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    boolean isRollbackDone() {
+        for (XABranch xaBranch : xaBranches.values()) {
+            if (!xaBranch.isRolledBack()) {
+                return false;
+            }
+        }
+        for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
+            if (!xaPlusBranch.isDone()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    boolean isRollbackOnly() {
+        return rollbackOnly;
+    }
+
+    void markAsRollbackOnly() {
+        rollbackOnly = true;
+    }
+
     void prepare(XAPlusDispatcher dispatcher) throws InterruptedException {
         for (XABranch xaBranch : xaBranches.values()) {
             xaBranch.prepare(dispatcher);
-        }
-        for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
-            xaPlusBranch.prepare(dispatcher);
         }
     }
 
@@ -132,6 +183,14 @@ public class XAPlusTransaction {
         return true;
     }
 
+    void branchPrepared(XAPlusXid branchXid) {
+        if (xaBranches.containsKey(branchXid)) {
+            xaBranches.get(branchXid).markAsPrepared();
+        } else if (xaPlusBranches.containsKey(branchXid)) {
+            xaPlusBranches.get(branchXid).markAsPrepared();
+        }
+    }
+
     void commit(XAPlusDispatcher dispatcher) throws InterruptedException {
         for (XABranch xaBranch : xaBranches.values()) {
             xaBranch.commit(dispatcher);
@@ -147,12 +206,30 @@ public class XAPlusTransaction {
                 return false;
             }
         }
+        return true;
+    }
+
+    void branchCommitted(XAPlusXid branchXid) {
+        if (xaBranches.containsKey(branchXid)) {
+            xaBranches.get(branchXid).markAsCommitted();
+        } else if (xaPlusBranches.containsKey(branchXid)) {
+            xaPlusBranches.get(branchXid).markAsCommitted();
+        }
+    }
+
+    boolean isDone() {
         for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
-            if (!xaPlusBranch.isCommitted()) {
+            if (!xaPlusBranch.isDone()) {
                 return false;
             }
         }
         return true;
+    }
+
+    void branchDone(XAPlusXid branchXid) {
+        if (xaPlusBranches.containsKey(branchXid)) {
+            xaPlusBranches.get(branchXid).markAsDone();
+        }
     }
 
     void rollback(XAPlusDispatcher dispatcher) throws InterruptedException {
@@ -178,27 +255,11 @@ public class XAPlusTransaction {
         return true;
     }
 
-    void branchPrepared(XAPlusXid branchXid, boolean failed) {
+    void branchRolledBack(XAPlusXid branchXid) {
         if (xaBranches.containsKey(branchXid)) {
-            xaBranches.get(branchXid).markAsPrepared(failed);
+            xaBranches.get(branchXid).markAsRolledback();
         } else if (xaPlusBranches.containsKey(branchXid)) {
-            xaPlusBranches.get(branchXid).markAsPrepared(failed);
-        }
-    }
-
-    void branchCommitted(XAPlusXid branchXid, boolean failed) {
-        if (xaBranches.containsKey(branchXid)) {
-            xaBranches.get(branchXid).markAsCommitted(failed);
-        } else if (xaPlusBranches.containsKey(branchXid)) {
-            xaPlusBranches.get(branchXid).markAsCommitted(failed);
-        }
-    }
-
-    void branchRolledBack(XAPlusXid branchXid, boolean failed) {
-        if (xaBranches.containsKey(branchXid)) {
-            xaBranches.get(branchXid).markAsRolledback(failed);
-        } else if (xaPlusBranches.containsKey(branchXid)) {
-            xaPlusBranches.get(branchXid).markAsRolledback(failed);
+            xaPlusBranches.get(branchXid).markAsRolledback();
         }
     }
 
@@ -211,21 +272,6 @@ public class XAPlusTransaction {
     boolean isReadied() {
         for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
             if (!xaPlusBranch.isReadied()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    void branchDone(XAPlusXid branchXid) {
-        if (xaPlusBranches.containsKey(branchXid)) {
-            xaPlusBranches.get(branchXid).markAsDone();
-        }
-    }
-
-    boolean isDone() {
-        for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
-            if (!xaPlusBranch.isDone()) {
                 return false;
             }
         }
@@ -247,12 +293,33 @@ public class XAPlusTransaction {
         return true;
     }
 
-    void resetFailures() {
+    void branchCancelled(XAPlusXid branchXid) {
+        if (xaBranches.containsKey(branchXid)) {
+            xaBranches.get(branchXid).markAsCancelled();
+        } else if (xaPlusBranches.containsKey(branchXid)) {
+            xaPlusBranches.get(branchXid).markAsCancelled();
+        }
+    }
+
+    boolean hasCancellations() {
         for (XABranch xaBranch : xaBranches.values()) {
-            xaBranch.resetFail();
+            if (xaBranch.isCancelled()) {
+                return true;
+            }
         }
         for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
-            xaPlusBranch.resetFail();
+            if (xaPlusBranch.isCancelled()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void branchFailed(XAPlusXid branchXid) {
+        if (xaBranches.containsKey(branchXid)) {
+            xaBranches.get(branchXid).markAsFailed();
+        } else if (xaPlusBranches.containsKey(branchXid)) {
+            xaPlusBranches.get(branchXid).markAsFailed();
         }
     }
 
@@ -270,12 +337,22 @@ public class XAPlusTransaction {
         return false;
     }
 
+    void reset() {
+        for (XABranch xaBranch : xaBranches.values()) {
+            xaBranch.reset();
+        }
+        for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
+            xaPlusBranch.reset();
+        }
+    }
+
     class XABranch {
         final XAPlusXid xid;
         final XAPlusXid branchXid;
         final XAResource xaResource;
         final String uniqueName;
 
+        volatile boolean cancelled;
         volatile boolean prepared;
         volatile boolean committed;
         volatile boolean rolledBack;
@@ -286,6 +363,7 @@ public class XAPlusTransaction {
             this.branchXid = branchXid;
             this.xaResource = xaResource;
             this.uniqueName = uniqueName;
+            cancelled = false;
             prepared = false;
             committed = false;
             rolledBack = false;
@@ -312,14 +390,19 @@ public class XAPlusTransaction {
             dispatcher.dispatch(new XAPlusPrepareBranchRequestEvent(xid, branchXid, xaResource));
         }
 
+        public boolean isCancelled() {
+            return cancelled;
+        }
+
+        void markAsCancelled() {
+            cancelled = true;
+        }
+
         boolean isPrepared() {
             return prepared;
         }
 
-        void markAsPrepared(boolean failed) {
-            if (failed) {
-                this.failed = true;
-            }
+        void markAsPrepared() {
             prepared = true;
         }
 
@@ -327,10 +410,7 @@ public class XAPlusTransaction {
             dispatcher.dispatch(new XAPlusCommitBranchRequestEvent(xid, branchXid, xaResource));
         }
 
-        void markAsCommitted(boolean failed) {
-            if (failed) {
-                this.failed = true;
-            }
+        void markAsCommitted() {
             committed = true;
         }
 
@@ -342,10 +422,7 @@ public class XAPlusTransaction {
             dispatcher.dispatch(new XAPlusRollbackBranchRequestEvent(xid, branchXid, xaResource));
         }
 
-        void markAsRolledback(boolean failed) {
-            if (failed) {
-                this.failed = true;
-            }
+        void markAsRolledback() {
             rolledBack = true;
         }
 
@@ -357,7 +434,11 @@ public class XAPlusTransaction {
             return failed;
         }
 
-        void resetFail() {
+        void markAsFailed() {
+            failed = true;
+        }
+
+        void reset() {
             failed = false;
         }
     }

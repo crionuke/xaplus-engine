@@ -10,12 +10,28 @@ import javax.transaction.xa.Xid;
 public interface XAPlusResource extends XAResource {
 
     /**
+     * Report to superior that a transaction branch {@code xid} cancelled by subordinate
+     *
+     * @param xid a transaction branch identifier
+     * @throws XAPlusException an error has occurred
+     */
+    void cancelled(Xid xid) throws XAPlusException;
+
+    /**
      * Report to superior that a transaction branch {@code xid} has been prepared by subordinate
      *
      * @param xid a transaction branch identifier
      * @throws XAPlusException an error has occurred
      */
-    void ready(Xid xid) throws XAPlusException;
+    void readied(Xid xid) throws XAPlusException;
+
+    /**
+     * Report to superior that a transaction branch {@code xid} has been failed by subordinate
+     *
+     * @param xid a transaction branch identifier
+     * @throws XAPlusException an error has occurred
+     */
+    void failed(Xid xid) throws XAPlusException;
 
     /**
      * Report to superior that a transaction branch {@code xid} has been committed or rolled back by subordinate
@@ -26,15 +42,7 @@ public interface XAPlusResource extends XAResource {
     void done(Xid xid) throws XAPlusException;
 
     /**
-     * Report to superior that a {@code xid} requested to commit or rollback previously not found by subordinate
-     *
-     * @param xid a transaction branch identifier
-     * @throws XAPlusException an error has occurred
-     */
-    void absent(Xid xid) throws XAPlusException;
-
-    /**
-     * Request global transactions status from superior
+     * Request dangling transactions status from superior
      *
      * @param serverId this server uid
      * @throws XAPlusException an error has occured

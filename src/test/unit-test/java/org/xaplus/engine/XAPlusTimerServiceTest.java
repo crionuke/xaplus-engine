@@ -83,16 +83,16 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
         logger.info("Transaction {} done", timerCancelledEvent.getTransaction());
     }
 
-    @Test
-    public void test2pcRequestFailed() throws InterruptedException {
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
-        dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, false));
-        XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(timerCancelledEvent);
-        assertEquals(timerCancelledEvent.getTransaction().getXid(), transaction.getXid());
-        logger.info("Transaction {} failed", timerCancelledEvent.getTransaction());
-    }
+//    @Test
+//    public void test2pcRequestFailed() throws InterruptedException {
+//        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
+//        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
+//        dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, false));
+//        XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//        assertNotNull(timerCancelledEvent);
+//        assertEquals(timerCancelledEvent.getTransaction().getXid(), transaction.getXid());
+//        logger.info("Transaction {} failed", timerCancelledEvent.getTransaction());
+//    }
 
     @Test
     public void testRollbackRequestDone() throws InterruptedException {

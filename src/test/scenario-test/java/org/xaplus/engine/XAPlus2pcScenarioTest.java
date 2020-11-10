@@ -4,11 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusScenarioSubordinateFinishedEvent;
-import org.xaplus.engine.events.XAPlusScenarioSuperiorFailedEvent;
-import org.xaplus.engine.events.XAPlusScenarioSuperiorFinishedEvent;
-import org.xaplus.engine.events.XAPlusScenarioInitialRequestEvent;
-import org.xaplus.engine.exceptions.XAPlusTimeoutException;
+import org.xaplus.engine.events.*;
 
 import java.util.concurrent.TimeUnit;
 
@@ -39,6 +35,28 @@ public class XAPlus2pcScenarioTest extends XAPlusScenarioTest {
     }
 
     @Test
+    public void testUserRollbackBeforeRequestScenario() throws InterruptedException {
+        long value = initialRequest(true, false, false);
+        // Check superior
+        XAPlusScenarioSuperiorFinishedEvent event1 = scenarioSuperiorFinishedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event1);
+        assertEquals(value, event1.getValue());
+        assertFalse(event1.getStatus());
+    }
+
+    @Test
+    public void testUserRollbackBeforeCommitScenario() throws InterruptedException {
+        long value = initialRequest(false, true, false);
+        // Check superior
+        XAPlusScenarioSuperiorFinishedEvent event1 = scenarioSuperiorFinishedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event1);
+        assertEquals(value, event1.getValue());
+        assertFalse(event1.getStatus());
+    }
+
+    @Test
     public void testSuperiorCommitButSubordinateRollbackScenario() throws InterruptedException {
         long value = initialRequest(false, false, true);
         // Check superior
@@ -56,44 +74,41 @@ public class XAPlus2pcScenarioTest extends XAPlusScenarioTest {
     }
 
     @Test
-    public void testUserRollbackBeforeRequestScenario() throws InterruptedException {
-//        boolean status = finishedRequest(true, false);
-//        assertFalse(status);
-    }
-
-    @Test
-    public void testUserRollbackBeforeCommitScenario() throws InterruptedException {
-//        boolean status = finishedRequest(false, true);
-//        assertFalse(status);
-    }
-
-    @Test
-    public void testFromSuperiorToSubordinatePrepareFailed() throws InterruptedException {
-//        subordinateScenario.prepareException = true;
-//        boolean status = finishedRequest(false, false);
-//        assertFalse(status);
-    }
-
-    @Test
     public void testFromSubrodinateToSuperiorReadyFailed() throws InterruptedException {
-//        superiorScenario.preparedException = true;
-//        timedOutRequest();
+        // Setup scenario
+        superiorScenario.readiedException = true;
+        long value = initialRequest(false, false, false);
+        // Wait timeout
+        Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
+        // Check superior
+        XAPlusScenarioSuperiorFailedEvent event1 = scenarioSuperiorFailedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event1);
+        assertEquals(value, event1.getValue());
+        // Check subordinate
+        XAPlusScenarioSubordinateFailedEvent event2 = scenarioSubordinateFailedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event2);
+        assertEquals(value, event2.getValue());
     }
 
     @Test
     public void testFromSuperiorToSubordinateCommitFailed() throws InterruptedException {
-//        subordinateScenario.commitException = true;
-//        boolean status = finishedRequest(false, false);
-//        assertFalse(status);
-    }
-
-    void timedOutRequest() throws InterruptedException {
+        // Setup scenario
+        subordinateScenario.commitException = true;
         long value = initialRequest(false, false, false);
-        XAPlusScenarioSuperiorFailedEvent scenarioFailedEvent = scenarioSuperiorFailedEvents
-                .poll(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(scenarioFailedEvent);
-        assertEquals(value, scenarioFailedEvent.getValue());
-        assertTrue(scenarioFailedEvent.getException() instanceof XAPlusTimeoutException);
+        // Check superior
+        XAPlusScenarioSuperiorFailedEvent event1 = scenarioSuperiorFailedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event1);
+        assertEquals(value, event1.getValue());
+        // Wait timeout
+        Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
+        // Check subordinate
+        XAPlusScenarioSubordinateFailedEvent event2 = scenarioSubordinateFailedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event2);
+        assertEquals(value, event2.getValue());
     }
 
     long initialRequest(boolean superiorBeforeRequestException,

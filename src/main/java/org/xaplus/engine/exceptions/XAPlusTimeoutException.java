@@ -13,4 +13,8 @@ public class XAPlusTimeoutException extends Exception {
     public XAPlusTimeoutException(Throwable cause) {
         super(cause);
     }
+
+    public XAPlusTimeoutException(String message) {
+        super(message);
+    }
 }

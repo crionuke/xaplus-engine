@@ -24,9 +24,10 @@ class XAPlusService extends Bolt implements
         XAPlusCommitRecoveredXidRequestEvent.Handler,
         XAPlusRollbackRecoveredXidRequestEvent.Handler,
         XAPlusForgetRecoveredXidRequestEvent.Handler,
-        XAPlusReportReadyStatusRequestEvent.Handler,
+        XAPlusReportFailedStatusRequestEvent.Handler,
+        XAPlusReportCancelledStatusRequestEvent.Handler,
+        XAPlusReportReadiedStatusRequestEvent.Handler,
         XAPlusReportDoneStatusRequestEvent.Handler,
-        XAPlusReportAbsenceXidRequestEvent.Handler,
         XAPlusRetryFromSuperiorRequestEvent.Handler,
         XAPlusRecoveryResourceRequestEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusService.class);
@@ -298,7 +299,8 @@ class XAPlusService extends Bolt implements
     }
 
     @Override
-    public void handleReportReadyStatusRequest(XAPlusReportReadyStatusRequestEvent event) throws InterruptedException {
+    public void handleReportCancelledStatusRequest(XAPlusReportCancelledStatusRequestEvent event)
+            throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -306,23 +308,23 @@ class XAPlusService extends Bolt implements
         XAPlusResource resource = event.getResource();
         try {
             if (logger.isTraceEnabled()) {
-                logger.trace("Reporting ready status for xid, xid={}", xid);
+                logger.trace("Reporting cancelled status for xid, xid={}", xid);
             }
-            resource.ready(xid);
+            resource.cancelled(xid);
             if (logger.isDebugEnabled()) {
-                logger.debug("Ready status for xid reported, xid={}", xid);
+                logger.debug("Cancelled status for xid reported, xid={}", xid);
             }
-            dispatcher.dispatch(new XAPlusReadyStatusReportedEvent(xid));
+            dispatcher.dispatch(new XAPlusReadiedStatusReportedEvent(xid));
         } catch (XAPlusException readyException) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Report ready status for xid failed as {}, xid={}", readyException.getMessage(), xid);
+                logger.warn("Report cancelled status for xid failed as {}, xid={}", readyException.getMessage(), xid);
             }
-            dispatcher.dispatch(new XAPlusReportReadyStatusFailedEvent(xid, readyException));
+            dispatcher.dispatch(new XAPlusReportReadiedStatusFailedEvent(xid, readyException));
         }
     }
 
     @Override
-    public void handleReportAbsentXidRequest(XAPlusReportAbsenceXidRequestEvent event) throws InterruptedException {
+    public void handleReportReadiedStatusRequest(XAPlusReportReadiedStatusRequestEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -330,18 +332,42 @@ class XAPlusService extends Bolt implements
         XAPlusResource resource = event.getResource();
         try {
             if (logger.isTraceEnabled()) {
-                logger.trace("Reporting absence xid, xid={}", xid);
+                logger.trace("Reporting readied status for xid, xid={}", xid);
             }
-            resource.absent(xid);
+            resource.readied(xid);
             if (logger.isDebugEnabled()) {
-                logger.debug("Absence xid reported, xid={}", xid);
+                logger.debug("Readied status for xid reported, xid={}", xid);
             }
-            dispatcher.dispatch(new XAPlusAbsenceXidReportedEvent(xid));
-        } catch (XAPlusException absentException) {
+            dispatcher.dispatch(new XAPlusReadiedStatusReportedEvent(xid));
+        } catch (XAPlusException readyException) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Report absence xid failed as {}, xid={}", absentException.getMessage(), xid);
+                logger.warn("Report readied status for xid failed as {}, xid={}", readyException.getMessage(), xid);
             }
-            dispatcher.dispatch(new XAPlusReportAbsenceXidFailedEvent(xid, absentException));
+            dispatcher.dispatch(new XAPlusReportReadiedStatusFailedEvent(xid, readyException));
+        }
+    }
+
+    @Override
+    public void handleReportFailedStatusRequest(XAPlusReportFailedStatusRequestEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        XAPlusResource resource = event.getResource();
+        try {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Reporting failed status for xid, xid={}", xid);
+            }
+            resource.failed(xid);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Failed status for xid reported, xid={}", xid);
+            }
+            dispatcher.dispatch(new XAPlusFailedStatusReportedEvent(xid));
+        } catch (XAPlusException readyException) {
+            if (logger.isWarnEnabled()) {
+                logger.warn("Report failed status for xid failed as {}, xid={}", readyException.getMessage(), xid);
+            }
+            dispatcher.dispatch(new XAPlusReportFailedStatusFailedEvent(xid, readyException));
         }
     }
 
@@ -354,11 +380,11 @@ class XAPlusService extends Bolt implements
         XAPlusResource resource = event.getResource();
         try {
             if (logger.isTraceEnabled()) {
-                logger.trace("Reporting done status for xid={}", xid);
+                logger.trace("Reporting done status for xid, xid={}", xid);
             }
             resource.done(xid);
             if (logger.isDebugEnabled()) {
-                logger.debug("Done status for xid reported, xid={}", xid);
+                logger.debug("Done status for branch reported, xid={}", xid);
             }
             dispatcher.dispatch(new XAPlusDoneStatusReportedEvent(xid));
         } catch (XAPlusException doneException) {
@@ -427,8 +453,9 @@ class XAPlusService extends Bolt implements
         dispatcher.subscribe(this, XAPlusCommitRecoveredXidRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackRecoveredXidRequestEvent.class);
         dispatcher.subscribe(this, XAPlusForgetRecoveredXidRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusReportReadyStatusRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusReportAbsenceXidRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusReportCancelledStatusRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusReportReadiedStatusRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusReportFailedStatusRequestEvent.class);
         dispatcher.subscribe(this, XAPlusReportDoneStatusRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRetryFromSuperiorRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRecoveryResourceRequestEvent.class);

@@ -8,6 +8,7 @@ import org.postgresql.xa.PGXADataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.*;
+import org.xaplus.engine.exceptions.XAPlusCommitException;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
 import org.xaplus.engine.exceptions.XAPlusTimeoutException;
 
@@ -167,6 +168,9 @@ public class XAPlusScenarioTest extends Assert {
                 boolean status = future.get();
                 logger.info("Superior side of transaction finished, status={}", status);
                 testDispatcher.dispatch(new XAPlusScenarioSuperiorFinishedEvent(status, value));
+            } catch (XAPlusCommitException commitException) {
+                logger.info("Superior side had commit exception, {}", commitException.getMessage());
+                testDispatcher.dispatch(new XAPlusScenarioSuperiorFailedEvent(value, commitException));
             } catch (XAPlusRollbackException rollbackException) {
                 logger.info("Superior side had rollback exception, {}", rollbackException.getMessage());
                 testDispatcher.dispatch(new XAPlusScenarioSuperiorFailedEvent(value, rollbackException));
@@ -229,6 +233,9 @@ public class XAPlusScenarioTest extends Assert {
                 boolean status = future.get();
                 logger.info("Subordinate side of transaction finished, status={}", status);
                 testDispatcher.dispatch(new XAPlusScenarioSubordinateFinishedEvent(status, value));
+            } catch (XAPlusCommitException commitException) {
+                logger.info("Subordinate side had commit exception, {}", commitException.getMessage());
+                testDispatcher.dispatch(new XAPlusScenarioSubordinateFailedEvent(value, commitException));
             } catch (XAPlusRollbackException rollbackException) {
                 logger.info("Subordinate side had rollback exception, {}", rollbackException.getMessage());
                 testDispatcher.dispatch(new XAPlusScenarioSubordinateFailedEvent(value, rollbackException));

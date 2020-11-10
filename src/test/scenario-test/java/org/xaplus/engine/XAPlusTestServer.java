@@ -34,32 +34,52 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
 
     @Override
     public int prepare(Xid xid) throws XAException {
-        if (scenario.prepareException) {
-            throw new XAPlusException("prepare request exception");
-        }
-        XAPlusXid xaPlusXid = new XAPlusXid(xid);
-        try {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Send prepare request from superior server, xid={}", xaPlusXid);
-            }
-            dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToPrepareEvent(xaPlusXid));
-        } catch (InterruptedException e) {
-            throw new XAException(e.getMessage());
-        }
         return XA_OK;
     }
 
     @Override
-    public void ready(Xid xid) throws XAPlusException {
-        if (scenario.readyException) {
-            throw new XAPlusException("ready request exception");
+    public void cancelled(Xid xid) throws XAPlusException {
+        if (scenario.cancelledException) {
+            throw new XAPlusException("cancelled request exception");
         }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
             if (logger.isDebugEnabled()) {
-                logger.debug("Send ready status from subordinate server, xid={}", xid);
+                logger.debug("Send cancelled status from subordinate server, xid={}", xid);
             }
-            dispatcher.dispatch(new XAPlusRemoteSubordinateReadyEvent(xaPlusXid));
+            dispatcher.dispatch(new XAPlusRemoteSubordinateCancelledEvent(xaPlusXid));
+        } catch (InterruptedException e) {
+            throw new XAPlusException(e.getMessage());
+        }
+    }
+
+    @Override
+    public void readied(Xid xid) throws XAPlusException {
+        if (scenario.readiedException) {
+            throw new XAPlusException("readied request exception");
+        }
+        XAPlusXid xaPlusXid = new XAPlusXid(xid);
+        try {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Send readied status from subordinate server, xid={}", xid);
+            }
+            dispatcher.dispatch(new XAPlusRemoteSubordinateReadiedEvent(xaPlusXid));
+        } catch (InterruptedException e) {
+            throw new XAPlusException(e.getMessage());
+        }
+    }
+
+    @Override
+    public void failed(Xid xid) throws XAPlusException {
+        if (scenario.failedException) {
+            throw new XAPlusException("failed request exception");
+        }
+        XAPlusXid xaPlusXid = new XAPlusXid(xid);
+        try {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Send failed status from subordinate server, xid={}", xid);
+            }
+            dispatcher.dispatch(new XAPlusRemoteSubordinateFailedEvent(xaPlusXid));
         } catch (InterruptedException e) {
             throw new XAPlusException(e.getMessage());
         }
@@ -68,7 +88,7 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
     @Override
     public void commit(Xid xid, boolean onePhase) throws XAException {
         if (scenario.commitException) {
-            throw new XAPlusException("commit request exception");
+            throw new XAException("commit request exception");
         }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
@@ -84,7 +104,7 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
     @Override
     public void rollback(Xid xid) throws XAException {
         if (scenario.rollbackException) {
-            throw new XAPlusException("rollback request exception");
+            throw new XAException("rollback request exception");
         }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
@@ -123,22 +143,6 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
                 logger.debug("Send retry request from subordinate server, serverId={}", serverId);
             }
             dispatcher.dispatch(new XAPlusRemoteSubordinateRetryRequestEvent(serverId));
-        } catch (InterruptedException e) {
-            throw new XAPlusException(e.getMessage());
-        }
-    }
-
-    @Override
-    public void absent(Xid xid) throws XAPlusException {
-        if (scenario.absentException) {
-            throw new XAPlusException("absent request exception");
-        }
-        XAPlusXid xaPlusXid = new XAPlusXid(xid);
-        try {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Send absent report, xid={}", xid);
-            }
-            dispatcher.dispatch(new XAPlusRemoteSubordinateHasAbsenceXidEvent(xaPlusXid));
         } catch (InterruptedException e) {
             throw new XAPlusException(e.getMessage());
         }
