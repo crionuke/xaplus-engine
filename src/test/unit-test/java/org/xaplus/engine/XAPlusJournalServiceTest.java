@@ -189,21 +189,6 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
         assertNotNull(event);
     }
 
-    @Test
-    public void testReportTransactionStatusRequestSuccessfully() throws InterruptedException, XAPlusSystemException,
-            SQLException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
-        XAPlusResource resource = resources.getXAPlusResource(XA_PLUS_RESOURCE_2);
-        XAPlusXid xid = transaction.getXid();
-        Mockito.when(tlogMock.getTransactionStatus(xid)).thenReturn(XAPlusTLog.completedStatus());
-        dispatcher.dispatch(new XAPlusReportTransactionStatusRequestEvent(xid, resource));
-        XAPlusReportDoneStatusRequestEvent event = reportDoneStatusRequestEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event);
-        assertEquals(xid, event.getXid());
-        assertEquals(resource, event.getResource());
-    }
-
     private class ConsumerStub extends Bolt implements
             XAPlusCommitTransactionDecisionLoggedEvent.Handler,
             XAPlusLogCommitTransactionDecisionFailedEvent.Handler,

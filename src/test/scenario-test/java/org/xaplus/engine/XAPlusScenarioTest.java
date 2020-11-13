@@ -14,6 +14,8 @@ import org.xaplus.engine.exceptions.XAPlusTimeoutException;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,8 +38,8 @@ public class XAPlusScenarioTest extends Assert {
     XAPlus superiorXAPlus;
     XAPlus subordinateXAPLus;
 
-    XAPlusTestScenario superiorScenario;
-    XAPlusTestScenario subordinateScenario;
+    XAPlusScenarioExceptions requestSuperiorExceptions;
+    XAPlusScenarioExceptions subordinateScenarioExceptions;
 
     XAPlusTestServer superiorServer;
     XAPlusTestServer subordinateServer;
@@ -61,11 +63,11 @@ public class XAPlusScenarioTest extends Assert {
         superiorXAPlus = new XAPlus(XA_PLUS_SUPERIOR, DEFAULT_TIMEOUT_S);
         subordinateXAPLus = new XAPlus(XA_PLUS_SUBORDINATE, DEFAULT_TIMEOUT_S);
 
-        superiorScenario = new XAPlusTestScenario();
-        subordinateScenario = new XAPlusTestScenario();
+        requestSuperiorExceptions = new XAPlusScenarioExceptions();
+        subordinateScenarioExceptions = new XAPlusScenarioExceptions();
 
-        superiorServer = new XAPlusTestServer(superiorScenario, superiorXAPlus.dispatcher);
-        subordinateServer = new XAPlusTestServer(subordinateScenario, subordinateXAPLus.dispatcher);
+        superiorServer = new XAPlusTestServer(requestSuperiorExceptions, superiorXAPlus.dispatcher);
+        subordinateServer = new XAPlusTestServer(subordinateScenarioExceptions, subordinateXAPLus.dispatcher);
 
         scenarioSuperiorFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         scenarioSuperiorFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -87,6 +89,17 @@ public class XAPlusScenarioTest extends Assert {
     void start() {
         superiorXAPlus.start();
         subordinateXAPLus.start();
+    }
+
+    long initialRequest(boolean superiorBeforeRequestException,
+                        boolean superiorBeforeCommitException,
+                        boolean subordinateBeforeCommitException) throws InterruptedException {
+        long value = Math.round(100000 + Math.random() * 899999);
+        testDispatcher.dispatch(
+                new XAPlusScenarioInitialRequestEvent(value, superiorBeforeRequestException,
+                        superiorBeforeCommitException,
+                        subordinateBeforeCommitException));
+        return value;
     }
 
     DataSource createTLog() {
@@ -136,6 +149,7 @@ public class XAPlusScenarioTest extends Assert {
             }
             long value = event.getValue();
             XAPlusFuture future;
+            List<XAPlusXid> usedXids = new ArrayList<>();
             try {
                 engine.begin();
                 // Enlist and change XA xaResource
@@ -145,23 +159,24 @@ public class XAPlusScenarioTest extends Assert {
                     statement.executeUpdate();
                 }
                 // Enlist and call subordinate
-                XAPlusXid branchXid = engine.enlistXAPlus(XA_PLUS_SUBORDINATE);
+                XAPlusXid branchXid = engine.createXAPlusXid(XA_PLUS_SUBORDINATE);
                 if (event.isSuperiorBeforeRequestException()) {
                     throw new Exception("before request exception");
                 }
                 testDispatcher.dispatch(new XAPlusScenarioSubordinateRequestEvent(branchXid, value,
                         event.isSubordinateBeforeCommitException()));
+                usedXids.add(branchXid);
                 if (event.isSuperiorBeforeCommitException()) {
                     throw new Exception("before commit exception");
                 }
-                // Commit XA+ transaction
-                future = engine.commit();
+                // Commit transaction
+                future = engine.commit(usedXids);
             } catch (Exception e) {
                 if (logger.isWarnEnabled()) {
                     logger.warn("Transaction failed as {}", e.getMessage());
                 }
-                // Rollback XA+ transaction
-                future = engine.rollback();
+                // Rollback transaction
+                future = engine.rollback(usedXids);
             }
             // Wait result
             try {
@@ -219,13 +234,13 @@ public class XAPlusScenarioTest extends Assert {
                 if (event.isBeforeCommitException()) {
                     throw new Exception("before commit exception");
                 }
-                // Commit branch of XA+ transaction
+                // Commit transaction
                 future = engine.commit();
             } catch (Exception e) {
                 if (logger.isWarnEnabled()) {
                     logger.warn("Transaction failed as {}", e.getMessage());
                 }
-                // Rollback branch of XA+ transaction
+                // Rollback transaction
                 future = engine.rollback();
             }
             // Wait result

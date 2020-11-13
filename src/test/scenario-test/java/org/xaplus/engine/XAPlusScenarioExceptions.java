@@ -1,6 +1,6 @@
 package org.xaplus.engine;
 
-class XAPlusTestScenario {
+class XAPlusScenarioExceptions {
     volatile boolean cancelledException;
     volatile boolean readiedException;
     volatile boolean failedException;
@@ -9,7 +9,7 @@ class XAPlusTestScenario {
     volatile boolean doneException;
     volatile boolean retryException;
 
-    XAPlusTestScenario() {
+    XAPlusScenarioExceptions() {
         this.cancelledException = false;
         this.readiedException = false;
         this.failedException = false;

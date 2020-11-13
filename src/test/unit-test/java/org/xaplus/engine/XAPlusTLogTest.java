@@ -37,21 +37,6 @@ public class XAPlusTLogTest extends XAPlusTest {
     }
 
     @Test
-    public void testIsTransactionCompleted() throws SQLException {
-        XAPlusTransaction transaction1 = createTestSuperiorTransaction();
-        XAPlusTransaction transaction2 = createTestSuperiorTransaction();
-        XAPlusTransaction transaction3 = createTestSuperiorTransaction();
-        tLog.logCommitTransactionDecision(transaction1);
-        tLog.logRollbackTransactionDecision(transaction2);
-        tLog.logTransactionCommitted(transaction1);
-        tLog.logRollbackTransactionDecision(transaction3);
-        tLog.logTransactionRolledBack(transaction3);
-        assertEquals(true, tLog.getTransactionStatus(transaction1.getXid()).completed);
-        assertEquals(false, tLog.getTransactionStatus(transaction2.getXid()).completed);
-        assertEquals(true, tLog.getTransactionStatus(transaction3.getXid()).completed);
-    }
-
-    @Test
     public void testFindDanglingTransactions() throws SQLException {
         XAPlusTransaction transaction1 = createTestSuperiorTransaction();
         XAPlusTransaction transaction2 = createTestSuperiorTransaction();

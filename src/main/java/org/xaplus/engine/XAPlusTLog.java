@@ -17,8 +17,6 @@ class XAPlusTLog {
             "FROM tlog WHERE t_server_id = ? AND t_timestamp < ? " +
             "GROUP BY t_bqual, t_gtrid, t_unique_name, t_status " +
             "HAVING COUNT(*) = 1";
-    static final String BRANCHES_SQL = "SELECT t_bqual, COUNT(*) AS t_count FROM tlog " +
-            "WHERE t_server_id = ? AND t_gtrid = ? GROUP BY t_gtrid, t_bqual";
     static final String SELECT_SQL = "SELECT t_server_id, t_gtrid, t_bqual, t_unique_name, t_status, t_complete " +
             "FROM tlog";
     static final String INSERT_SQL = "INSERT INTO tlog " +
@@ -33,56 +31,6 @@ class XAPlusTLog {
     XAPlusTLog(String serverId, XAPlusEngine engine) {
         this.serverId = serverId;
         this.engine = engine;
-    }
-
-    static TransactionStatus notFoundStatus() {
-        return new TransactionStatus(false, false);
-    }
-
-    static TransactionStatus notCompletedStatus() {
-        return new TransactionStatus(true, false);
-    }
-
-    static TransactionStatus completedStatus() {
-        return new TransactionStatus(true, true);
-    }
-
-    TransactionStatus getTransactionStatus(XAPlusXid xid) throws SQLException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Check transaction, xid={}", xid);
-        }
-        DataSource tlogDataSource = engine.getTlogDataSource();
-        try (Connection connection = tlogDataSource.getConnection()) {
-            try (PreparedStatement statement = connection.prepareStatement(BRANCHES_SQL)) {
-                statement.setFetchSize(FETCH_SIZE);
-                statement.setString(1, serverId);
-                statement.setBytes(2, xid.getGlobalTransactionId());
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    int branches = 0;
-                    while (resultSet.next()) {
-                        branches++;
-                        int count = resultSet.getInt(2);
-                        if (count < 2) {
-                            if (logger.isDebugEnabled()) {
-                                logger.debug("Transaction not completed, xid={}", xid);
-                            }
-                            return XAPlusTLog.notCompletedStatus();
-                        }
-                    }
-                    if (branches == 0) {
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("Transaction not found, xid={}", xid);
-                        }
-                        return XAPlusTLog.notFoundStatus();
-                    } else {
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("Transaction completed, xid={}", xid);
-                        }
-                        return XAPlusTLog.completedStatus();
-                    }
-                }
-            }
-        }
     }
 
     Map<String, Map<XAPlusXid, Boolean>> findDanglingTransactions(long inflightCutoff) throws SQLException {

@@ -17,6 +17,8 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -47,13 +49,6 @@ public final class XAPlusEngine {
         if (logger.isTraceEnabled()) {
             logger.trace("Set journal dataSource={}", dataSource);
         }
-    }
-
-    public void recovery() throws InterruptedException {
-        if (logger.isInfoEnabled()) {
-            logger.info("User start recovery");
-        }
-        dispatcher.dispatch(new XAPlusRecoveryRequestEvent());
     }
 
     /**
@@ -206,13 +201,13 @@ public final class XAPlusEngine {
     }
 
     /**
-     * Enlist XAPlus resource
+     * Create xid for XA+ resource
      *
      * @param serverId name of resource
      * @return {@link XAPlusXid} in string representation
      * @throws XAException access resource failed or start XA resource failed
      */
-    public XAPlusXid enlistXAPlus(String serverId) throws InterruptedException, XAException {
+    public XAPlusXid createXAPlusXid(String serverId) throws InterruptedException, XAException {
         if (serverId == null) {
             throw new NullPointerException("serverId is null");
         }
@@ -242,8 +237,9 @@ public final class XAPlusEngine {
     }
 
     /**
-     * Start 2pc protocol
+     * Commit XA transaction
      *
+     * @return future to get result
      * @throws InterruptedException commit operation was interrupted
      */
     public XAPlusFuture commit() throws InterruptedException {
@@ -252,6 +248,27 @@ public final class XAPlusEngine {
             throw new IllegalStateException("No transaction on this thread");
         }
         XAPlusTransaction transaction = context.getTransaction();
+        if (transaction.hasXAPlusBranches()) {
+            throw new IllegalStateException("Transaction has XA+ branches, specify xids to commit");
+        } else {
+            return commit(new ArrayList<>());
+        }
+    }
+
+    /**
+     * Start 2pc protocol
+     *
+     * @param xids XA+ xids to commit
+     * @return future to get result
+     * @throws InterruptedException commit operation was interrupted
+     */
+    public XAPlusFuture commit(List<XAPlusXid> xids) throws InterruptedException {
+        XAPlusThreadContext context = threadOfControl.getThreadContext();
+        if (!context.hasTransaction()) {
+            throw new IllegalStateException("No transaction on this thread");
+        }
+        XAPlusTransaction transaction = context.getTransaction();
+        transaction.clear(xids);
         context.clearTransaction();
         if (logger.isInfoEnabled()) {
             logger.info("User commit transaction, {}", transaction);
@@ -261,8 +278,9 @@ public final class XAPlusEngine {
     }
 
     /**
-     * Start rollback protocol
+     * Rollback XA transaction
      *
+     * @return future to get result
      * @throws InterruptedException rollback operation was interrupted
      */
     public XAPlusFuture rollback() throws InterruptedException {
@@ -271,6 +289,27 @@ public final class XAPlusEngine {
             throw new IllegalStateException("No transaction on this thread");
         }
         XAPlusTransaction transaction = context.getTransaction();
+        if (transaction.hasXAPlusBranches()) {
+            throw new IllegalStateException("Transaction has XA+ branches, specify xids to rollback");
+        } else {
+            return rollback(new ArrayList<>());
+        }
+    }
+
+    /**
+     * Start rollback protocol
+     *
+     * @param xids XA+ xids to rollback or nothing if no XA+ branches
+     * @return future to get result
+     * @throws InterruptedException rollback operation was interrupted
+     */
+    public XAPlusFuture rollback(List<XAPlusXid> xids) throws InterruptedException {
+        XAPlusThreadContext context = threadOfControl.getThreadContext();
+        if (!context.hasTransaction()) {
+            throw new IllegalStateException("No transaction on this thread");
+        }
+        XAPlusTransaction transaction = context.getTransaction();
+        transaction.clear(xids);
         context.clearTransaction();
         dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
         if (logger.isInfoEnabled()) {
@@ -286,6 +325,13 @@ public final class XAPlusEngine {
      */
     public String getServerId() {
         return properties.getServerId();
+    }
+
+    void startRecovery() throws InterruptedException {
+        if (logger.isInfoEnabled()) {
+            logger.info("Start recovery");
+        }
+        dispatcher.dispatch(new XAPlusRecoveryRequestEvent());
     }
 
     DataSource getTlogDataSource() {

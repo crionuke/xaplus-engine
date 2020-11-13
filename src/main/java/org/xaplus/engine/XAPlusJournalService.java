@@ -34,7 +34,6 @@ class XAPlusJournalService extends Bolt implements
         XAPlusDanglingTransactionCommittedEvent.Handler,
         XAPlusDanglingTransactionRolledBackEvent.Handler,
         XAPlusFindDanglingTransactionsRequestEvent.Handler,
-        XAPlusReportTransactionStatusRequestEvent.Handler,
         XAPlusUserCommitRequestEvent.Handler,
         XAPlusUserRollbackRequestEvent.Handler,
         XAPlusTransactionFinishedEvent.Handler {
@@ -281,32 +280,6 @@ class XAPlusJournalService extends Bolt implements
     }
 
     @Override
-    public void handleReportTransactionStatusRequest(XAPlusReportTransactionStatusRequestEvent event)
-            throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        try {
-            XAPlusXid xid = event.getXid();
-            XAPlusResource resource = event.getResource();
-
-            XAPlusTLog.TransactionStatus status = tlog.getTransactionStatus(xid);
-            if (!status.found) {
-                // TODO: or send some special event for unknown (non in-flight and non logged) branch?
-                dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
-            } else if (status.completed) {
-                dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
-            } else {
-                // TODO: what i can do here?
-            }
-        } catch (SQLException e) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Find transaction status from journal failed as {}", e.getMessage());
-            }
-        }
-    }
-
-    @Override
     public void handleUserCommitRequest(XAPlusUserCommitRequestEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
@@ -355,7 +328,6 @@ class XAPlusJournalService extends Bolt implements
         dispatcher.subscribe(this, XAPlusDanglingTransactionCommittedEvent.class);
         dispatcher.subscribe(this, XAPlusDanglingTransactionRolledBackEvent.class);
         dispatcher.subscribe(this, XAPlusFindDanglingTransactionsRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusReportTransactionStatusRequestEvent.class);
         dispatcher.subscribe(this, XAPlusUserCommitRequestEvent.class);
         dispatcher.subscribe(this, XAPlusUserRollbackRequestEvent.class);
         dispatcher.subscribe(this, XAPlusTransactionFinishedEvent.class);

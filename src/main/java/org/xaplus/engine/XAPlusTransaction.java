@@ -1,14 +1,13 @@
 package org.xaplus.engine;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.xa.XAPlusCommitBranchRequestEvent;
 import org.xaplus.engine.events.xa.XAPlusPrepareBranchRequestEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchRequestEvent;
 
 import javax.transaction.xa.XAResource;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -16,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 1.0.0
  */
 public class XAPlusTransaction {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusTransaction.class);
 
     private final XAPlusXid xid;
     private final String serverId;
@@ -45,11 +45,15 @@ public class XAPlusTransaction {
                 + "=(superiorServerId=" + superiorServerId
                 + ", " + (expireTimeInMillis - System.currentTimeMillis()) + " ms to expire"
                 + ", enlisted " + xaBranches.size() + " XA and " + xaPlusBranches.size() + " XA+ resources"
-                + ", xid=" + xid;
+                + ", xid=" + xid + ")";
     }
 
     XAPlusXid getXid() {
         return xid;
+    }
+
+    boolean hasXAPlusBranches() {
+        return !xaPlusBranches.isEmpty();
     }
 
     Set<XAPlusXid> getAllXids() {
@@ -94,6 +98,21 @@ public class XAPlusTransaction {
 
     void enlist(XAPlusXid branchXid, String serverId, XAPlusResource resource) {
         xaPlusBranches.put(branchXid, new XAPlusBranch(xid, branchXid, resource, serverId));
+    }
+
+    void clear(List<XAPlusXid> xids) {
+        Iterator<Map.Entry<XAPlusXid, XAPlusBranch>> iterator = xaPlusBranches.entrySet().iterator();
+        while (iterator.hasNext()) {
+            XAPlusXid xid = iterator.next().getKey();
+            if (xids.contains(xid)) {
+                continue;
+            } else {
+                if (logger.isInfoEnabled()) {
+                    logger.info("XA+ branch removed as not required, xid={}", xid);
+                }
+                iterator.remove();
+            }
+        }
     }
 
     boolean contains(XAPlusXid branchXid) {
