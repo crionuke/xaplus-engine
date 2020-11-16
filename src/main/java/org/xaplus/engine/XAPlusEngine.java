@@ -327,6 +327,7 @@ public final class XAPlusEngine {
         return properties.getServerId();
     }
 
+    // TODO: start recovery on start and by timer
     void startRecovery() throws InterruptedException {
         if (logger.isInfoEnabled()) {
             logger.info("Start recovery");

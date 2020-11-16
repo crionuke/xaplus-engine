@@ -158,9 +158,6 @@ class XAPlusRecoveryPreparerService extends Bolt implements
                 tracker.close();
                 tracker.reset();
             } else {
-                if (logger.isInfoEnabled()) {
-                    logger.info("Ready to recovery, starting");
-                }
                 dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(tracker.getJdbcConnections(),
                         tracker.getJmsConnections(), tracker.getXaResources(), tracker.getRecoveredXids(),
                         tracker.getDanglingTransactions()));

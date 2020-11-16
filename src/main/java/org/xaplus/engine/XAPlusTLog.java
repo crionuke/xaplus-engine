@@ -49,9 +49,9 @@ class XAPlusTLog {
                         XAPlusUid bqual = new XAPlusUid(resultSet.getBytes(2));
                         String uniqueName = resultSet.getString(3);
                         boolean tstatus = resultSet.getBoolean(4);
-                        if (logger.isDebugEnabled()) {
+                        if (logger.isTraceEnabled()) {
                             XAPlusXid xid = new XAPlusXid(gtrid, bqual);
-                            logger.debug("Dangling transaction found, uniqueName={}, xid={}, status={}",
+                            logger.trace("Dangling transaction found, uniqueName={}, xid={}, status={}",
                                     uniqueName, xid, tstatus);
                         }
                         Map<XAPlusXid, Boolean> xids = danglingTransactions.get(uniqueName);
@@ -67,10 +67,10 @@ class XAPlusTLog {
             if (logger.isDebugEnabled()) {
                 StringBuilder debugMessage = new StringBuilder();
                 debugMessage.append("Dangling transaction found on " +
-                        danglingTransactions.size() + " resources:\n");
+                        danglingTransactions.size() + " resources: ");
                 for (String uniqueName : danglingTransactions.keySet()) {
-                    debugMessage.append("Resource " + uniqueName + " has " +
-                            danglingTransactions.get(uniqueName).size() + " dangling transactions");
+                    debugMessage.append(uniqueName + " has " +
+                            danglingTransactions.get(uniqueName).size() + "; ");
                 }
                 logger.debug(debugMessage.toString());
             }

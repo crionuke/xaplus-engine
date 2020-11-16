@@ -57,6 +57,9 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                 logger.debug("Recovery already started");
             }
         } else {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Commit recovery");
+            }
             tracker.start(event.getJdbcConnections(), event.getJmsConnections(), event.getXaResources(),
                     event.getRecoveredXids(), event.getDanglingTransactions());
             retryOrders();
@@ -200,7 +203,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     }
                 } catch (XAPlusSystemException e) {
                     if (logger.isErrorEnabled()) {
-                        logger.error("Internal error. Retry order for non XA+ or unknown rsesource, xaResource={}",
+                        logger.error("Internal error. Retry order for non XA+ or unknown resource, resource={}",
                                 uniqueName);
                     }
                 }
@@ -249,9 +252,10 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                 }
             } else {
                 if (logger.isWarnEnabled()) {
-                    logger.warn("Unknown XA resource to recovery, xaResource={}", uniqueName);
+                    logger.warn("Unknown XA resource to recovery, resource={}", uniqueName);
                 }
             }
         }
+        // TODO: Handle orphan transaction found in journal but not recovered from XA resource
     }
 }
