@@ -77,5 +77,10 @@ public class XAPlusInternalScenarioTest extends XAPlusScenarioTest {
         assertNotNull(event2);
         assertTrue(event2.getStatus());
         assertEquals(value, event2.getValue());
+        // Reset scenario exceptions
+        requestSuperiorExceptions.reset();
+        // Superior recovery
+        superiorXAPlus.getEngine().startRecovery();
+        Thread.sleep(DEFAULT_TIMEOUT_S * 1000);
     }
 }

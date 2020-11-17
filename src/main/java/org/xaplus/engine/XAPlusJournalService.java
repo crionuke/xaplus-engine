@@ -14,10 +14,7 @@ import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
 
 import java.sql.SQLException;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -33,6 +30,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusRecoveredXidRolledBackEvent.Handler,
         XAPlusDanglingTransactionCommittedEvent.Handler,
         XAPlusDanglingTransactionRolledBackEvent.Handler,
+        XAPlusReportTransactionStatusRequestEvent.Handler,
         XAPlusFindDanglingTransactionsRequestEvent.Handler,
         XAPlusUserCommitRequestEvent.Handler,
         XAPlusUserRollbackRequestEvent.Handler,
@@ -256,6 +254,37 @@ class XAPlusJournalService extends Bolt implements
     }
 
     @Override
+    public void handleReportTransactionStatusRequest(XAPlusReportTransactionStatusRequestEvent event)
+            throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        XAPlusResource resource = event.getResource();
+        try {
+            boolean status = tlog.findTransactionStatus(xid);
+            if (status) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Transaction completed, report done status, xid={}", xid);
+                }
+                dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
+            } else {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Transaction not completed, xid={}", xid);
+                }
+            }
+        } catch (NoSuchElementException e) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Transaction not found, xid={}", xid);
+            }
+        } catch (SQLException e) {
+            if (logger.isWarnEnabled()) {
+                logger.warn("Report transaction status failed as {}", e.getMessage());
+            }
+        }
+    }
+
+    @Override
     public void handleFindDanglingTransactionsRequest(XAPlusFindDanglingTransactionsRequestEvent event)
             throws InterruptedException {
         if (logger.isTraceEnabled()) {
@@ -327,6 +356,7 @@ class XAPlusJournalService extends Bolt implements
         dispatcher.subscribe(this, XAPlusRecoveredXidRolledBackEvent.class);
         dispatcher.subscribe(this, XAPlusDanglingTransactionCommittedEvent.class);
         dispatcher.subscribe(this, XAPlusDanglingTransactionRolledBackEvent.class);
+        dispatcher.subscribe(this, XAPlusReportTransactionStatusRequestEvent.class);
         dispatcher.subscribe(this, XAPlusFindDanglingTransactionsRequestEvent.class);
         dispatcher.subscribe(this, XAPlusUserCommitRequestEvent.class);
         dispatcher.subscribe(this, XAPlusUserRollbackRequestEvent.class);

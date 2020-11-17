@@ -7,21 +7,24 @@ import javax.sql.DataSource;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
 class XAPlusTLog {
-    static final String DANGLING_SQL = "SELECT t_gtrid, t_bqual, t_unique_name, t_status " +
+    static final String FIND_DANGLING_TX_SQL = "SELECT t_gtrid, t_bqual, t_unique_name, t_status " +
             "FROM tlog WHERE t_server_id = ? AND t_timestamp < ? " +
             "GROUP BY t_bqual, t_gtrid, t_unique_name, t_status " +
             "HAVING COUNT(*) = 1";
-    static final String SELECT_SQL = "SELECT t_server_id, t_gtrid, t_bqual, t_unique_name, t_status, t_complete " +
-            "FROM tlog";
-    static final String INSERT_SQL = "INSERT INTO tlog " +
+    static final String FIND_TX_STATUS_SQL = "SELECT COUNT(*) AS t_count FROM tlog " +
+            "WHERE t_server_id = ? AND t_gtrid = ? GROUP BY t_bqual";
+    static final String INSERT_TX_STATUS_SQL = "INSERT INTO tlog " +
             "(t_timestamp, t_server_id, t_gtrid, t_bqual, t_unique_name, t_status, t_complete) " +
             "VALUES (?, ?, ?, ?, ?, ?, ?)";
+    static final String SELECT_SQL = "SELECT t_server_id, t_gtrid, t_bqual, t_unique_name, t_status, t_complete " +
+            "FROM tlog";
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTLog.class);
 
     static private final int FETCH_SIZE = 50;
@@ -33,12 +36,38 @@ class XAPlusTLog {
         this.engine = engine;
     }
 
+    boolean findTransactionStatus(XAPlusXid xid) throws SQLException, NoSuchElementException {
+        DataSource tlogDataSource = engine.getTlogDataSource();
+        try (Connection connection = tlogDataSource.getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(FIND_TX_STATUS_SQL)) {
+                statement.setFetchSize(FETCH_SIZE);
+                statement.setString(1, serverId);
+                statement.setBytes(2, xid.getGlobalTransactionId());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    int branches = 0;
+                    while (resultSet.next()) {
+                        branches++;
+                        int count = resultSet.getInt(1);
+                        if (count < 2) {
+                            return false;
+                        }
+                    }
+                    if (branches == 0) {
+                        throw new NoSuchElementException(xid + " not found");
+                    } else {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
     Map<String, Map<XAPlusXid, Boolean>> findDanglingTransactions(long inflightCutoff) throws SQLException {
         DataSource tlogDataSource = engine.getTlogDataSource();
         try (Connection connection = tlogDataSource.getConnection()) {
             connection.setAutoCommit(false);
             Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = new HashMap<>();
-            try (PreparedStatement statement = connection.prepareStatement(DANGLING_SQL)) {
+            try (PreparedStatement statement = connection.prepareStatement(FIND_DANGLING_TX_SQL)) {
                 statement.setFetchSize(FETCH_SIZE);
                 statement.setString(1, serverId);
                 statement.setTimestamp(2, new Timestamp(inflightCutoff));
@@ -119,7 +148,7 @@ class XAPlusTLog {
     private void log(Map<XAPlusXid, String> uniqueNames, boolean tstatus, boolean complete) throws SQLException {
         DataSource tlogDataSource = engine.getTlogDataSource();
         try (Connection connection = tlogDataSource.getConnection()) {
-            try (PreparedStatement statement = connection.prepareStatement(INSERT_SQL)) {
+            try (PreparedStatement statement = connection.prepareStatement(INSERT_TX_STATUS_SQL)) {
                 Timestamp timestamp = new Timestamp(System.currentTimeMillis());
                 statement.setTimestamp(1, timestamp);
                 statement.setString(2, serverId);

@@ -46,7 +46,7 @@ class XAPlusRecoveryPreparerService extends Bolt implements
             }
         } else {
             if (logger.isDebugEnabled()) {
-                logger.debug("Recovery started at {}", System.currentTimeMillis());
+                logger.debug("Prepare to recovery, {}", System.currentTimeMillis());
             }
             tracker.start();
             dispatcher.dispatch(new XAPlusFindDanglingTransactionsRequestEvent());

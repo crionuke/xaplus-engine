@@ -10,12 +10,16 @@ class XAPlusScenarioExceptions {
     volatile boolean retryException;
 
     XAPlusScenarioExceptions() {
-        this.cancelledException = false;
-        this.readiedException = false;
-        this.failedException = false;
-        this.commitException = false;
-        this.rollbackException = false;
-        this.doneException = false;
-        this.retryException = false;
+        reset();
+    }
+
+    void reset() {
+        cancelledException = false;
+        readiedException = false;
+        failedException = false;
+        commitException = false;
+        rollbackException = false;
+        doneException = false;
+        retryException = false;
     }
 }

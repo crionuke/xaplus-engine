@@ -58,7 +58,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             }
         } else {
             if (logger.isDebugEnabled()) {
-                logger.debug("Commit recovery");
+                logger.debug("Commit recovery, {}", System.currentTimeMillis());
             }
             tracker.start(event.getJdbcConnections(), event.getJmsConnections(), event.getXaResources(),
                     event.getRecoveredXids(), event.getDanglingTransactions());
