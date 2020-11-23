@@ -7,11 +7,11 @@ import org.xaplus.engine.XAPlusTransaction;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusTransactionFinishedEvent extends Event<XAPlusTransactionFinishedEvent.Handler> {
+public final class XAPlusTransactionClosedEvent extends Event<XAPlusTransactionClosedEvent.Handler> {
 
     private final XAPlusTransaction transaction;
 
-    public XAPlusTransactionFinishedEvent(XAPlusTransaction transaction) {
+    public XAPlusTransactionClosedEvent(XAPlusTransaction transaction) {
         super();
         if (transaction == null) {
             throw new NullPointerException("transaction is null");
@@ -21,7 +21,7 @@ public final class XAPlusTransactionFinishedEvent extends Event<XAPlusTransactio
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleTransactionFinished(this);
+        handler.handleTransactionClosed(this);
     }
 
     @Override
@@ -34,6 +34,6 @@ public final class XAPlusTransactionFinishedEvent extends Event<XAPlusTransactio
     }
 
     public interface Handler {
-        void handleTransactionFinished(XAPlusTransactionFinishedEvent event) throws InterruptedException;
+        void handleTransactionClosed(XAPlusTransactionClosedEvent event) throws InterruptedException;
     }
 }

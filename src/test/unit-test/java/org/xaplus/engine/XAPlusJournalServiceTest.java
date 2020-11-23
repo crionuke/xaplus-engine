@@ -15,6 +15,7 @@ import org.xaplus.engine.events.recovery.XAPlusRecoveredXidRolledBackEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 
+import javax.transaction.xa.XAException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -69,7 +70,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void testLogCommitTransactionDecisionSuccessfully() throws InterruptedException {
+    public void testLogCommitTransactionDecisionSuccessfully() throws InterruptedException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
         XAPlusCommitTransactionDecisionLoggedEvent event = commitTransactionDecisionLoggedEvents
@@ -79,7 +80,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void testLogCommitTransactionDecisionFailed() throws InterruptedException, SQLException {
+    public void testLogCommitTransactionDecisionFailed() throws InterruptedException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         Mockito.doThrow(new SQLException("log_exception")).when(tlogMock)
                 .logCommitTransactionDecision(transaction);
@@ -91,7 +92,8 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void testLogRollbackTransactionDecisionSuccessfully() throws InterruptedException {
+    public void testLogRollbackTransactionDecisionSuccessfully() throws InterruptedException, SQLException,
+            XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
         XAPlusRollbackTransactionDecisionLoggedEvent event = rollbackTransactionDecisionLoggedEvents
@@ -101,7 +103,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void testLogRollbackTransactionDecisionFailed() throws InterruptedException, SQLException {
+    public void testLogRollbackTransactionDecisionFailed() throws InterruptedException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         Mockito.doThrow(new SQLException("log_exception")).when(tlogMock)
                 .logRollbackTransactionDecision(transaction);

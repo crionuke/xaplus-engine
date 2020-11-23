@@ -6,9 +6,12 @@ import org.xaplus.engine.events.xa.XAPlusCommitBranchRequestEvent;
 import org.xaplus.engine.events.xa.XAPlusPrepareBranchRequestEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchRequestEvent;
 
+import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -22,6 +25,8 @@ public class XAPlusTransaction {
     private final String superiorServerId;
     private final long creationTimeInMillis;
     private final long expireTimeInMillis;
+    private final List<javax.sql.XAConnection> connections;
+    private final List<javax.jms.XAJMSContext> contexts;
     private final Map<XAPlusXid, XABranch> xaBranches;
     private final Map<XAPlusXid, XAPlusBranch> xaPlusBranches;
     private final XAPlusFuture future;
@@ -33,6 +38,8 @@ public class XAPlusTransaction {
         superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
         creationTimeInMillis = System.currentTimeMillis();
         expireTimeInMillis = creationTimeInMillis + timeoutInSeconds * 1000;
+        connections = new CopyOnWriteArrayList<>();
+        contexts = new CopyOnWriteArrayList<>();
         xaBranches = new ConcurrentHashMap<>();
         xaPlusBranches = new ConcurrentHashMap<>();
         future = new XAPlusFuture();
@@ -90,10 +97,31 @@ public class XAPlusTransaction {
         return future;
     }
 
-    // TODO: enlist and connections too, to close by engine when transaction completed
+    void enlist(XAPlusXid branchXid, String uniqueName, javax.sql.XAConnection connection)
+            throws SQLException, XAException {
+        connections.add(connection);
+        XAResource resource = connection.getXAResource();
+        startXABranch(branchXid, uniqueName, resource);
+    }
 
-    void enlist(XAPlusXid branchXid, String uniqueName, XAResource resource) {
-        xaBranches.put(branchXid, new XABranch(xid, branchXid, resource, uniqueName));
+    void enlist(XAPlusXid branchXid, String uniqueName, javax.jms.XAJMSContext context)
+            throws XAException {
+        contexts.add(context);
+        XAResource resource = context.getXAResource();
+        startXABranch(branchXid, uniqueName, resource);
+    }
+
+    void close() {
+        for (javax.sql.XAConnection connection : connections) {
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                logger.warn("Close connection failed, {}", e.getMessage(), e);
+            }
+        }
+        for (javax.jms.XAJMSContext context : contexts) {
+            context.close();
+        }
     }
 
     void enlist(XAPlusXid branchXid, String serverId, XAPlusResource resource) {
@@ -363,6 +391,17 @@ public class XAPlusTransaction {
         for (XAPlusBranch xaPlusBranch : xaPlusBranches.values()) {
             xaPlusBranch.reset();
         }
+    }
+
+    private void startXABranch(XAPlusXid branchXid, String uniqueName, XAResource resource) throws XAException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Starting branch, branchXid={}, resource={}", branchXid, resource);
+        }
+        resource.start(branchXid, XAResource.TMNOFLAGS);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Branch started, branchXid={}, resource={}", branchXid, resource);
+        }
+        xaBranches.put(branchXid, new XABranch(xid, branchXid, resource, uniqueName));
     }
 
     class XABranch {

@@ -7,10 +7,10 @@ import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCreateTransactionEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 
+import javax.jms.JMSContext;
 import javax.jms.JMSException;
 import javax.jms.Session;
 import javax.jms.XAConnectionFactory;
-import javax.jms.XASession;
 import javax.sql.DataSource;
 import javax.sql.XADataSource;
 import javax.transaction.xa.XAException;
@@ -32,7 +32,7 @@ public final class XAPlusEngine {
     private final XAPlusResources resources;
     private final XAPlusUidGenerator uidGenerator;
     private final XAPlusThreadOfControl threadOfControl;
-    private volatile DataSource tlogDataSource;
+    private volatile DataSource tLogDataSource;
 
     XAPlusEngine(XAPlusProperties properties, XAPlusDispatcher dispatcher,
                  XAPlusResources resources, XAPlusUidGenerator uidGenerator,
@@ -45,7 +45,10 @@ public final class XAPlusEngine {
     }
 
     public void setTLogDataSource(DataSource dataSource) {
-        this.tlogDataSource = dataSource;
+        if (dataSource == null) {
+            throw new NullPointerException("dataSource is null");
+        }
+        this.tLogDataSource = dataSource;
         if (logger.isTraceEnabled()) {
             logger.trace("Set journal dataSource={}", dataSource);
         }
@@ -94,15 +97,18 @@ public final class XAPlusEngine {
      * Begin new XA/XA+ transaction
      */
     public void begin() throws InterruptedException {
-        XAPlusThreadContext context = threadOfControl.getThreadContext();
-        if (context.hasTransaction()) {
+        if (tLogDataSource == null) {
+            throw new IllegalStateException("Transaction log data source undefined");
+        }
+        XAPlusThreadContext threadContext = threadOfControl.getThreadContext();
+        if (threadContext.hasTransaction()) {
             throw new IllegalStateException("Nested transactions not supported");
         }
         XAPlusXid xid = new XAPlusXid(uidGenerator.generateUid(properties.getServerId()),
                 uidGenerator.generateUid(properties.getServerId()));
         XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getDefaultTimeoutInSeconds(),
                 properties.getServerId());
-        context.setTransaction(transaction);
+        threadContext.setTransaction(transaction);
         dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
         if (logger.isInfoEnabled()) {
             logger.info("User begin transaction with new xid={}", xid);
@@ -118,13 +124,16 @@ public final class XAPlusEngine {
         if (xid == null) {
             throw new NullPointerException("xid is null");
         }
-        XAPlusThreadContext context = threadOfControl.getThreadContext();
-        if (context.hasTransaction()) {
+        if (tLogDataSource == null) {
+            throw new IllegalStateException("Transaction log data source undefined");
+        }
+        XAPlusThreadContext threadContext = threadOfControl.getThreadContext();
+        if (threadContext.hasTransaction()) {
             throw new IllegalStateException("Nested transactions not supported");
         }
         XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getDefaultTimeoutInSeconds(),
                 properties.getServerId());
-        context.setTransaction(transaction);
+        threadContext.setTransaction(transaction);
         dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
         if (logger.isInfoEnabled()) {
             logger.info("Joined to transaction with xid={}", xid);
@@ -139,15 +148,15 @@ public final class XAPlusEngine {
      * @throws SQLException access resource failed
      * @throws XAException  start XA resource failed
      */
-    public Connection enlistJdbc(String uniqueName) throws InterruptedException, SQLException, XAException {
+    public Connection enlistJdbc(String uniqueName) throws SQLException, XAException {
         if (uniqueName == null) {
             throw new NullPointerException("Unique name is null");
         }
-        XAPlusThreadContext context = threadOfControl.getThreadContext();
-        if (!context.hasTransaction()) {
+        XAPlusThreadContext threadContext = threadOfControl.getThreadContext();
+        if (!threadContext.hasTransaction()) {
             throw new IllegalStateException("No transaction on this thread");
         }
-        XAPlusTransaction transaction = context.getTransaction();
+        XAPlusTransaction transaction = threadContext.getTransaction();
         if (logger.isTraceEnabled()) {
             logger.trace("Enlisting XA resource, uniqueName={}, xid={}", uniqueName, transaction.getXid());
         }
@@ -157,7 +166,7 @@ public final class XAPlusEngine {
             throw new IllegalArgumentException("Unknown xaResource, name=" + uniqueName);
         }
         javax.sql.XAConnection connection = wrapper.get();
-        XAPlusXid branchXid = createAndStartBranch(uniqueName, connection.getXAResource());
+        XAPlusXid branchXid = createAndStartBranch(uniqueName, connection);
         if (logger.isInfoEnabled()) {
             logger.info("XA resource enlisted, uniqueName={}, branchXid={}, xid={}",
                     uniqueName, branchXid, transaction.getXid());
@@ -173,15 +182,15 @@ public final class XAPlusEngine {
      * @throws JMSException access resource failed
      * @throws XAException  start XA resource failed
      */
-    public Session enlistJms(String uniqueName) throws InterruptedException, JMSException, XAException {
+    public JMSContext enlistJms(String uniqueName) throws JMSException, XAException {
         if (uniqueName == null) {
             throw new NullPointerException("Unique name is null");
         }
-        XAPlusThreadContext context = threadOfControl.getThreadContext();
-        if (!context.hasTransaction()) {
+        XAPlusThreadContext threadContext = threadOfControl.getThreadContext();
+        if (!threadContext.hasTransaction()) {
             throw new IllegalStateException("No transaction on this thread");
         }
-        XAPlusTransaction transaction = context.getTransaction();
+        XAPlusTransaction transaction = threadContext.getTransaction();
         if (logger.isTraceEnabled()) {
             logger.trace("Enlisting XA resource, uniqueName={}, xid={}", uniqueName, transaction.getXid());
         }
@@ -190,14 +199,13 @@ public final class XAPlusEngine {
         if (wrapper == null) {
             throw new IllegalArgumentException("Unknown xaResource name=" + uniqueName);
         }
-        javax.jms.XAConnection connection = wrapper.get();
-        XASession session = connection.createXASession();
-        XAPlusXid branchXid = createAndStartBranch(uniqueName, session.getXAResource());
+        javax.jms.XAJMSContext context = wrapper.get();
+        XAPlusXid branchXid = createAndStartBranch(uniqueName, context);
         if (logger.isInfoEnabled()) {
             logger.info("XA resource enlisted, uniqueName={}, branchXid={}, xid={}",
                     uniqueName, branchXid, transaction.getXid());
         }
-        return session.getSession();
+        return context.getContext();
     }
 
     /**
@@ -211,11 +219,11 @@ public final class XAPlusEngine {
         if (serverId == null) {
             throw new NullPointerException("serverId is null");
         }
-        XAPlusThreadContext context = threadOfControl.getThreadContext();
-        if (!context.hasTransaction()) {
+        XAPlusThreadContext threadContext = threadOfControl.getThreadContext();
+        if (!threadContext.hasTransaction()) {
             throw new IllegalStateException("No transaction on this thread");
         }
-        XAPlusTransaction transaction = context.getTransaction();
+        XAPlusTransaction transaction = threadContext.getTransaction();
         if (!transaction.isSuperior()) {
             throw new IllegalStateException("Only superior has the right to enlist XA+ resources");
         }
@@ -243,11 +251,11 @@ public final class XAPlusEngine {
      * @throws InterruptedException commit operation was interrupted
      */
     public XAPlusFuture commit() throws InterruptedException {
-        XAPlusThreadContext context = threadOfControl.getThreadContext();
-        if (!context.hasTransaction()) {
+        XAPlusThreadContext threadContext = threadOfControl.getThreadContext();
+        if (!threadContext.hasTransaction()) {
             throw new IllegalStateException("No transaction on this thread");
         }
-        XAPlusTransaction transaction = context.getTransaction();
+        XAPlusTransaction transaction = threadContext.getTransaction();
         if (transaction.hasXAPlusBranches()) {
             throw new IllegalStateException("Transaction has XA+ branches, specify xids to commit");
         } else {
@@ -263,13 +271,13 @@ public final class XAPlusEngine {
      * @throws InterruptedException commit operation was interrupted
      */
     public XAPlusFuture commit(List<XAPlusXid> xids) throws InterruptedException {
-        XAPlusThreadContext context = threadOfControl.getThreadContext();
-        if (!context.hasTransaction()) {
+        XAPlusThreadContext threadContext = threadOfControl.getThreadContext();
+        if (!threadContext.hasTransaction()) {
             throw new IllegalStateException("No transaction on this thread");
         }
-        XAPlusTransaction transaction = context.getTransaction();
+        XAPlusTransaction transaction = threadContext.getTransaction();
         transaction.clear(xids);
-        context.clearTransaction();
+        threadContext.removeTransaction();
         if (logger.isInfoEnabled()) {
             logger.info("User commit transaction, {}", transaction);
         }
@@ -284,11 +292,11 @@ public final class XAPlusEngine {
      * @throws InterruptedException rollback operation was interrupted
      */
     public XAPlusFuture rollback() throws InterruptedException {
-        XAPlusThreadContext context = threadOfControl.getThreadContext();
-        if (!context.hasTransaction()) {
+        XAPlusThreadContext threadContext = threadOfControl.getThreadContext();
+        if (!threadContext.hasTransaction()) {
             throw new IllegalStateException("No transaction on this thread");
         }
-        XAPlusTransaction transaction = context.getTransaction();
+        XAPlusTransaction transaction = threadContext.getTransaction();
         if (transaction.hasXAPlusBranches()) {
             throw new IllegalStateException("Transaction has XA+ branches, specify xids to rollback");
         } else {
@@ -304,13 +312,13 @@ public final class XAPlusEngine {
      * @throws InterruptedException rollback operation was interrupted
      */
     public XAPlusFuture rollback(List<XAPlusXid> xids) throws InterruptedException {
-        XAPlusThreadContext context = threadOfControl.getThreadContext();
-        if (!context.hasTransaction()) {
+        XAPlusThreadContext threadContext = threadOfControl.getThreadContext();
+        if (!threadContext.hasTransaction()) {
             throw new IllegalStateException("No transaction on this thread");
         }
-        XAPlusTransaction transaction = context.getTransaction();
+        XAPlusTransaction transaction = threadContext.getTransaction();
         transaction.clear(xids);
-        context.clearTransaction();
+        threadContext.removeTransaction();
         dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
         if (logger.isInfoEnabled()) {
             logger.info("User rollback transaction, {}", transaction);
@@ -335,38 +343,30 @@ public final class XAPlusEngine {
         dispatcher.dispatch(new XAPlusRecoveryRequestEvent());
     }
 
-    DataSource getTlogDataSource() {
-        return tlogDataSource;
+    DataSource getTLogDataSource() {
+        return tLogDataSource;
     }
 
-    private XAPlusXid createAndStartBranch(String uniqueName, XAResource resource) throws XAException {
-        if (resource == null) {
-            throw new NullPointerException("Resource is null");
-        }
-        XAPlusThreadContext context = threadOfControl.getThreadContext();
-        XAPlusTransaction transaction = context.getTransaction();
+    private XAPlusXid createAndStartBranch(String uniqueName, javax.sql.XAConnection connection)
+            throws SQLException, XAException {
+        XAPlusTransaction transaction = threadOfControl.getThreadContext().getTransaction();
         XAPlusXid branchXid = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(),
                 properties.getServerId());
-        transaction.enlist(branchXid, uniqueName, resource);
-        if (logger.isTraceEnabled()) {
-            logger.trace("Starting branch, branchXid={}, resource={}", branchXid, resource);
-        }
-        resource.start(branchXid, XAResource.TMNOFLAGS);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Branch started, branchXid={}, resource={}", branchXid, resource);
-        }
+        transaction.enlist(branchXid, uniqueName, connection);
+        return branchXid;
+    }
+
+    private XAPlusXid createAndStartBranch(String uniqueName, javax.jms.XAJMSContext jmsContext)
+            throws XAException {
+        XAPlusTransaction transaction = threadOfControl.getThreadContext().getTransaction();
+        XAPlusXid branchXid = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(),
+                properties.getServerId());
+        transaction.enlist(branchXid, uniqueName, jmsContext);
         return branchXid;
     }
 
     private XAPlusXid createAndStartBranch(String serverId, XAPlusResource resource) throws XAException {
-        if (resource == null) {
-            throw new NullPointerException("Resource is null");
-        }
-        XAPlusThreadContext context = threadOfControl.getThreadContext();
-        if (!context.hasTransaction()) {
-            throw new IllegalStateException("No transaction on this thread");
-        }
-        XAPlusTransaction transaction = context.getTransaction();
+        XAPlusTransaction transaction = threadOfControl.getThreadContext().getTransaction();
         XAPlusXid branchXid = uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(), serverId);
         transaction.enlist(branchXid, serverId, resource);
         if (logger.isTraceEnabled()) {

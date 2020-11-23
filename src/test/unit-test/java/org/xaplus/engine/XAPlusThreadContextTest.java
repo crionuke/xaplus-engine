@@ -30,7 +30,7 @@ public class XAPlusThreadContextTest extends XAPlusTest {
         threadContext.setTransaction(transaction);
         assertTrue(threadContext.hasTransaction());
         assertEquals(transaction, threadContext.getTransaction());
-        threadContext.clearTransaction();
+        threadContext.removeTransaction();
         assertNull(threadContext.getTransaction());
         assertFalse(threadContext.hasTransaction());
     }

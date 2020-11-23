@@ -19,7 +19,7 @@ class XAPlusThreadContext {
         this.transaction = transaction;
     }
 
-    void clearTransaction() {
+    void removeTransaction() {
         transaction = null;
     }
 

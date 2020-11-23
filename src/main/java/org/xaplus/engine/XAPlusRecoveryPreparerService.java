@@ -61,10 +61,10 @@ class XAPlusRecoveryPreparerService extends Bolt implements
                         tracker.track(uniqueName, connection);
                         resource = connection.getXAResource();
                     } else if (wrapper instanceof XAPlusResources.XAConnectionFactoryWrapper) {
-                        javax.jms.XAConnection connection =
+                        javax.jms.XAJMSContext context =
                                 ((XAPlusResources.XAConnectionFactoryWrapper) wrapper).get();
-                        tracker.track(uniqueName, connection);
-                        resource = connection.createXASession().getXAResource();
+                        tracker.track(uniqueName, context);
+                        resource = context.getXAResource();
                     }
                     if (resource != null) {
                         dispatcher.dispatch(new XAPlusRecoveryResourceRequestEvent(uniqueName, resource));
@@ -159,7 +159,7 @@ class XAPlusRecoveryPreparerService extends Bolt implements
                 tracker.reset();
             } else {
                 dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(tracker.getJdbcConnections(),
-                        tracker.getJmsConnections(), tracker.getXaResources(), tracker.getRecoveredXids(),
+                        tracker.getJmsContexts(), tracker.getXaResources(), tracker.getRecoveredXids(),
                         tracker.getDanglingTransactions()));
                 tracker.reset();
             }

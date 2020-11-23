@@ -116,15 +116,15 @@ class XAPlusResources {
         }
     }
 
-    class XAConnectionFactoryWrapper extends Wrapper<XAConnectionFactory, javax.jms.XAConnection> {
+    class XAConnectionFactoryWrapper extends Wrapper<XAConnectionFactory, javax.jms.XAJMSContext> {
 
         XAConnectionFactoryWrapper(XAConnectionFactory xaConnectionFactory) {
             super(xaConnectionFactory);
         }
 
         @Override
-        javax.jms.XAConnection get() throws JMSException {
-            return resource.createXAConnection();
+        javax.jms.XAJMSContext get() throws JMSException {
+            return resource.createXAContext();
         }
     }
 

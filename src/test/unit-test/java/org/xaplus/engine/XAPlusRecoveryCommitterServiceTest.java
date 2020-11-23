@@ -118,7 +118,7 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusTest {
         TestXAResources xaResources = new TestXAResources();
         // Initiate prepare recovery
         dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(xaResources.getJdbcConnections(),
-                xaResources.getJmsConnections(), xaResources.getXaResources(), dataSet.allPreparedXids,
+                xaResources.getJmsContexts(), xaResources.getXaResources(), dataSet.allPreparedXids,
                 dataSet.xaDanglingTransactions));
         // Waiting commit requests
         List<XAPlusXid> committedXid = dataSet.xaDanglingXids.entrySet().stream()
@@ -154,7 +154,7 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusTest {
         TestXAResources xaResources = new TestXAResources();
         // Initiate prepare recovery
         dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(xaResources.getJdbcConnections(),
-                xaResources.getJmsConnections(), xaResources.getXaResources(), dataSet.allPreparedXids,
+                xaResources.getJmsContexts(), xaResources.getXaResources(), dataSet.allPreparedXids,
                 dataSet.xaDanglingTransactions));
         // Waiting retry requests
         HashSet<String> superiors = new HashSet<>();

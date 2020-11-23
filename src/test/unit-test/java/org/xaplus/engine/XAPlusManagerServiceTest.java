@@ -21,6 +21,8 @@ import org.xaplus.engine.exceptions.XAPlusCommitException;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
 import org.xaplus.engine.exceptions.XAPlusTimeoutException;
 
+import javax.transaction.xa.XAException;
+import java.sql.SQLException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -58,7 +60,7 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void testUserCommitRequest() throws InterruptedException {
+    public void testUserCommitRequest() throws InterruptedException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         XAPlus2pcRequestEvent event = twoPcRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -67,7 +69,7 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void testUserRollbackRequest() throws InterruptedException {
+    public void testUserRollbackRequest() throws InterruptedException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
         XAPlusRollbackRequestEvent event = rollbackRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -76,8 +78,8 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void test2pcDone()
-            throws InterruptedException, XAPlusCommitException, XAPlusRollbackException, XAPlusTimeoutException {
+    public void test2pcDone() throws InterruptedException, XAPlusCommitException, XAPlusRollbackException,
+            XAPlusTimeoutException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
@@ -85,8 +87,8 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void testRollbackDone()
-            throws InterruptedException, XAPlusCommitException, XAPlusRollbackException, XAPlusTimeoutException {
+    public void testRollbackDone() throws InterruptedException, XAPlusCommitException, XAPlusRollbackException,
+            XAPlusTimeoutException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
@@ -103,8 +105,8 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
 //    }
 
     @Test(expected = XAPlusRollbackException.class)
-    public void testRollbackFailed()
-            throws InterruptedException, XAPlusCommitException, XAPlusRollbackException, XAPlusTimeoutException {
+    public void testRollbackFailed() throws InterruptedException, XAPlusCommitException, XAPlusRollbackException,
+            XAPlusTimeoutException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
@@ -113,7 +115,7 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
 
     @Test(expected = XAPlusTimeoutException.class)
     public void testTimeout() throws InterruptedException, XAPlusCommitException, XAPlusRollbackException,
-            XAPlusTimeoutException {
+            XAPlusTimeoutException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         dispatcher.dispatch(new XAPlusTransactionTimedOutEvent(transaction));
@@ -121,7 +123,7 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void testRemoteSuperiorOrderToCommit() throws InterruptedException {
+    public void testRemoteSuperiorOrderToCommit() throws InterruptedException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToCommitEvent(transaction.getXid()));
         XAPlusReportTransactionStatusRequestEvent reportTransactionStatusRequestEvent =
@@ -131,7 +133,7 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
     }
 
     @Test
-    public void testRemoteSuperiorOrderToRollback() throws InterruptedException {
+    public void testRemoteSuperiorOrderToRollback() throws InterruptedException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(transaction.getXid()));
         XAPlusReportTransactionStatusRequestEvent reportTransactionStatusRequestEvent =

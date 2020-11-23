@@ -60,14 +60,13 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Commit recovery, {}", System.currentTimeMillis());
             }
-            tracker.start(event.getJdbcConnections(), event.getJmsConnections(), event.getXaResources(),
+            tracker.start(event.getJdbcConnections(), event.getJmsContexts(), event.getXaResources(),
                     event.getRecoveredXids(), event.getDanglingTransactions());
             retryOrders();
             recoveryResources();
             // TODO: close all connections opened to recover resources
         }
     }
-
 
     @Override
     public void handleRemoteSuperiorOrderToCommit(XAPlusRemoteSuperiorOrderToCommitEvent event)

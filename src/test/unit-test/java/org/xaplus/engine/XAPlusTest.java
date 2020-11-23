@@ -4,7 +4,9 @@ import org.junit.Assert;
 import org.xaplus.engine.stubs.*;
 
 import javax.sql.XAConnection;
+import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -68,14 +70,14 @@ public class XAPlusTest extends Assert {
         return uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(), serverId);
     }
 
-    protected XAPlusTransaction createTestSuperiorTransaction() {
+    protected XAPlusTransaction createTestSuperiorTransaction() throws SQLException, XAException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         XAPlusXid bxid1 = createJdbcXid(transaction);
-        transaction.enlist(bxid1, XA_RESOURCE_1, new XAResourceStub());
+        transaction.enlist(bxid1, XA_RESOURCE_1, new XAConnectionStub());
         XAPlusXid bxid2 = createJdbcXid(transaction);
-        transaction.enlist(bxid2, XA_RESOURCE_2, new XAResourceStub());
+        transaction.enlist(bxid2, XA_RESOURCE_2, new XAConnectionStub());
         XAPlusXid bxid3 = createJdbcXid(transaction);
-        transaction.enlist(bxid3, XA_RESOURCE_3, new XAResourceStub());
+        transaction.enlist(bxid3, XA_RESOURCE_3, new XAConnectionStub());
         XAPlusXid bxid4 = createXAPlusXid(transaction, XA_PLUS_RESOURCE_2);
         transaction.enlist(bxid4, XA_PLUS_RESOURCE_2, new XAPlusResourceStub());
         XAPlusXid bxid5 = createXAPlusXid(transaction, XA_PLUS_RESOURCE_3);
@@ -376,7 +378,7 @@ public class XAPlusTest extends Assert {
 
     class TestXAResources {
         Map<String, javax.sql.XAConnection> jdbcConnections;
-        Map<String, javax.jms.XAConnection> jmsConnections;
+        Map<String, javax.jms.XAJMSContext> jmsContexts;
         Map<String, XAResource> xaResources;
 
         TestXAResources() {
@@ -385,7 +387,7 @@ public class XAPlusTest extends Assert {
             jdbcConnections.put(XA_RESOURCE_2, new XAConnectionStub());
             jdbcConnections.put(XA_RESOURCE_3, new XAConnectionStub());
 
-            jmsConnections = new HashMap<>();
+            jmsContexts = new HashMap<>();
 
             xaResources = new HashMap<>();
             xaResources.put(XA_RESOURCE_1, new XAResourceStub());
@@ -397,8 +399,8 @@ public class XAPlusTest extends Assert {
             return jdbcConnections;
         }
 
-        Map<String, javax.jms.XAConnection> getJmsConnections() {
-            return jmsConnections;
+        Map<String, javax.jms.XAJMSContext> getJmsContexts() {
+            return jmsContexts;
         }
 
         Map<String, XAResource> getXaResources() {

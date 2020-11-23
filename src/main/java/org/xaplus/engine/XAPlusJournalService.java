@@ -8,7 +8,7 @@ import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionCommittedEvent
 import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionRolledBackEvent;
 import org.xaplus.engine.events.recovery.XAPlusRecoveredXidCommittedEvent;
 import org.xaplus.engine.events.recovery.XAPlusRecoveredXidRolledBackEvent;
-import org.xaplus.engine.events.tm.XAPlusTransactionFinishedEvent;
+import org.xaplus.engine.events.tm.XAPlusTransactionClosedEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
@@ -34,7 +34,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusFindDanglingTransactionsRequestEvent.Handler,
         XAPlusUserCommitRequestEvent.Handler,
         XAPlusUserRollbackRequestEvent.Handler,
-        XAPlusTransactionFinishedEvent.Handler {
+        XAPlusTransactionClosedEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusJournalService.class);
 
     private final XAPlusThreadPool threadPool;
@@ -333,7 +333,7 @@ class XAPlusJournalService extends Bolt implements
     }
 
     @Override
-    public void handleTransactionFinished(XAPlusTransactionFinishedEvent event) throws InterruptedException {
+    public void handleTransactionClosed(XAPlusTransactionClosedEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -360,6 +360,6 @@ class XAPlusJournalService extends Bolt implements
         dispatcher.subscribe(this, XAPlusFindDanglingTransactionsRequestEvent.class);
         dispatcher.subscribe(this, XAPlusUserCommitRequestEvent.class);
         dispatcher.subscribe(this, XAPlusUserRollbackRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusTransactionFinishedEvent.class);
+        dispatcher.subscribe(this, XAPlusTransactionClosedEvent.class);
     }
 }

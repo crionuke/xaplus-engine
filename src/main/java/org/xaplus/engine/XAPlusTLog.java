@@ -37,7 +37,7 @@ class XAPlusTLog {
     }
 
     boolean findTransactionStatus(XAPlusXid xid) throws SQLException, NoSuchElementException {
-        DataSource tlogDataSource = engine.getTlogDataSource();
+        DataSource tlogDataSource = engine.getTLogDataSource();
         try (Connection connection = tlogDataSource.getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(FIND_TX_STATUS_SQL)) {
                 statement.setFetchSize(FETCH_SIZE);
@@ -63,7 +63,7 @@ class XAPlusTLog {
     }
 
     Map<String, Map<XAPlusXid, Boolean>> findDanglingTransactions(long inflightCutoff) throws SQLException {
-        DataSource tlogDataSource = engine.getTlogDataSource();
+        DataSource tlogDataSource = engine.getTLogDataSource();
         try (Connection connection = tlogDataSource.getConnection()) {
             connection.setAutoCommit(false);
             Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = new HashMap<>();
@@ -146,7 +146,7 @@ class XAPlusTLog {
     }
 
     private void log(Map<XAPlusXid, String> uniqueNames, boolean tstatus, boolean complete) throws SQLException {
-        DataSource tlogDataSource = engine.getTlogDataSource();
+        DataSource tlogDataSource = engine.getTLogDataSource();
         try (Connection connection = tlogDataSource.getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(INSERT_TX_STATUS_SQL)) {
                 Timestamp timestamp = new Timestamp(System.currentTimeMillis());

@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.transaction.xa.XAException;
 import javax.transaction.xa.Xid;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -37,7 +38,7 @@ public class XAPlusTLogTest extends XAPlusTest {
     }
 
     @Test
-    public void testFindDanglingTransactions() throws SQLException {
+    public void testFindDanglingTransactions() throws SQLException, XAException {
         XAPlusTransaction transaction1 = createTestSuperiorTransaction();
         XAPlusTransaction transaction2 = createTestSuperiorTransaction();
         XAPlusTransaction transaction3 = createTestSuperiorTransaction();
@@ -117,7 +118,7 @@ public class XAPlusTLogTest extends XAPlusTest {
     }
 
     @Test
-    public void testLogCommitTransactionDecision() throws SQLException {
+    public void testLogCommitTransactionDecision() throws SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         Map<XAPlusXid, String> branches = transaction.getBranches();
         tLog.logCommitTransactionDecision(transaction);
@@ -133,7 +134,7 @@ public class XAPlusTLogTest extends XAPlusTest {
     }
 
     @Test
-    public void testLogTransactionCommitted() throws SQLException {
+    public void testLogTransactionCommitted() throws SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         Map<XAPlusXid, String> branches = transaction.getBranches();
         tLog.logTransactionCommitted(transaction);
@@ -149,7 +150,7 @@ public class XAPlusTLogTest extends XAPlusTest {
     }
 
     @Test
-    public void testLogRollbackTransactionDecision() throws SQLException {
+    public void testLogRollbackTransactionDecision() throws SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         Map<XAPlusXid, String> branches = transaction.getBranches();
         tLog.logRollbackTransactionDecision(transaction);
@@ -165,7 +166,7 @@ public class XAPlusTLogTest extends XAPlusTest {
     }
 
     @Test
-    public void testTransactionRolledBack() throws SQLException {
+    public void testTransactionRolledBack() throws SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         Map<XAPlusXid, String> branches = transaction.getBranches();
         tLog.logTransactionRolledBack(transaction);
@@ -182,7 +183,7 @@ public class XAPlusTLogTest extends XAPlusTest {
 
     List<TLogRecord> selectTLogRecords() throws SQLException {
         List<TLogRecord> records = new ArrayList<>();
-        try (Connection connection = engine.getTlogDataSource().getConnection()) {
+        try (Connection connection = engine.getTLogDataSource().getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(XAPlusTLog.SELECT_SQL)) {
                 try (ResultSet resultSet = statement.executeQuery()) {
                     while (resultSet.next()) {

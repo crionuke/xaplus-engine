@@ -16,7 +16,7 @@ class XAPlusRecoveryCommitterTracker {
 
     private boolean started;
     private Map<String, XAConnection> jdbcConnections;
-    private Map<String, javax.jms.XAConnection> jmsConnections;
+    private Map<String, javax.jms.XAJMSContext> jmsContexts;
     private Map<String, XAResource> xaResources;
     private Map<String, Set<XAPlusXid>> recoveredXids;
     private Map<String, Map<XAPlusXid, Boolean>> danglingTransactions;
@@ -24,17 +24,17 @@ class XAPlusRecoveryCommitterTracker {
     XAPlusRecoveryCommitterTracker() {
         started = false;
         jdbcConnections = new HashMap<>();
-        jmsConnections = new HashMap<>();
+        jmsContexts = new HashMap<>();
         xaResources = new HashMap<>();
         recoveredXids = new HashMap<>();
         danglingTransactions = new HashMap<>();
     }
 
-    void start(Map<String, XAConnection> jdbcConnections, Map<String, javax.jms.XAConnection> jmsConnections,
+    void start(Map<String, XAConnection> jdbcConnections, Map<String, javax.jms.XAJMSContext> jmsContexts,
                Map<String, XAResource> xaResources, Map<String, Set<XAPlusXid>> recoveredXids,
                Map<String, Map<XAPlusXid, Boolean>> danglingTransactions) {
         this.jdbcConnections = jdbcConnections;
-        this.jmsConnections = jmsConnections;
+        this.jmsContexts = jmsContexts;
         this.xaResources = xaResources;
         this.recoveredXids = recoveredXids;
         this.danglingTransactions = danglingTransactions;
@@ -48,8 +48,8 @@ class XAPlusRecoveryCommitterTracker {
         return jdbcConnections;
     }
 
-    Map<String, javax.jms.XAConnection> getJmsConnections() {
-        return jmsConnections;
+    Map<String, javax.jms.XAJMSContext> getJmsContexts() {
+        return jmsContexts;
     }
 
     Map<String, XAResource> getXaResources() {
@@ -77,17 +77,11 @@ class XAPlusRecoveryCommitterTracker {
             }
         }
         jdbcConnections.clear();
-        for (String uniqueName : jmsConnections.keySet()) {
-            javax.jms.XAConnection connection = jmsConnections.get(uniqueName);
-            try {
-                connection.close();
-            } catch (JMSException e) {
-                if (logger.isWarnEnabled()) {
-                    logger.warn("Close connection to {} failed, {}", uniqueName, e.getMessage());
-                }
-            }
+        for (String uniqueName : jmsContexts.keySet()) {
+            javax.jms.XAJMSContext context = jmsContexts.get(uniqueName);
+            context.close();
         }
-        jmsConnections.clear();
+        jmsContexts.clear();
         xaResources.clear();
         recoveredXids.clear();
         danglingTransactions.clear();

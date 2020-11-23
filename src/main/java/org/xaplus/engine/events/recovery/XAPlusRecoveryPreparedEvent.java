@@ -14,13 +14,13 @@ import java.util.Set;
 public final class XAPlusRecoveryPreparedEvent extends Event<XAPlusRecoveryPreparedEvent.Handler> {
 
     private final Map<String, javax.sql.XAConnection> jdbcConnections;
-    private final Map<String, javax.jms.XAConnection> jmsConnections;
+    private final Map<String, javax.jms.XAJMSContext> jmsContexts;
     private final Map<String, XAResource> xaResources;
     private final Map<String, Set<XAPlusXid>> recoveredXids;
     private final Map<String, Map<XAPlusXid, Boolean>> danglingTransactions;
 
     public XAPlusRecoveryPreparedEvent(Map<String, javax.sql.XAConnection> jdbcConnections,
-                                       Map<String, javax.jms.XAConnection> jmsConnections,
+                                       Map<String, javax.jms.XAJMSContext> jmsContexts,
                                        Map<String, XAResource> xaResources,
                                        Map<String, Set<XAPlusXid>> recoveredXids,
                                        Map<String, Map<XAPlusXid, Boolean>> danglingTransactions) {
@@ -28,8 +28,8 @@ public final class XAPlusRecoveryPreparedEvent extends Event<XAPlusRecoveryPrepa
         if (jdbcConnections == null) {
             throw new NullPointerException("jdbcConnections is null");
         }
-        if (jmsConnections == null) {
-            throw new NullPointerException("jmsConnections is null");
+        if (jmsContexts == null) {
+            throw new NullPointerException("jmsContexts is null");
         }
         if (xaResources == null) {
             throw new NullPointerException("xaResources is null");
@@ -41,7 +41,7 @@ public final class XAPlusRecoveryPreparedEvent extends Event<XAPlusRecoveryPrepa
             throw new NullPointerException("danglingTransactions is null");
         }
         this.jdbcConnections = jdbcConnections;
-        this.jmsConnections = jmsConnections;
+        this.jmsContexts = jmsContexts;
         this.xaResources = xaResources;
         this.recoveredXids = recoveredXids;
         this.danglingTransactions = danglingTransactions;
@@ -56,8 +56,8 @@ public final class XAPlusRecoveryPreparedEvent extends Event<XAPlusRecoveryPrepa
         return jdbcConnections;
     }
 
-    public Map<String, javax.jms.XAConnection> getJmsConnections() {
-        return jmsConnections;
+    public Map<String, javax.jms.XAJMSContext> getJmsContexts() {
+        return jmsContexts;
     }
 
     public Map<String, XAResource> getXaResources() {
