@@ -215,7 +215,7 @@ public final class XAPlusEngine {
      * @return {@link XAPlusXid} in string representation
      * @throws XAException access resource failed or start XA resource failed
      */
-    public XAPlusXid createXAPlusXid(String serverId) throws InterruptedException, XAException {
+    public XAPlusXid createXAPlusXid(String serverId) throws XAException {
         if (serverId == null) {
             throw new NullPointerException("serverId is null");
         }
