@@ -314,12 +314,13 @@ class XAPlusService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Cancelled status for xid reported, xid={}", xid);
             }
-            dispatcher.dispatch(new XAPlusReadiedStatusReportedEvent(xid));
-        } catch (XAPlusException readyException) {
+            dispatcher.dispatch(new XAPlusCancelledStatusReportedEvent(xid));
+        } catch (XAPlusException cancelledException) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Report cancelled status for xid failed as {}, xid={}", readyException.getMessage(), xid);
+                logger.warn("Report cancelled status for xid failed as {}, xid={}",
+                        cancelledException.getMessage(), xid);
             }
-            dispatcher.dispatch(new XAPlusReportReadiedStatusFailedEvent(xid, readyException));
+            dispatcher.dispatch(new XAPlusReportCancelledStatusFailedEvent(xid, cancelledException));
         }
     }
 
