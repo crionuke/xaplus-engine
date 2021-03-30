@@ -80,7 +80,7 @@ public class XAPlusInternalScenarioTest extends XAPlusScenarioTest {
         // Reset scenario exceptions
         requestSuperiorExceptions.reset();
         // Superior recovery
-        superiorXAPlus.getEngine().startRecovery();
+        superiorXAPlus.engine.startRecovery();
         Thread.sleep(DEFAULT_TIMEOUT_S * 1000);
     }
 }

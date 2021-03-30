@@ -136,7 +136,7 @@ public class XAPlusScenarioTest extends Assert {
         Superior(XAPlus xaPlus) {
             super(XA_PLUS_SUPERIOR, QUEUE_SIZE);
             this.xaPlus = xaPlus;
-            engine = xaPlus.getEngine();
+            engine = xaPlus.engine;
             engine.register(database1, XA_RESOURCE_DATABASE_1);
             engine.setTLogDataSource(tlog);
             engine.register(subordinateServer, XA_PLUS_SUBORDINATE);
@@ -209,7 +209,7 @@ public class XAPlusScenarioTest extends Assert {
         Subordinate(XAPlus xaPlus) {
             super(XA_PLUS_SUBORDINATE, QUEUE_SIZE);
             this.xaPlus = xaPlus;
-            engine = xaPlus.getEngine();
+            engine = xaPlus.engine;
             engine.register(database2, XA_RESOURCE_DATABASE_2);
             engine.setTLogDataSource(tlog);
             engine.register(superiorServer, XA_PLUS_SUPERIOR);
