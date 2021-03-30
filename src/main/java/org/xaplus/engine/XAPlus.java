@@ -32,8 +32,7 @@ public class XAPlus {
         threadPool = new XAPlusThreadPool();
         dispatcher = new XAPlusDispatcher();
         resources = new XAPlusResources();
-        engine = new XAPlusEngine(properties, dispatcher, resources, new XAPlusUidGenerator(),
-                new XAPlusThreadOfControl());
+        engine = new XAPlusEngine(properties, dispatcher, resources, new XAPlusThreadOfControl());
         tickService = new XAPlusTickService(properties, threadPool, dispatcher);
         timerService = new XAPlusTimerService(properties, threadPool, dispatcher, new XAPlusTimerState());
         managerService = new XAPlusManagerService(properties, threadPool, dispatcher, resources);

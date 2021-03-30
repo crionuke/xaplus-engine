@@ -16,6 +16,7 @@
 package org.xaplus.engine;
 
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Ludovic Orban
@@ -23,71 +24,62 @@ import java.util.Arrays;
  */
 final class XAPlusUid {
 
-    private static final char[] HEX = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+    static private final AtomicInteger sequenceGenerator = new AtomicInteger();
+
+    /**
+     * Generate UID based on serverId
+     *
+     * @param serverId serverId to generate UID
+     * @return
+     */
+    static XAPlusUid generate(String serverId) {
+        byte[] timestamp = XAPlusNumbersEncoderDecoder.longToBytes(XAPlusMonotonicClock.currentTimeMillis());
+        byte[] sequence = XAPlusNumbersEncoderDecoder.intToBytes(sequenceGenerator.incrementAndGet());
+        byte[] serverIdBytes = serverId.getBytes();
+
+        int uidLength = serverIdBytes.length + timestamp.length + sequence.length;
+        byte[] uidArray = new byte[uidLength];
+
+        System.arraycopy(serverIdBytes, 0, uidArray, 0, serverIdBytes.length);
+        System.arraycopy(timestamp, 0, uidArray, serverIdBytes.length, timestamp.length);
+        System.arraycopy(sequence, 0, uidArray, serverIdBytes.length + timestamp.length, sequence.length);
+
+        return new XAPlusUid(uidArray);
+    }
+
     private final byte[] array;
     private final int hashCodeValue;
     private final String toStringValue;
 
-    XAPlusUid(String hex) {
-        this(hexToArray(hex));
-    }
-
     XAPlusUid(byte[] array) {
         this.array = new byte[array.length];
         System.arraycopy(array, 0, this.array, 0, array.length);
-        this.hashCodeValue = arrayHashCode(array);
-        this.toStringValue = arrayToHex(array);
+        this.hashCodeValue = XAPlusArraysEncoderDecoder.arrayHashCode(array);
+        this.toStringValue = XAPlusArraysEncoderDecoder.arrayToHex(array);
     }
 
-    /**
-     * Compute a UID byte array hashcode value.
-     *
-     * @param uid the byte array used for hashcode computation.
-     * @return a constant hash value for the specified uid.
-     */
-    private static int arrayHashCode(byte[] uid) {
-        int hash = 0;
-        // Common fast but good hash with wide dispersion
-        for (int i = uid.length - 1; i > 0; i--) {
-            // rotate left and xor
-            // (very fast in assembler, a bit clumsy in Java)
-            hash <<= 1;
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof XAPlusUid) {
+            XAPlusUid otherXAPlusUid = (XAPlusUid) obj;
 
-            if (hash < 0) {
-                hash |= 1;
-            }
+            // optimizes performance a bit
+            if (hashCodeValue != otherXAPlusUid.hashCodeValue)
+                return false;
 
-            hash ^= uid[i];
+            return Arrays.equals(array, otherXAPlusUid.array);
         }
-        return hash;
+        return false;
     }
 
-    /**
-     * Decode a UID byte array into a (somewhat) human-readable hex string.
-     *
-     * @param uid the uid to decode.
-     * @return the resulting printable string.
-     */
-    private static String arrayToHex(byte[] uid) {
-        char[] hexChars = new char[uid.length * 2];
-        int c = 0;
-        int v;
-        for (int i = 0; i < uid.length; i++) {
-            v = uid[i] & 0xFF;
-            hexChars[c++] = HEX[v >> 4];
-            hexChars[c++] = HEX[v & 0xF];
-        }
-        return new String(hexChars);
+    @Override
+    public int hashCode() {
+        return hashCodeValue;
     }
 
-    private static byte[] hexToArray(String uid) {
-        int len = uid.length();
-        byte[] bytes = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            bytes[i / 2] = (byte) ((Character.digit(uid.charAt(i), 16) << 4)
-                    + Character.digit(uid.charAt(i + 1), 16));
-        }
-        return bytes;
+    @Override
+    public String toString() {
+        return toStringValue;
     }
 
     byte[] getArray() {
@@ -114,30 +106,6 @@ final class XAPlusUid {
 
     int length() {
         return array.length;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof XAPlusUid) {
-            XAPlusUid otherXAPlusUid = (XAPlusUid) obj;
-
-            // optimizes performance a bit
-            if (hashCodeValue != otherXAPlusUid.hashCodeValue)
-                return false;
-
-            return Arrays.equals(array, otherXAPlusUid.array);
-        }
-        return false;
-    }
-
-    @Override
-    public int hashCode() {
-        return hashCodeValue;
-    }
-
-    @Override
-    public String toString() {
-        return toStringValue;
     }
 }
 

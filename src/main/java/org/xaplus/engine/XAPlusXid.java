@@ -26,13 +26,44 @@ public class XAPlusXid implements javax.transaction.xa.Xid {
      */
     static final int FORMAT_ID = 0x42746e78;
 
+    /**
+     * Decode XID from string representation
+     *
+     * @param xidString string to decode
+     * @return {@link XAPlusXid}
+     */
+    static public XAPlusXid fromString(String xidString) {
+        if (xidString == null) {
+            throw new NullPointerException("xid is null");
+        }
+        String[] gtridBqual = xidString.split(":");
+        if (gtridBqual.length == 2) {
+            XAPlusUid globalTransactionId = new XAPlusUid(XAPlusArraysEncoderDecoder.hexToArray(gtridBqual[0]));
+            XAPlusUid branchQualifier = new XAPlusUid(XAPlusArraysEncoderDecoder.hexToArray(gtridBqual[1]));
+            return new XAPlusXid(globalTransactionId, branchQualifier);
+        } else {
+            throw new IllegalArgumentException("Wrong xid=" + xidString + " to decoder");
+        }
+    }
+
+    /**
+     * Generate a new XID based on gtrid and new bqual for serverId.
+     *
+     * @param gtrid    the GTRID to use to generate the xid
+     * @param serverId who will execute branch, used for bqual generation
+     * @return the generated xid.
+     */
+    static XAPlusXid generate(XAPlusUid gtrid, String serverId) {
+        return new XAPlusXid(gtrid, XAPlusUid.generate(serverId));
+    }
+
     private final XAPlusUid globalTransactionId;
     private final XAPlusUid branchQualifier;
     private final int hashCodeValue;
     private final String toStringValue;
 
     /**
-     * Create a newnew XID using the specified GTRID and BQUAL.
+     * Create a new XID using the specified GTRID and BQUAL.
      *
      * @param globalTransactionId the GTRID.
      * @param branchQualifier     the BQUAL.
@@ -58,24 +89,6 @@ public class XAPlusXid implements javax.transaction.xa.Xid {
         this.branchQualifier = new XAPlusUid(xid.getBranchQualifier());
         this.toStringValue = precalculateToString();
         this.hashCodeValue = precalculateHashCode();
-    }
-
-    // xid in gtridAsHex:bqualAsHex format
-    XAPlusXid(String xidString) {
-        if (xidString == null) {
-            throw new NullPointerException("xid is null");
-        }
-        String[] gtridBqual = xidString.split(":");
-        if (gtridBqual.length == 2) {
-            XAPlusUid globalTransactionId = new XAPlusUid(gtridBqual[0]);
-            XAPlusUid branchQualifier = new XAPlusUid(gtridBqual[1]);
-            this.globalTransactionId = globalTransactionId;
-            this.branchQualifier = branchQualifier;
-            this.toStringValue = precalculateToString();
-            this.hashCodeValue = precalculateHashCode();
-        } else {
-            throw new IllegalArgumentException("Wrong xid=" + xidString);
-        }
     }
 
     /**

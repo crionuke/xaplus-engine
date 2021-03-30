@@ -53,9 +53,9 @@ public class XAPlusIntegrationTest extends XAPlusTest {
 
         OneBranchTransaction(String serverId) throws SQLException {
             super();
-            XAPlusXid xid = new XAPlusXid(uidGenerator.generateUid(serverId), uidGenerator.generateUid(serverId));
+            XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(serverId), XAPlusUid.generate(serverId));
             xaPlusTransaction = new XAPlusTransaction(xid, properties.getDefaultTimeoutInSeconds(), serverId);
-            branchXid = uidGenerator.generateXid(xid.getGlobalTransactionIdUid(), serverId);
+            branchXid = XAPlusXid.generate(xid.getGlobalTransactionIdUid(), serverId);
         }
 
         XAPlusXid getXid() {

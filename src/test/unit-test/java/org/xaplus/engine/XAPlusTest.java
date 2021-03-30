@@ -28,7 +28,6 @@ public class XAPlusTest extends Assert {
 
     protected XAPlusProperties properties;
     protected XAPlusResources resources;
-    protected XAPlusUidGenerator uidGenerator;
     protected XAPlusThreadOfControl threadOfControl;
     protected XAPlusEngine engine;
     protected XAPlusThreadPool threadPool;
@@ -47,27 +46,25 @@ public class XAPlusTest extends Assert {
         resources.register(new XAPlusFactoryStub(), XA_PLUS_RESOURCE_1);
         resources.register(new XAPlusFactoryStub(), XA_PLUS_RESOURCE_2);
         resources.register(new XAPlusFactoryStub(), XA_PLUS_RESOURCE_3);
-        uidGenerator = new XAPlusUidGenerator();
         threadOfControl = new XAPlusThreadOfControl();
-        engine = new XAPlusEngine(properties, dispatcher, resources, uidGenerator, threadOfControl);
+        engine = new XAPlusEngine(properties, dispatcher, resources, threadOfControl);
         threadPool = new XAPlusThreadPool();
         dispatcher = new XAPlusDispatcher();
     }
 
     protected XAPlusTransaction createTransaction(String gtridServerId, String bqualServerId) {
-        XAPlusXid xid = new XAPlusXid(uidGenerator.generateUid(gtridServerId),
-                uidGenerator.generateUid(bqualServerId));
+        XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(gtridServerId), XAPlusUid.generate(bqualServerId));
         XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getDefaultTimeoutInSeconds(),
                 properties.getServerId());
         return transaction;
     }
 
     protected XAPlusXid createJdbcXid(XAPlusTransaction transaction) {
-        return uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(), properties.getServerId());
+        return XAPlusXid.generate(transaction.getXid().getGlobalTransactionIdUid(), properties.getServerId());
     }
 
     protected XAPlusXid createXAPlusXid(XAPlusTransaction transaction, String serverId) {
-        return uidGenerator.generateXid(transaction.getXid().getGlobalTransactionIdUid(), serverId);
+        return XAPlusXid.generate(transaction.getXid().getGlobalTransactionIdUid(), serverId);
     }
 
     protected XAPlusTransaction createTestSuperiorTransaction() throws SQLException, XAException {
