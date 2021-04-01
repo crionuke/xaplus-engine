@@ -55,16 +55,19 @@ public class XAPlusScenarioTest extends Assert {
 
     ExecutorService testThreadPool;
     Dispatcher testDispatcher;
-    Controller controllerBolt;
+
     Local localBolt;
     Superior superiorBolt;
     Subordinate subordinateBolt;
+    Controller controllerBolt;
 
     void createComponents() {
+        // Datasources to tests
         tlog = createTLog();
         database1 = createDatabase1();
         database2 = createDatabase2();
 
+        // XAPlus components to bolts
         localXAPlus = new XAPlus(XA_PLUS_LOCAL, DEFAULT_TIMEOUT_S);
         superiorXAPlus = new XAPlus(XA_PLUS_SUPERIOR, DEFAULT_TIMEOUT_S);
         subordinateXAPLus = new XAPlus(XA_PLUS_SUBORDINATE, DEFAULT_TIMEOUT_S);
@@ -75,6 +78,7 @@ public class XAPlusScenarioTest extends Assert {
         superiorServer = new XAPlusTestServer(requestSuperiorExceptions, superiorXAPlus.dispatcher);
         subordinateServer = new XAPlusTestServer(subordinateScenarioExceptions, subordinateXAPLus.dispatcher);
 
+        // Container for events
         localScenarioFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         scenarioSuperiorFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         scenarioSuperiorFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -84,18 +88,19 @@ public class XAPlusScenarioTest extends Assert {
         testThreadPool = Executors.newFixedThreadPool(16);
         testDispatcher = new Dispatcher();
 
-        controllerBolt = new Controller();
-        controllerBolt.postConstruct();
-
+        // Create and construct bolts
         localBolt = new Local(localXAPlus);
         localBolt.postConstruct();
         superiorBolt = new Superior(superiorXAPlus);
         superiorBolt.postConstruct();
         subordinateBolt = new Subordinate(subordinateXAPLus);
         subordinateBolt.postConstruct();
+        controllerBolt = new Controller();
+        controllerBolt.postConstruct();
     }
 
     void start() {
+        // Construct components
         localXAPlus.start();
         superiorXAPlus.start();
         subordinateXAPLus.start();
@@ -107,6 +112,7 @@ public class XAPlusScenarioTest extends Assert {
         return value;
     }
 
+    // Start XA+ scenario
     long startGlobalScenario(boolean superiorBeforeRequestException,
                              boolean superiorBeforeCommitException,
                              boolean subordinateBeforeCommitException) throws InterruptedException {
@@ -205,6 +211,7 @@ public class XAPlusScenarioTest extends Assert {
         }
     }
 
+    // Superior side for global transaction test
     class Superior extends Bolt
             implements XAPlusGlobalScenarioInitialRequestEvent.Handler {
 
@@ -279,6 +286,7 @@ public class XAPlusScenarioTest extends Assert {
         }
     }
 
+    // Subordinate side for global transaction test
     class Subordinate extends Bolt implements XAPlusScenarioSubordinateRequestEvent.Handler {
 
         XAPlus xaPlus;
@@ -344,6 +352,7 @@ public class XAPlusScenarioTest extends Assert {
         }
     }
 
+    // Bolt to collect events to queues
     class Controller extends Bolt implements
             XAPlusLocalScenarioFinishedEvent.Handler,
             XAPlusScenarioSuperiorFinishedEvent.Handler,
