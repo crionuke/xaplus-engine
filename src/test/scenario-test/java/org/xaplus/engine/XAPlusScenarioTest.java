@@ -29,6 +29,7 @@ public class XAPlusScenarioTest extends Assert {
     static final String XA_RESOURCE_DATABASE_1 = "database1";
     static final String XA_RESOURCE_DATABASE_2 = "database2";
     static final String XA_PLUS_LOCAL = "local";
+    static final String XA_PLUS_DISTRIBUTED = "distributed";
     static final String XA_PLUS_SUPERIOR = "superior";
     static final String XA_PLUS_SUBORDINATE = "subordinate";
     static private final Logger logger = LoggerFactory.getLogger(XAPlusScenarioTest.class);
@@ -38,6 +39,7 @@ public class XAPlusScenarioTest extends Assert {
     PGXADataSource database2;
 
     XAPlus localXAPlus;
+    XAPlus distributedXAPlus;
     XAPlus superiorXAPlus;
     XAPlus subordinateXAPLus;
 
@@ -48,6 +50,8 @@ public class XAPlusScenarioTest extends Assert {
     XAPlusTestServer subordinateServer;
 
     BlockingQueue<XAPlusLocalScenarioFinishedEvent> localScenarioFinishedEvents;
+    BlockingQueue<XAPlusDistributedScenarioFinishedEvent> distributedScenarioFinishedEvents;
+    BlockingQueue<XAPlusDistributedScenarioFailedEvent> distributedScenarioFailedEvents;
     BlockingQueue<XAPlusScenarioSuperiorFinishedEvent> scenarioSuperiorFinishedEvents;
     BlockingQueue<XAPlusScenarioSuperiorFailedEvent> scenarioSuperiorFailedEvents;
     BlockingQueue<XAPlusScenarioSubordinateFinishedEvent> scenarioSubordinateFinishedEvents;
@@ -57,6 +61,7 @@ public class XAPlusScenarioTest extends Assert {
     Dispatcher testDispatcher;
 
     Local localBolt;
+    Distributed distributedBolt;
     Superior superiorBolt;
     Subordinate subordinateBolt;
     Controller controllerBolt;
@@ -69,6 +74,7 @@ public class XAPlusScenarioTest extends Assert {
 
         // XAPlus components to bolts
         localXAPlus = new XAPlus(XA_PLUS_LOCAL, DEFAULT_TIMEOUT_S);
+        distributedXAPlus = new XAPlus(XA_PLUS_DISTRIBUTED, DEFAULT_TIMEOUT_S);
         superiorXAPlus = new XAPlus(XA_PLUS_SUPERIOR, DEFAULT_TIMEOUT_S);
         subordinateXAPLus = new XAPlus(XA_PLUS_SUBORDINATE, DEFAULT_TIMEOUT_S);
 
@@ -80,6 +86,8 @@ public class XAPlusScenarioTest extends Assert {
 
         // Container for events
         localScenarioFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        distributedScenarioFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        distributedScenarioFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         scenarioSuperiorFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         scenarioSuperiorFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         scenarioSubordinateFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -91,6 +99,8 @@ public class XAPlusScenarioTest extends Assert {
         // Create and construct bolts
         localBolt = new Local(localXAPlus);
         localBolt.postConstruct();
+        distributedBolt = new Distributed(distributedXAPlus);
+        distributedBolt.postConstruct();
         superiorBolt = new Superior(superiorXAPlus);
         superiorBolt.postConstruct();
         subordinateBolt = new Subordinate(subordinateXAPLus);
@@ -102,6 +112,7 @@ public class XAPlusScenarioTest extends Assert {
     void start() {
         // Construct components
         localXAPlus.start();
+        distributedXAPlus.start();
         superiorXAPlus.start();
         subordinateXAPLus.start();
     }
@@ -109,6 +120,12 @@ public class XAPlusScenarioTest extends Assert {
     long startLocalScenario() throws InterruptedException {
         long value = Math.round(100000 + Math.random() * 899999);
         testDispatcher.dispatch(new XAPlusLocalScenarioInitialRequestEvent(value));
+        return value;
+    }
+
+    long startDistributedScenario() throws InterruptedException {
+        long value = Math.round(100000 + Math.random() * 899999);
+        testDispatcher.dispatch(new XAPlusDistributedScenarioInitialRequestEvent(value));
         return value;
     }
 
@@ -183,7 +200,7 @@ public class XAPlusScenarioTest extends Assert {
                 future = engine.commit();
             } catch (Exception e) {
                 if (logger.isWarnEnabled()) {
-                    logger.warn("Transaction failed as {}", e.getMessage());
+                    logger.warn("Local transaction failed as {}", e.getMessage());
                 }
                 // Rollback local transaction
                 future = engine.rollback();
@@ -208,6 +225,75 @@ public class XAPlusScenarioTest extends Assert {
         void postConstruct() {
             testThreadPool.execute(this);
             testDispatcher.subscribe(this, XAPlusLocalScenarioInitialRequestEvent.class);
+        }
+    }
+
+    // Distributed transaction implementation for test
+    class Distributed extends Bolt
+            implements XAPlusDistributedScenarioInitialRequestEvent.Handler {
+
+        XAPlus xaPlus;
+        XAPlusEngine engine;
+
+        Distributed(XAPlus xaPlus) {
+            super(XA_PLUS_DISTRIBUTED, QUEUE_SIZE);
+            this.xaPlus = xaPlus;
+            engine = xaPlus.engine;
+            engine.register(database1, XA_RESOURCE_DATABASE_1);
+            engine.register(database2, XA_RESOURCE_DATABASE_2);
+            engine.setTLogDataSource(tlog);
+        }
+
+        @Override
+        public void handleDistributedScenarioInitialRequest(XAPlusDistributedScenarioInitialRequestEvent event) throws InterruptedException {
+            if (logger.isTraceEnabled()) {
+                logger.trace("Handle {}", event);
+            }
+            long value = event.getValue();
+            XAPlusFuture future;
+            try {
+                engine.begin();
+                // Enlist and change jdbc resource1
+                Connection connection1 = engine.enlistJdbc(XA_RESOURCE_DATABASE_1);
+                try (PreparedStatement statement = connection1.prepareStatement(INSERT_VALUE)) {
+                    statement.setLong(1, value);
+                    statement.executeUpdate();
+                }
+                // Enlist and change jdbc resource2
+                Connection connection2 = engine.enlistJdbc(XA_RESOURCE_DATABASE_2);
+                try (PreparedStatement statement = connection2.prepareStatement(INSERT_VALUE)) {
+                    statement.setLong(1, value);
+                    statement.executeUpdate();
+                }
+                // Commit distributed transaction
+                future = engine.commit();
+            } catch (Exception e) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Distributed transaction failed as {}", e.getMessage());
+                }
+                // Rollback distributed transaction
+                future = engine.rollback();
+            }
+            // Wait result
+            try {
+                boolean status = future.get();
+                logger.info("Distributed transaction finished, status={}", status);
+                testDispatcher.dispatch(new XAPlusDistributedScenarioFinishedEvent(status, value));
+            } catch (XAPlusCommitException commitException) {
+                logger.info("Distributed transaction commit exception, {}", commitException.getMessage());
+                testDispatcher.dispatch(new XAPlusDistributedScenarioFailedEvent(value, commitException));
+            } catch (XAPlusRollbackException rollbackException) {
+                logger.info("Distributed transaction rollback exception, {}", rollbackException.getMessage());
+                testDispatcher.dispatch(new XAPlusDistributedScenarioFailedEvent(value, rollbackException));
+            } catch (XAPlusTimeoutException timeoutException) {
+                logger.info("Distributed transaction timeout exception, {}", timeoutException.getMessage());
+                testDispatcher.dispatch(new XAPlusDistributedScenarioFailedEvent(value, timeoutException));
+            }
+        }
+
+        void postConstruct() {
+            testThreadPool.execute(this);
+            testDispatcher.subscribe(this, XAPlusDistributedScenarioInitialRequestEvent.class);
         }
     }
 
@@ -355,6 +441,8 @@ public class XAPlusScenarioTest extends Assert {
     // Bolt to collect events to queues
     class Controller extends Bolt implements
             XAPlusLocalScenarioFinishedEvent.Handler,
+            XAPlusDistributedScenarioFinishedEvent.Handler,
+            XAPlusDistributedScenarioFailedEvent.Handler,
             XAPlusScenarioSuperiorFinishedEvent.Handler,
             XAPlusScenarioSuperiorFailedEvent.Handler,
             XAPlusScenarioSubordinateFinishedEvent.Handler,
@@ -366,6 +454,16 @@ public class XAPlusScenarioTest extends Assert {
 
         @Override public void handleLocalScenarioFinished(XAPlusLocalScenarioFinishedEvent event) throws InterruptedException {
             localScenarioFinishedEvents.put(event);
+        }
+
+        @Override
+        public void handleDistributedScenarioFinished(XAPlusDistributedScenarioFinishedEvent event) throws InterruptedException {
+            distributedScenarioFinishedEvents.put(event);
+        }
+
+        @Override
+        public void handleDistributedScenarioFailed(XAPlusDistributedScenarioFailedEvent event) throws InterruptedException {
+            distributedScenarioFailedEvents.put(event);
         }
 
         @Override
@@ -391,6 +489,8 @@ public class XAPlusScenarioTest extends Assert {
         void postConstruct() {
             testThreadPool.execute(this);
             testDispatcher.subscribe(this, XAPlusLocalScenarioFinishedEvent.class);
+            testDispatcher.subscribe(this, XAPlusDistributedScenarioFinishedEvent.class);
+            testDispatcher.subscribe(this, XAPlusDistributedScenarioFailedEvent.class);
             testDispatcher.subscribe(this, XAPlusScenarioSuperiorFinishedEvent.class);
             testDispatcher.subscribe(this, XAPlusScenarioSuperiorFailedEvent.class);
             testDispatcher.subscribe(this, XAPlusScenarioSubordinateFinishedEvent.class);

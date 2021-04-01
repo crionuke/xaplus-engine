@@ -29,6 +29,17 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     }
 
     @Test
+    public void testUserCommitDistributedScenario() throws InterruptedException {
+        long value = startDistributedScenario();
+        // Check superior
+        XAPlusDistributedScenarioFinishedEvent event1 = distributedScenarioFinishedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event1);
+        assertEquals(value, event1.getValue());
+        assertTrue(event1.getStatus());
+    }
+
+    @Test
     public void testUserCommitScenario() throws InterruptedException {
         long value = startGlobalScenario(false, false, false);
         // Check superior
