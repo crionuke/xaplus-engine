@@ -23,7 +23,7 @@ public class XAPlusInternalScenarioTest extends XAPlusScenarioTest {
     public void testFromSubrodinateToSuperiorReadyFailed() throws InterruptedException {
         // Setup scenario
         requestSuperiorExceptions.readiedException = true;
-        long value = initialRequest(false, false, false);
+        long value = startGlobalScenario(false, false, false);
         // Wait timeout
         Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
         // Check superior
@@ -42,7 +42,7 @@ public class XAPlusInternalScenarioTest extends XAPlusScenarioTest {
     public void testFromSuperiorToSubordinateCommitFailed() throws InterruptedException {
         // Setup scenario
         subordinateScenarioExceptions.commitException = true;
-        long value = initialRequest(false, false, false);
+        long value = startGlobalScenario(false, false, false);
         // Check superior
         XAPlusScenarioSuperiorFailedEvent event1 = scenarioSuperiorFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -61,7 +61,7 @@ public class XAPlusInternalScenarioTest extends XAPlusScenarioTest {
     public void testFromSubordinateToSuperiorDoneFailed() throws InterruptedException {
         // Setup scenario
         requestSuperiorExceptions.doneException = true;
-        long value = initialRequest(false, false, false);
+        long value = startGlobalScenario(false, false, false);
         // Wait timeout
         Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
         // Check superior

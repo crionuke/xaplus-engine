@@ -18,8 +18,19 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     }
 
     @Test
+    public void testUserCommitLocalScenario() throws InterruptedException {
+        long value = startLocalScenario();
+        // Check superior
+        XAPlusLocalScenarioFinishedEvent event1 = localScenarioFinishedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event1);
+        assertEquals(value, event1.getValue());
+        assertTrue(event1.getStatus());
+    }
+
+    @Test
     public void testUserCommitScenario() throws InterruptedException {
-        long value = initialRequest(false, false, false);
+        long value = startGlobalScenario(false, false, false);
         // Check superior
         XAPlusScenarioSuperiorFinishedEvent event1 = scenarioSuperiorFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -36,7 +47,7 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
 
     @Test
     public void testSuperiorUserRollbackBeforeRequestScenario() throws InterruptedException {
-        long value = initialRequest(true, false, false);
+        long value = startGlobalScenario(true, false, false);
         // Check superior
         XAPlusScenarioSuperiorFinishedEvent event1 = scenarioSuperiorFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -47,7 +58,7 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
 
     @Test
     public void testSuperiorUserRollbackBeforeCommitScenario() throws InterruptedException {
-        long value = initialRequest(false, true, false);
+        long value = startGlobalScenario(false, true, false);
         // Check superior
         XAPlusScenarioSuperiorFinishedEvent event1 = scenarioSuperiorFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -58,7 +69,7 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
 
     @Test
     public void testSubordinateUserRollbackBeforeCommitScenario() throws InterruptedException {
-        long value = initialRequest(false, false, true);
+        long value = startGlobalScenario(false, false, true);
         // Check superior
         XAPlusScenarioSuperiorFinishedEvent event1 = scenarioSuperiorFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);

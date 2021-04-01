@@ -278,6 +278,7 @@ public final class XAPlusEngine {
         if (logger.isInfoEnabled()) {
             logger.info("User commit transaction, {}", transaction);
         }
+        // TODO: handle case when transaction just local
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         return transaction.getFuture();
     }
