@@ -111,12 +111,12 @@ public class XAPlusScenarioTest extends Assert {
         controllerBolt.postConstruct();
     }
 
-    void start() {
+    void construct() {
         // Construct components
-        localXAPlus.start();
-        distributedXAPlus.start();
-        superiorXAPlus.start();
-        subordinateXAPLus.start();
+        localXAPlus.construct();
+        distributedXAPlus.construct();
+        superiorXAPlus.construct();
+        subordinateXAPLus.construct();
     }
 
     long startLocalScenario() throws InterruptedException {

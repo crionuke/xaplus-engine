@@ -16,7 +16,7 @@ public class XAPlusInternalScenarioTest extends XAPlusScenarioTest {
     @Before
     public void beforeTest() {
         createComponents();
-        start();
+        construct();
     }
 
     @Test

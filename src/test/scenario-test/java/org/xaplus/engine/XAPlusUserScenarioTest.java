@@ -14,7 +14,7 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     @Before
     public void beforeTest() {
         createComponents();
-        start();
+        construct();
     }
 
     @Test

@@ -27,7 +27,7 @@ public class XAPlus {
     final XAPlusJournalService journalService;
     final XAPlusService xaPlusService;
 
-    private boolean started;
+    private boolean construct;
 
     public XAPlus(String serverId, int defaultTimeoutInSeconds) {
         properties = new XAPlusProperties(serverId, 128, defaultTimeoutInSeconds);
@@ -62,14 +62,14 @@ public class XAPlus {
         journalService = new XAPlusJournalService(properties, threadPool, dispatcher, new XAPlusTLog(serverId, engine));
         xaPlusService = new XAPlusService(properties, threadPool, dispatcher);
 
-        started = false;
+        construct = false;
     }
 
-    public synchronized XAPlusEngine start() {
-        if (started) {
-            throw new IllegalStateException("XAPlus engine already started");
+    public synchronized XAPlusEngine construct() {
+        if (construct) {
+            throw new IllegalStateException("XAPlusEngine already constructed");
         } else {
-            started = true;
+            construct = true;
         }
         tickService.postConstruct();
         timerService.postConstruct();
