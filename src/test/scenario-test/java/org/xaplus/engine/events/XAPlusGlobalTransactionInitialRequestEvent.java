@@ -6,17 +6,17 @@ import com.crionuke.bolts.Event;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusGlobalScenarioInitialRequestEvent extends Event<XAPlusGlobalScenarioInitialRequestEvent.Handler> {
+public final class XAPlusGlobalTransactionInitialRequestEvent extends Event<XAPlusGlobalTransactionInitialRequestEvent.Handler> {
 
     private final long value;
     private final boolean superiorBeforeRequestException;
     private final boolean superiorBeforeCommitException;
     private final boolean subordinateBeforeCommitException;
 
-    public XAPlusGlobalScenarioInitialRequestEvent(long value,
-                                                   boolean superiorBeforeRequestException,
-                                                   boolean superiorBeforeCommitException,
-                                                   boolean subordinateBeforeCommitException) {
+    public XAPlusGlobalTransactionInitialRequestEvent(long value,
+                                                      boolean superiorBeforeRequestException,
+                                                      boolean superiorBeforeCommitException,
+                                                      boolean subordinateBeforeCommitException) {
         super();
         this.value = value;
         this.superiorBeforeRequestException = superiorBeforeRequestException;
@@ -26,7 +26,7 @@ public final class XAPlusGlobalScenarioInitialRequestEvent extends Event<XAPlusG
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleGlobalScenarioInitialRequest(this);
+        handler.handleGlobalTransactionInitialRequest(this);
     }
 
     public long getValue() {
@@ -46,6 +46,6 @@ public final class XAPlusGlobalScenarioInitialRequestEvent extends Event<XAPlusG
     }
 
     public interface Handler {
-        void handleGlobalScenarioInitialRequest(XAPlusGlobalScenarioInitialRequestEvent event) throws InterruptedException;
+        void handleGlobalTransactionInitialRequest(XAPlusGlobalTransactionInitialRequestEvent event) throws InterruptedException;
     }
 }

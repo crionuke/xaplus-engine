@@ -21,7 +21,7 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     public void testUserCommitLocalScenario() throws InterruptedException {
         long value = startLocalScenario();
         // Check superior
-        XAPlusLocalScenarioFinishedEvent event1 = localScenarioFinishedEvents
+        XAPlusLocalTransactionFinishedEvent event1 = localTransactionFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
@@ -32,7 +32,7 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     public void testUserCommitDistributedScenario() throws InterruptedException {
         long value = startDistributedScenario();
         // Check superior
-        XAPlusDistributedScenarioFinishedEvent event1 = distributedScenarioFinishedEvents
+        XAPlusDistributedTransactionFinishedEvent event1 = distributedTransactionFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
@@ -43,13 +43,13 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     public void testUserCommitScenario() throws InterruptedException {
         long value = startGlobalScenario(false, false, false);
         // Check superior
-        XAPlusScenarioSuperiorFinishedEvent event1 = scenarioSuperiorFinishedEvents
+        XAPlusTestSuperiorFinishedEvent event1 = testSuperiorFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
         assertTrue(event1.getStatus());
         // Check subordinate
-        XAPlusScenarioSubordinateFinishedEvent event2 = scenarioSubordinateFinishedEvents
+        XAPlusTestSubordinateFinishedEvent event2 = testSubordinateFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(value, event2.getValue());
@@ -60,7 +60,7 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     public void testSuperiorUserRollbackBeforeRequestScenario() throws InterruptedException {
         long value = startGlobalScenario(true, false, false);
         // Check superior
-        XAPlusScenarioSuperiorFinishedEvent event1 = scenarioSuperiorFinishedEvents
+        XAPlusTestSuperiorFinishedEvent event1 = testSuperiorFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
@@ -71,7 +71,7 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     public void testSuperiorUserRollbackBeforeCommitScenario() throws InterruptedException {
         long value = startGlobalScenario(false, true, false);
         // Check superior
-        XAPlusScenarioSuperiorFinishedEvent event1 = scenarioSuperiorFinishedEvents
+        XAPlusTestSuperiorFinishedEvent event1 = testSuperiorFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
@@ -82,13 +82,13 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     public void testSubordinateUserRollbackBeforeCommitScenario() throws InterruptedException {
         long value = startGlobalScenario(false, false, true);
         // Check superior
-        XAPlusScenarioSuperiorFinishedEvent event1 = scenarioSuperiorFinishedEvents
+        XAPlusTestSuperiorFinishedEvent event1 = testSuperiorFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
         assertFalse(event1.getStatus());
         // Check subordinate
-        XAPlusScenarioSubordinateFinishedEvent event2 = scenarioSubordinateFinishedEvents
+        XAPlusTestSubordinateFinishedEvent event2 = testSubordinateFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(value, event2.getValue());

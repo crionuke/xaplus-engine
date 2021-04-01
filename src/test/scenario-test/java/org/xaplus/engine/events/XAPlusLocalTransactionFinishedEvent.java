@@ -6,13 +6,12 @@ import com.crionuke.bolts.Event;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusScenarioSubordinateFinishedEvent extends
-        Event<XAPlusScenarioSubordinateFinishedEvent.Handler> {
+public final class XAPlusLocalTransactionFinishedEvent extends Event<XAPlusLocalTransactionFinishedEvent.Handler> {
 
     private final boolean status;
     private final long value;
 
-    public XAPlusScenarioSubordinateFinishedEvent(boolean status, long value) {
+    public XAPlusLocalTransactionFinishedEvent(boolean status, long value) {
         super();
         this.status = status;
         this.value = value;
@@ -20,7 +19,7 @@ public final class XAPlusScenarioSubordinateFinishedEvent extends
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleScenarioSubordinateFinished(this);
+        handler.handleLocalTransactionFinished(this);
     }
 
     public boolean getStatus() {
@@ -32,7 +31,6 @@ public final class XAPlusScenarioSubordinateFinishedEvent extends
     }
 
     public interface Handler {
-        void handleScenarioSubordinateFinished(XAPlusScenarioSubordinateFinishedEvent event)
-                throws InterruptedException;
+        void handleLocalTransactionFinished(XAPlusLocalTransactionFinishedEvent event) throws InterruptedException;
     }
 }

@@ -4,9 +4,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.XAPlusScenarioSubordinateFailedEvent;
-import org.xaplus.engine.events.XAPlusScenarioSubordinateFinishedEvent;
-import org.xaplus.engine.events.XAPlusScenarioSuperiorFailedEvent;
+import org.xaplus.engine.events.XAPlusTestSubordinateFailedEvent;
+import org.xaplus.engine.events.XAPlusTestSubordinateFinishedEvent;
+import org.xaplus.engine.events.XAPlusTestSuperiorFailedEvent;
 
 import java.util.concurrent.TimeUnit;
 
@@ -27,12 +27,12 @@ public class XAPlusInternalScenarioTest extends XAPlusScenarioTest {
         // Wait timeout
         Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
         // Check superior
-        XAPlusScenarioSuperiorFailedEvent event1 = scenarioSuperiorFailedEvents
+        XAPlusTestSuperiorFailedEvent event1 = testSuperiorFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
         // Check subordinate
-        XAPlusScenarioSubordinateFailedEvent event2 = scenarioSubordinateFailedEvents
+        XAPlusTestSubordinateFailedEvent event2 = testSubordinateFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(value, event2.getValue());
@@ -44,14 +44,14 @@ public class XAPlusInternalScenarioTest extends XAPlusScenarioTest {
         subordinateScenarioExceptions.commitException = true;
         long value = startGlobalScenario(false, false, false);
         // Check superior
-        XAPlusScenarioSuperiorFailedEvent event1 = scenarioSuperiorFailedEvents
+        XAPlusTestSuperiorFailedEvent event1 = testSuperiorFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
         // Wait timeout
         Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
         // Check subordinate
-        XAPlusScenarioSubordinateFailedEvent event2 = scenarioSubordinateFailedEvents
+        XAPlusTestSubordinateFailedEvent event2 = testSubordinateFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(value, event2.getValue());
@@ -65,14 +65,14 @@ public class XAPlusInternalScenarioTest extends XAPlusScenarioTest {
         // Wait timeout
         Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
         // Check superior
-        XAPlusScenarioSuperiorFailedEvent event1 = scenarioSuperiorFailedEvents
+        XAPlusTestSuperiorFailedEvent event1 = testSuperiorFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
         // Wait timeout
         Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
         // Check subordinate
-        XAPlusScenarioSubordinateFinishedEvent event2 = scenarioSubordinateFinishedEvents
+        XAPlusTestSubordinateFinishedEvent event2 = testSubordinateFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertTrue(event2.getStatus());

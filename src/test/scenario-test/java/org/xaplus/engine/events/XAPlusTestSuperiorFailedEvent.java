@@ -6,12 +6,12 @@ import com.crionuke.bolts.Event;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusDistributedScenarioFailedEvent extends Event<XAPlusDistributedScenarioFailedEvent.Handler> {
+public final class XAPlusTestSuperiorFailedEvent extends Event<XAPlusTestSuperiorFailedEvent.Handler> {
 
     private final long value;
     private final Exception exception;
 
-    public XAPlusDistributedScenarioFailedEvent(long value, Exception exception) {
+    public XAPlusTestSuperiorFailedEvent(long value, Exception exception) {
         super();
         this.value = value;
         this.exception = exception;
@@ -19,7 +19,7 @@ public final class XAPlusDistributedScenarioFailedEvent extends Event<XAPlusDist
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleDistributedScenarioFailed(this);
+        handler.handleTestSuperiorFailed(this);
     }
 
     public long getValue() {
@@ -31,6 +31,6 @@ public final class XAPlusDistributedScenarioFailedEvent extends Event<XAPlusDist
     }
 
     public interface Handler {
-        void handleDistributedScenarioFailed(XAPlusDistributedScenarioFailedEvent event) throws InterruptedException;
+        void handleTestSuperiorFailed(XAPlusTestSuperiorFailedEvent event) throws InterruptedException;
     }
 }

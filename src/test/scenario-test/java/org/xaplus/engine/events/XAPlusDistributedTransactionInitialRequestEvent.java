@@ -6,18 +6,18 @@ import com.crionuke.bolts.Event;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusDistributedScenarioInitialRequestEvent extends Event<XAPlusDistributedScenarioInitialRequestEvent.Handler> {
+public final class XAPlusDistributedTransactionInitialRequestEvent extends Event<XAPlusDistributedTransactionInitialRequestEvent.Handler> {
 
     private final long value;
 
-    public XAPlusDistributedScenarioInitialRequestEvent(long value) {
+    public XAPlusDistributedTransactionInitialRequestEvent(long value) {
         super();
         this.value = value;
     }
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleDistributedScenarioInitialRequest(this);
+        handler.handleDistributedTransactionInitialRequest(this);
     }
 
     public long getValue() {
@@ -25,7 +25,7 @@ public final class XAPlusDistributedScenarioInitialRequestEvent extends Event<XA
     }
 
     public interface Handler {
-        void handleDistributedScenarioInitialRequest(XAPlusDistributedScenarioInitialRequestEvent event)
+        void handleDistributedTransactionInitialRequest(XAPlusDistributedTransactionInitialRequestEvent event)
                 throws InterruptedException;
     }
 }
