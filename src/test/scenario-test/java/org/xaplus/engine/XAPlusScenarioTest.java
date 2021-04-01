@@ -50,6 +50,7 @@ public class XAPlusScenarioTest extends Assert {
     XAPlusTestServer subordinateServer;
 
     BlockingQueue<XAPlusLocalScenarioFinishedEvent> localScenarioFinishedEvents;
+    BlockingQueue<XAPlusLocalScenarioFailedEvent> localScenarioFailedEvents;
     BlockingQueue<XAPlusDistributedScenarioFinishedEvent> distributedScenarioFinishedEvents;
     BlockingQueue<XAPlusDistributedScenarioFailedEvent> distributedScenarioFailedEvents;
     BlockingQueue<XAPlusScenarioSuperiorFinishedEvent> scenarioSuperiorFinishedEvents;
@@ -86,6 +87,7 @@ public class XAPlusScenarioTest extends Assert {
 
         // Container for events
         localScenarioFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        localScenarioFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         distributedScenarioFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         distributedScenarioFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         scenarioSuperiorFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -212,13 +214,13 @@ public class XAPlusScenarioTest extends Assert {
                 testDispatcher.dispatch(new XAPlusLocalScenarioFinishedEvent(status, value));
             } catch (XAPlusCommitException commitException) {
                 logger.info("Local transaction commit exception, {}", commitException.getMessage());
-//                testDispatcher.dispatch(new XAPlusScenarioSuperiorFailedEvent(value, commitException));
+                testDispatcher.dispatch(new XAPlusLocalScenarioFailedEvent(value, commitException));
             } catch (XAPlusRollbackException rollbackException) {
                 logger.info("Local transaction rollback exception, {}", rollbackException.getMessage());
-//                testDispatcher.dispatch(new XAPlusScenarioSuperiorFailedEvent(value, rollbackException));
+                testDispatcher.dispatch(new XAPlusLocalScenarioFailedEvent(value, rollbackException));
             } catch (XAPlusTimeoutException timeoutException) {
                 logger.info("Local transaction timeout exception, {}", timeoutException.getMessage());
-//                testDispatcher.dispatch(new XAPlusScenarioSuperiorFailedEvent(value, timeoutException));
+                testDispatcher.dispatch(new XAPlusLocalScenarioFailedEvent(value, timeoutException));
             }
         }
 
@@ -441,6 +443,7 @@ public class XAPlusScenarioTest extends Assert {
     // Bolt to collect events to queues
     class Controller extends Bolt implements
             XAPlusLocalScenarioFinishedEvent.Handler,
+            XAPlusLocalScenarioFailedEvent.Handler,
             XAPlusDistributedScenarioFinishedEvent.Handler,
             XAPlusDistributedScenarioFailedEvent.Handler,
             XAPlusScenarioSuperiorFinishedEvent.Handler,
@@ -452,8 +455,14 @@ public class XAPlusScenarioTest extends Assert {
             super("controller", QUEUE_SIZE);
         }
 
-        @Override public void handleLocalScenarioFinished(XAPlusLocalScenarioFinishedEvent event) throws InterruptedException {
+        @Override
+        public void handleLocalScenarioFinished(XAPlusLocalScenarioFinishedEvent event) throws InterruptedException {
             localScenarioFinishedEvents.put(event);
+        }
+
+        @Override
+        public void handleLocalScenarioFailed(XAPlusLocalScenarioFailedEvent event) throws InterruptedException {
+            localScenarioFailedEvents.put(event);
         }
 
         @Override
@@ -489,6 +498,7 @@ public class XAPlusScenarioTest extends Assert {
         void postConstruct() {
             testThreadPool.execute(this);
             testDispatcher.subscribe(this, XAPlusLocalScenarioFinishedEvent.class);
+            testDispatcher.subscribe(this, XAPlusLocalScenarioFailedEvent.class);
             testDispatcher.subscribe(this, XAPlusDistributedScenarioFinishedEvent.class);
             testDispatcher.subscribe(this, XAPlusDistributedScenarioFailedEvent.class);
             testDispatcher.subscribe(this, XAPlusScenarioSuperiorFinishedEvent.class);
