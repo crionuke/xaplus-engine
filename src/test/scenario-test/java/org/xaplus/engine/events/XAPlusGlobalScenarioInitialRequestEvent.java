@@ -6,17 +6,17 @@ import com.crionuke.bolts.Event;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusScenarioInitialRequestEvent extends Event<XAPlusScenarioInitialRequestEvent.Handler> {
+public final class XAPlusGlobalScenarioInitialRequestEvent extends Event<XAPlusGlobalScenarioInitialRequestEvent.Handler> {
 
     private final long value;
     private final boolean superiorBeforeRequestException;
     private final boolean superiorBeforeCommitException;
     private final boolean subordinateBeforeCommitException;
 
-    public XAPlusScenarioInitialRequestEvent(long value,
-                                             boolean superiorBeforeRequestException,
-                                             boolean superiorBeforeCommitException,
-                                             boolean subordinateBeforeCommitException) {
+    public XAPlusGlobalScenarioInitialRequestEvent(long value,
+                                                   boolean superiorBeforeRequestException,
+                                                   boolean superiorBeforeCommitException,
+                                                   boolean subordinateBeforeCommitException) {
         super();
         this.value = value;
         this.superiorBeforeRequestException = superiorBeforeRequestException;
@@ -26,7 +26,7 @@ public final class XAPlusScenarioInitialRequestEvent extends Event<XAPlusScenari
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleScenarioInitialRequest(this);
+        handler.handleGlobalScenarioInitialRequest(this);
     }
 
     public long getValue() {
@@ -46,6 +46,6 @@ public final class XAPlusScenarioInitialRequestEvent extends Event<XAPlusScenari
     }
 
     public interface Handler {
-        void handleScenarioInitialRequest(XAPlusScenarioInitialRequestEvent event) throws InterruptedException;
+        void handleGlobalScenarioInitialRequest(XAPlusGlobalScenarioInitialRequestEvent event) throws InterruptedException;
     }
 }

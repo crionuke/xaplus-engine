@@ -112,7 +112,7 @@ public class XAPlusScenarioTest extends Assert {
                              boolean subordinateBeforeCommitException) throws InterruptedException {
         long value = Math.round(100000 + Math.random() * 899999);
         testDispatcher.dispatch(
-                new XAPlusScenarioInitialRequestEvent(value, superiorBeforeRequestException,
+                new XAPlusGlobalScenarioInitialRequestEvent(value, superiorBeforeRequestException,
                         superiorBeforeCommitException,
                         subordinateBeforeCommitException));
         return value;
@@ -206,7 +206,7 @@ public class XAPlusScenarioTest extends Assert {
     }
 
     class Superior extends Bolt
-            implements XAPlusScenarioInitialRequestEvent.Handler {
+            implements XAPlusGlobalScenarioInitialRequestEvent.Handler {
 
         XAPlus xaPlus;
         XAPlusEngine engine;
@@ -221,7 +221,7 @@ public class XAPlusScenarioTest extends Assert {
         }
 
         @Override
-        public void handleScenarioInitialRequest(XAPlusScenarioInitialRequestEvent event) throws InterruptedException {
+        public void handleGlobalScenarioInitialRequest(XAPlusGlobalScenarioInitialRequestEvent event) throws InterruptedException {
             if (logger.isTraceEnabled()) {
                 logger.trace("Handle {}", event);
             }
@@ -275,7 +275,7 @@ public class XAPlusScenarioTest extends Assert {
 
         void postConstruct() {
             testThreadPool.execute(this);
-            testDispatcher.subscribe(this, XAPlusScenarioInitialRequestEvent.class);
+            testDispatcher.subscribe(this, XAPlusGlobalScenarioInitialRequestEvent.class);
         }
     }
 
