@@ -118,7 +118,7 @@ class XAPlusSuperiorCommitterService extends Bolt implements
                 logger.debug("Remote branch done, subordinateServerId={}, xid={}, {}",
                         subordinateServerId, branchXid, transaction);
             }
-            transaction.branchCommitted(branchXid);
+            transaction.branchDone(branchXid);
             check(transaction);
         }
     }
@@ -137,7 +137,7 @@ class XAPlusSuperiorCommitterService extends Bolt implements
                 logger.debug("Remote branch failed, subordinateServerId={}, xid={}, {}",
                         subordinateServerId, branchXid, transaction);
             }
-            transaction.branchCommitted(branchXid);
+            transaction.branchDone(branchXid);
             transaction.branchFailed(branchXid);
             check(transaction);
         }

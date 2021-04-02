@@ -168,6 +168,11 @@ public class XAPlusTransaction {
             if (!xaPlusBranch.isCommitted()) {
                 return false;
             }
+            if (!xaPlusBranch.isFailed()) {
+                if (!xaPlusBranch.isDone()) {
+                    return false;
+                }
+            }
         }
         return true;
     }
@@ -181,6 +186,11 @@ public class XAPlusTransaction {
         for (Branch xaPlusBranch : xaPlusBranches.values()) {
             if (!xaPlusBranch.isRolledBack()) {
                 return false;
+            }
+            if (!xaPlusBranch.isFailed()) {
+                if (!xaPlusBranch.isDone()) {
+                    return false;
+                }
             }
         }
         return true;
@@ -200,20 +210,6 @@ public class XAPlusTransaction {
         }
     }
 
-    boolean isPrepared() {
-        for (Branch xaBranch : xaBranches.values()) {
-            if (!xaBranch.isPrepared()) {
-                return false;
-            }
-        }
-        for (Branch xaPlusBranch : xaPlusBranches.values()) {
-            if (!xaPlusBranch.isPrepared()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     void branchPrepared(XAPlusXid branchXid) {
         if (xaBranches.containsKey(branchXid)) {
             xaBranches.get(branchXid).markAsPrepared();
@@ -229,20 +225,6 @@ public class XAPlusTransaction {
         for (Branch xaPlusBranch : xaPlusBranches.values()) {
             xaPlusBranch.commit(dispatcher);
         }
-    }
-
-    boolean isCommitted() {
-        for (Branch xaBranch : xaBranches.values()) {
-            if (!xaBranch.isCommitted()) {
-                return false;
-            }
-        }
-        for (Branch xaPlusBranch : xaPlusBranches.values()) {
-            if (!xaPlusBranch.isCommitted()) {
-                return false;
-            }
-        }
-        return true;
     }
 
     void branchCommitted(XAPlusXid branchXid) {
@@ -262,25 +244,18 @@ public class XAPlusTransaction {
         }
     }
 
-    boolean isRolledBack() {
-        for (Branch xaBranch : xaBranches.values()) {
-            if (!xaBranch.isRolledBack()) {
-                return false;
-            }
-        }
-        for (Branch xaPlusBranch : xaPlusBranches.values()) {
-            if (!xaPlusBranch.isRolledBack()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     void branchRolledBack(XAPlusXid branchXid) {
         if (xaBranches.containsKey(branchXid)) {
             xaBranches.get(branchXid).markAsRolledback();
         } else if (xaPlusBranches.containsKey(branchXid)) {
             xaPlusBranches.get(branchXid).markAsRolledback();
+        }
+    }
+
+    void branchDone(XAPlusXid branchXid) {
+        // Only XA+ branch can be done
+        if (xaPlusBranches.containsKey(branchXid)) {
+            xaPlusBranches.get(branchXid).markAsDone();
         }
     }
 
@@ -335,6 +310,7 @@ public class XAPlusTransaction {
         volatile boolean prepared;
         volatile boolean committed;
         volatile boolean rolledBack;
+        volatile boolean done;
         volatile boolean failed;
 
         Branch(XAPlusXid xid, XAPlusXid branchXid, XAResource xaResource, String uniqueName) {
@@ -345,6 +321,7 @@ public class XAPlusTransaction {
             prepared = false;
             committed = false;
             rolledBack = false;
+            done = false;
             failed = false;
         }
 
@@ -398,6 +375,14 @@ public class XAPlusTransaction {
 
         boolean isRolledBack() {
             return rolledBack;
+        }
+
+        void markAsDone() {
+            done = true;
+        }
+
+        boolean isDone() {
+            return done;
         }
 
         boolean isFailed() {
