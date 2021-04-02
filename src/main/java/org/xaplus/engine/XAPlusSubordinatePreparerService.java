@@ -184,7 +184,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                 logger.debug("Prepare branch failed, xid={}, {}", branchXid, transaction);
             }
             transaction.branchPrepared(branchXid);
-            transaction.branchCancelled(branchXid);
+            transaction.branchFailed(branchXid);
             check(transaction);
         }
     }
@@ -261,7 +261,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                 String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
                 try {
                     XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
-                    if (transaction.hasCancellations()) {
+                    if (transaction.hasFailures()) {
                         // If some branches failed
                         dispatcher.dispatch(new XAPlusReportCancelledStatusRequestEvent(xid, resource));
                     } else {

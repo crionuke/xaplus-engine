@@ -101,7 +101,7 @@ class XAPlusSuperiorPreparerService extends Bolt implements
                         subordinateServerId, transaction);
             }
             transaction.branchPrepared(branchXid);
-            transaction.branchCancelled(branchXid);
+            transaction.branchFailed(branchXid);
             check(transaction);
         }
     }
@@ -151,7 +151,7 @@ class XAPlusSuperiorPreparerService extends Bolt implements
                 logger.debug("Prepare branch failed, xid={}, {}", branchXid, transaction);
             }
             transaction.branchPrepared(branchXid);
-            transaction.branchCancelled(branchXid);
+            transaction.branchFailed(branchXid);
             check(transaction);
         }
     }
@@ -185,7 +185,7 @@ class XAPlusSuperiorPreparerService extends Bolt implements
     void check(XAPlusTransaction transaction) throws InterruptedException {
         if (transaction.isPrepareDone()) {
             tracker.remove(transaction.getXid());
-            if (transaction.hasCancellations()) {
+            if (transaction.hasFailures()) {
                 dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
             } else {
                 dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));

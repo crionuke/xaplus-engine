@@ -47,6 +47,7 @@ class XAPlusSubordinateCommitterService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Commit transaction, {}", transaction);
             }
+            transaction.reset();
             transaction.commit(dispatcher);
         }
     }

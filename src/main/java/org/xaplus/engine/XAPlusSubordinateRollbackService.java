@@ -42,6 +42,7 @@ class XAPlusSubordinateRollbackService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Rollback transaction, {}", transaction);
             }
+            transaction.reset();
             transaction.rollback(dispatcher);
         }
     }

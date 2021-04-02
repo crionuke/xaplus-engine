@@ -113,7 +113,7 @@ class XAPlusSuperiorRollbackService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Remote branch rolled back, branchXid={}, {}", branchXid, transaction);
             }
-            transaction.branchDone(branchXid);
+            transaction.branchRolledBack(branchXid);
             check(transaction);
         }
     }
@@ -130,7 +130,7 @@ class XAPlusSuperiorRollbackService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Remote branch rollback failed, branchXid={}, {}", branchXid, transaction);
             }
-            transaction.branchDone(branchXid);
+            transaction.branchRolledBack(branchXid);
             transaction.branchFailed(branchXid);
             check(transaction);
         }
