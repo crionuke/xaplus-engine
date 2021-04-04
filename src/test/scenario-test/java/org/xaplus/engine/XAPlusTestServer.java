@@ -38,22 +38,6 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
     }
 
     @Override
-    public void cancelled(Xid xid) throws XAPlusException {
-        if (scenario.cancelledException) {
-            throw new XAPlusException("cancelled request exception");
-        }
-        XAPlusXid xaPlusXid = new XAPlusXid(xid);
-        try {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Send cancelled status from subordinate server, xid={}", xid);
-            }
-            dispatcher.dispatch(new XAPlusRemoteSubordinateCancelledEvent(xaPlusXid));
-        } catch (InterruptedException e) {
-            throw new XAPlusException(e.getMessage());
-        }
-    }
-
-    @Override
     public void readied(Xid xid) throws XAPlusException {
         if (scenario.readiedException) {
             throw new XAPlusException("readied request exception");

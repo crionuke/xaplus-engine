@@ -8,11 +8,6 @@ import javax.transaction.xa.Xid;
 public class XAPlusResourceStub extends XAResourceStub implements XAPlusResource {
 
     @Override
-    public void cancelled(Xid xid) throws XAPlusException {
-
-    }
-
-    @Override
     public void readied(Xid xid) throws XAPlusException {
 
     }

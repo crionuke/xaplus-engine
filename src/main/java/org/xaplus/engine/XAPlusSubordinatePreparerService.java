@@ -26,7 +26,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
         XAPlusPrepareBranchFailedEvent.Handler,
         XAPlusTransactionTimedOutEvent.Handler,
         XAPlusReportReadiedStatusFailedEvent.Handler,
-        XAPlusReportCancelledStatusFailedEvent.Handler {
+        XAPlusReportFailedStatusFailedEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusSubordinatePreparerService.class);
 
     private final XAPlusThreadPool threadPool;
@@ -129,7 +129,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                     if (logger.isDebugEnabled()) {
                         logger.debug("Report failed status, superiorServerId={}, {}", superiorServerId, transaction);
                     }
-                    dispatcher.dispatch(new XAPlusReportCancelledStatusRequestEvent(xid, resource));
+                    dispatcher.dispatch(new XAPlusReportFailedStatusRequestEvent(xid, resource));
                 } catch (XAPlusSystemException e) {
                     if (logger.isWarnEnabled()) {
                         logger.warn("Non XA+ or unknown resource with name={}, {}", superiorServerId, transaction);
@@ -219,7 +219,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
     }
 
     @Override
-    public void handleReportCancelledStatusFailed(XAPlusReportCancelledStatusFailedEvent event) throws InterruptedException {
+    public void handleReportFailedStatusFailed(XAPlusReportFailedStatusFailedEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -227,7 +227,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
         if (tracker.contains(xid)) {
             XAPlusTransaction transaction = tracker.remove(xid);
             if (logger.isDebugEnabled()) {
-                logger.debug("Transaction removed as report cancelled status failed, {}", transaction);
+                logger.debug("Transaction removed as report failed status failed, {}", transaction);
             }
             dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction));
         }
@@ -244,7 +244,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
         dispatcher.subscribe(this, XAPlusPrepareBranchFailedEvent.class);
         dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
         dispatcher.subscribe(this, XAPlusReportReadiedStatusFailedEvent.class);
-        dispatcher.subscribe(this, XAPlusReportCancelledStatusFailedEvent.class);
+        dispatcher.subscribe(this, XAPlusReportFailedStatusFailedEvent.class);
     }
 
     void check(XAPlusTransaction transaction) throws InterruptedException {
@@ -263,7 +263,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                     XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
                     if (transaction.hasFailures()) {
                         // If some branches failed
-                        dispatcher.dispatch(new XAPlusReportCancelledStatusRequestEvent(xid, resource));
+                        dispatcher.dispatch(new XAPlusReportFailedStatusRequestEvent(xid, resource));
                     } else {
                         // All is okay, transaction ready to commit or rollback
                         dispatcher.dispatch(new XAPlusReportReadiedStatusRequestEvent(xid, resource));

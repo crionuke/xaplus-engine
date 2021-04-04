@@ -10,14 +10,6 @@ import javax.transaction.xa.Xid;
 public interface XAPlusResource extends XAResource {
 
     /**
-     * Report to superior that a transaction branch {@code xid} cancelled by subordinate
-     *
-     * @param xid a transaction branch identifier
-     * @throws XAPlusException an error has occurred
-     */
-    void cancelled(Xid xid) throws XAPlusException;
-
-    /**
      * Report to superior that a transaction branch {@code xid} has been prepared by subordinate
      *
      * @param xid a transaction branch identifier

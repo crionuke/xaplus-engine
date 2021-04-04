@@ -11,14 +11,14 @@ import org.xaplus.engine.events.user.XAPlusUserCreateTransactionEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchPreparedEvent;
 import org.xaplus.engine.events.xa.XAPlusPrepareBranchFailedEvent;
-import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateCancelledEvent;
+import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateFailedEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateReadiedEvent;
 
 class XAPlusSuperiorPreparerService extends Bolt implements
         XAPlusUserCreateTransactionEvent.Handler,
         XAPlusUserRollbackRequestEvent.Handler,
         XAPlusRemoteSubordinateReadiedEvent.Handler,
-        XAPlusRemoteSubordinateCancelledEvent.Handler,
+        XAPlusRemoteSubordinateFailedEvent.Handler,
         XAPlusUserCommitRequestEvent.Handler,
         XAPlusBranchPreparedEvent.Handler,
         XAPlusPrepareBranchFailedEvent.Handler,
@@ -87,7 +87,7 @@ class XAPlusSuperiorPreparerService extends Bolt implements
     }
 
     @Override
-    public void handleRemoteSubordinateCancelled(XAPlusRemoteSubordinateCancelledEvent event) throws InterruptedException {
+    public void handleRemoteSubordinateFailed(XAPlusRemoteSubordinateFailedEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -97,7 +97,7 @@ class XAPlusSuperiorPreparerService extends Bolt implements
             XAPlusTransaction transaction = tracker.getTransaction(transactionXid);
             if (logger.isDebugEnabled()) {
                 String subordinateServerId = branchXid.getBranchQualifierUid().extractServerId();
-                logger.debug("Remote branch cancelled, subordinateServerId={}, {}",
+                logger.debug("Remote branch failed, subordinateServerId={}, {}",
                         subordinateServerId, transaction);
             }
             transaction.branchPrepared(branchXid);
@@ -175,7 +175,7 @@ class XAPlusSuperiorPreparerService extends Bolt implements
         dispatcher.subscribe(this, XAPlusUserCreateTransactionEvent.class);
         dispatcher.subscribe(this, XAPlusUserRollbackRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRemoteSubordinateReadiedEvent.class);
-        dispatcher.subscribe(this, XAPlusRemoteSubordinateCancelledEvent.class);
+        dispatcher.subscribe(this, XAPlusRemoteSubordinateFailedEvent.class);
         dispatcher.subscribe(this, XAPlusUserCommitRequestEvent.class);
         dispatcher.subscribe(this, XAPlusBranchPreparedEvent.class);
         dispatcher.subscribe(this, XAPlusPrepareBranchFailedEvent.class);

@@ -25,7 +25,6 @@ class XAPlusService extends Bolt implements
         XAPlusRollbackRecoveredXidRequestEvent.Handler,
         XAPlusForgetRecoveredXidRequestEvent.Handler,
         XAPlusReportFailedStatusRequestEvent.Handler,
-        XAPlusReportCancelledStatusRequestEvent.Handler,
         XAPlusReportReadiedStatusRequestEvent.Handler,
         XAPlusReportDoneStatusRequestEvent.Handler,
         XAPlusRetryFromSuperiorRequestEvent.Handler,
@@ -299,32 +298,6 @@ class XAPlusService extends Bolt implements
     }
 
     @Override
-    public void handleReportCancelledStatusRequest(XAPlusReportCancelledStatusRequestEvent event)
-            throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid xid = event.getXid();
-        XAPlusResource resource = event.getResource();
-        try {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Reporting cancelled status for xid, xid={}", xid);
-            }
-            resource.cancelled(xid);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Cancelled status for xid reported, xid={}", xid);
-            }
-            dispatcher.dispatch(new XAPlusCancelledStatusReportedEvent(xid));
-        } catch (XAPlusException cancelledException) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Report cancelled status for xid failed as {}, xid={}",
-                        cancelledException.getMessage(), xid);
-            }
-            dispatcher.dispatch(new XAPlusReportCancelledStatusFailedEvent(xid, cancelledException));
-        }
-    }
-
-    @Override
     public void handleReportReadiedStatusRequest(XAPlusReportReadiedStatusRequestEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
@@ -454,7 +427,6 @@ class XAPlusService extends Bolt implements
         dispatcher.subscribe(this, XAPlusCommitRecoveredXidRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackRecoveredXidRequestEvent.class);
         dispatcher.subscribe(this, XAPlusForgetRecoveredXidRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusReportCancelledStatusRequestEvent.class);
         dispatcher.subscribe(this, XAPlusReportReadiedStatusRequestEvent.class);
         dispatcher.subscribe(this, XAPlusReportFailedStatusRequestEvent.class);
         dispatcher.subscribe(this, XAPlusReportDoneStatusRequestEvent.class);

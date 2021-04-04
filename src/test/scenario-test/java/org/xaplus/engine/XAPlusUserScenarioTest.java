@@ -94,4 +94,26 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
         assertEquals(value, event2.getValue());
         assertFalse(event2.getStatus());
     }
+
+    @Test
+    public void testSubordinateUserRollbackBeforeCommitAndReportFailedStatusFailed() throws InterruptedException {
+        // Setup scenario
+        requestSuperiorExceptions.failedException = true;
+        long value = startGlobalScenario(false, false, true);
+        // Wait timeout
+        Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
+        // Check superior
+        XAPlusTestSuperiorFailedEvent event1 = testSuperiorFailedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event1);
+        assertEquals(value, event1.getValue());
+        // Check subordinate
+        XAPlusTestSubordinateFailedEvent event2 = testSubordinateFailedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event2);
+        assertEquals(value, event2.getValue());
+        // Superior recovery
+        superiorXAPlus.engine.startRecovery();
+        Thread.sleep(DEFAULT_TIMEOUT_S * 1000);
+    }
 }
