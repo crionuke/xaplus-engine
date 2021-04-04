@@ -44,7 +44,7 @@ public class XAPlusScenarioTest extends Assert {
     XAPlus subordinateXAPLus;
 
     XAPlusScenarioExceptions requestSuperiorExceptions;
-    XAPlusScenarioExceptions subordinateScenarioExceptions;
+    XAPlusScenarioExceptions requestSubordinateExceptions;
 
     XAPlusTestServer superiorServer;
     XAPlusTestServer subordinateServer;
@@ -80,10 +80,10 @@ public class XAPlusScenarioTest extends Assert {
         subordinateXAPLus = new XAPlus(XA_PLUS_SUBORDINATE, DEFAULT_TIMEOUT_S);
 
         requestSuperiorExceptions = new XAPlusScenarioExceptions();
-        subordinateScenarioExceptions = new XAPlusScenarioExceptions();
+        requestSubordinateExceptions = new XAPlusScenarioExceptions();
 
         superiorServer = new XAPlusTestServer(requestSuperiorExceptions, superiorXAPlus.dispatcher);
-        subordinateServer = new XAPlusTestServer(subordinateScenarioExceptions, subordinateXAPLus.dispatcher);
+        subordinateServer = new XAPlusTestServer(requestSubordinateExceptions, subordinateXAPLus.dispatcher);
 
         // Container for events
         localTransactionFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -119,22 +119,23 @@ public class XAPlusScenarioTest extends Assert {
         subordinateXAPLus.construct();
     }
 
-    long startLocalScenario() throws InterruptedException {
+    long startLocalTransaction() throws InterruptedException {
         long value = Math.round(100000 + Math.random() * 899999);
         testDispatcher.dispatch(new XAPlusLocalTransactionInitialRequestEvent(value));
         return value;
     }
 
-    long startDistributedScenario() throws InterruptedException {
+    // Start XA transaction
+    long startDistributedTransaction() throws InterruptedException {
         long value = Math.round(100000 + Math.random() * 899999);
         testDispatcher.dispatch(new XAPlusDistributedTransactionInitialRequestEvent(value));
         return value;
     }
 
-    // Start XA+ scenario
-    long startGlobalScenario(boolean superiorBeforeRequestException,
-                             boolean superiorBeforeCommitException,
-                             boolean subordinateBeforeCommitException) throws InterruptedException {
+    // Start XA+ transaction
+    long startGlobalTransaction(boolean superiorBeforeRequestException,
+                                boolean superiorBeforeCommitException,
+                                boolean subordinateBeforeCommitException) throws InterruptedException {
         long value = Math.round(100000 + Math.random() * 899999);
         testDispatcher.dispatch(
                 new XAPlusGlobalTransactionInitialRequestEvent(value, superiorBeforeRequestException,
