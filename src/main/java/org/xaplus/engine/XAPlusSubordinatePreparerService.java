@@ -247,6 +247,8 @@ class XAPlusSubordinatePreparerService extends Bolt implements
         dispatcher.subscribe(this, XAPlusReportFailedStatusFailedEvent.class);
     }
 
+    // TODO: do not log decision on subordinate side
+
     void check(XAPlusTransaction transaction) throws InterruptedException {
         if (transaction.isPrepareDone()) {
             XAPlusXid xid = transaction.getXid();
