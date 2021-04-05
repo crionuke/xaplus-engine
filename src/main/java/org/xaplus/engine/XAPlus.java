@@ -2,6 +2,8 @@ package org.xaplus.engine;
 
 public class XAPlus {
 
+    private final static int MAX_SERVER_ID_LENGTH = 51;
+
     final XAPlusProperties properties;
     final XAPlusThreadPool threadPool;
     final XAPlusDispatcher dispatcher;
@@ -30,6 +32,17 @@ public class XAPlus {
     private boolean constructed;
 
     public XAPlus(String serverId, int defaultTimeoutInSeconds) {
+        if (serverId == null) {
+            throw new NullPointerException("serverId is null");
+        }
+        if (serverId.length() > MAX_SERVER_ID_LENGTH) {
+            throw new IllegalArgumentException("too long serverId, limited by " + MAX_SERVER_ID_LENGTH + " bytes, " +
+                    "serverId=" + serverId);
+        }
+        if (defaultTimeoutInSeconds <= 0) {
+            throw new IllegalArgumentException("default timeout must be greater zero, " +
+                    "defaultTimeoutInSeconds=" + defaultTimeoutInSeconds);
+        }
         properties = new XAPlusProperties(serverId, 128, defaultTimeoutInSeconds);
         threadPool = new XAPlusThreadPool();
         dispatcher = new XAPlusDispatcher();
