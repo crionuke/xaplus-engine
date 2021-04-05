@@ -13,6 +13,7 @@ import java.util.NoSuchElementException;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
+// TODO: remove bqual from tlog as gtrid enough
 class XAPlusTLog {
     static final String FIND_DANGLING_TX_SQL = "SELECT t_gtrid, t_bqual, t_unique_name, t_status " +
             "FROM tlog WHERE t_server_id = ? AND t_timestamp < ? " +
