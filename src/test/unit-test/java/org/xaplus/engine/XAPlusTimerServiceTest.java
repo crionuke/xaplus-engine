@@ -8,12 +8,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.XAPlusTickEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
-import org.xaplus.engine.events.rollback.XAPlusRollbackRequestEvent;
 import org.xaplus.engine.events.timer.XAPlusTimerCancelledEvent;
 import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
-import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
+import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
+import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -22,11 +22,8 @@ import java.util.concurrent.TimeUnit;
 public class XAPlusTimerServiceTest extends XAPlusTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTimerServiceTest.class);
 
-    XAPlusTimerService xaPlusTimerService;
-
-    BlockingQueue<XAPlusTransactionTimedOutEvent> timeoutEvents;
-    BlockingQueue<XAPlusTimerCancelledEvent> timerCancelledEvents;
-    ConsumerStub consumerStub;
+    private XAPlusTimerService xaPlusTimerService;
+    private ConsumerStub consumerStub;
 
     @Before
     public void beforeTest() {
@@ -34,9 +31,6 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
 
         xaPlusTimerService = new XAPlusTimerService(properties, threadPool, dispatcher, new XAPlusTimerState());
         xaPlusTimerService.postConstruct();
-
-        timeoutEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        timerCancelledEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
         consumerStub = new ConsumerStub();
         consumerStub.postConstruct();
@@ -51,10 +45,11 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
     @Test
     public void test2pcTimeout() throws InterruptedException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
+        dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         Thread.sleep(properties.getDefaultTimeoutInSeconds() * 1000);
         dispatcher.dispatch(new XAPlusTickEvent(1));
-        XAPlusTransactionTimedOutEvent timeoutEvent = timeoutEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusTransactionTimedOutEvent timeoutEvent =
+                consumerStub.timeoutEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timeoutEvent);
         assertEquals(timeoutEvent.getTransaction().getXid(), transaction.getXid());
         logger.info("Transaction {} timed out", timeoutEvent.getTransaction());
@@ -63,10 +58,11 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
     @Test
     public void testRollbackTimeout() throws InterruptedException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
+        dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
         Thread.sleep(properties.getDefaultTimeoutInSeconds() * 1000);
         dispatcher.dispatch(new XAPlusTickEvent(1));
-        XAPlusTransactionTimedOutEvent timeoutEvent = timeoutEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusTransactionTimedOutEvent timeoutEvent =
+                consumerStub.timeoutEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timeoutEvent);
         assertEquals(timeoutEvent.getTransaction().getXid(), transaction.getXid());
         logger.info("Transaction {} timed out", timeoutEvent.getTransaction());
@@ -75,31 +71,32 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
     @Test
     public void test2pcRequestDone() throws InterruptedException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
+        dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
-        XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusTimerCancelledEvent timerCancelledEvent =
+                consumerStub.timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timerCancelledEvent);
         assertEquals(timerCancelledEvent.getTransaction().getXid(), transaction.getXid());
         logger.info("Transaction {} done", timerCancelledEvent.getTransaction());
     }
 
-//    @Test
-//    public void test2pcRequestFailed() throws InterruptedException {
-//        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-//        dispatcher.dispatch(new XAPlus2pcRequestEvent(transaction));
-//        dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction, false));
-//        XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-//        assertNotNull(timerCancelledEvent);
-//        assertEquals(timerCancelledEvent.getTransaction().getXid(), transaction.getXid());
-//        logger.info("Transaction {} failed", timerCancelledEvent.getTransaction());
-//    }
+    @Test
+    public void test2pcRequestFailed() throws InterruptedException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
+        dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
+        dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction));
+        XAPlusTimerCancelledEvent timerCancelledEvent = consumerStub.timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(timerCancelledEvent);
+        assertEquals(timerCancelledEvent.getTransaction().getXid(), transaction.getXid());
+        logger.info("Transaction {} failed", timerCancelledEvent.getTransaction());
+    }
 
     @Test
     public void testRollbackRequestDone() throws InterruptedException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
+        dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
         dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
-        XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusTimerCancelledEvent timerCancelledEvent = consumerStub.timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timerCancelledEvent);
         assertEquals(timerCancelledEvent.getTransaction().getXid(), transaction.getXid());
         logger.info("rolling back of transaction {} done", timerCancelledEvent.getTransaction());
@@ -108,9 +105,9 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
     @Test
     public void testRollbackRequestFailed() throws InterruptedException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusRollbackRequestEvent(transaction));
+        dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
         dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
-        XAPlusTimerCancelledEvent timerCancelledEvent = timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusTimerCancelledEvent timerCancelledEvent = consumerStub.timerCancelledEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(timerCancelledEvent);
         assertEquals(timerCancelledEvent.getTransaction().getXid(), transaction.getXid());
         logger.info("rolling back of transaction {} failed", timerCancelledEvent.getTransaction());
@@ -120,8 +117,14 @@ public class XAPlusTimerServiceTest extends XAPlusTest {
             XAPlusTransactionTimedOutEvent.Handler,
             XAPlusTimerCancelledEvent.Handler {
 
+        BlockingQueue<XAPlusTransactionTimedOutEvent> timeoutEvents;
+        BlockingQueue<XAPlusTimerCancelledEvent> timerCancelledEvents;
+
         ConsumerStub() {
             super("consumer-stub", QUEUE_SIZE);
+
+            timeoutEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            timerCancelledEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override
