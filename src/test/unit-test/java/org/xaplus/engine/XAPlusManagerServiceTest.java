@@ -6,7 +6,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.journal.XAPlusReportTransactionStatusRequestEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackRequestEvent;
@@ -15,8 +14,6 @@ import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
-import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToCommitEvent;
-import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
 import org.xaplus.engine.exceptions.XAPlusCommitException;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
 import org.xaplus.engine.exceptions.XAPlusTimeoutException;
@@ -34,7 +31,6 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
 
     BlockingQueue<XAPlus2pcRequestEvent> twoPcRequestEvents;
     BlockingQueue<XAPlusRollbackRequestEvent> rollbackRequestEvents;
-    BlockingQueue<XAPlusReportTransactionStatusRequestEvent> reportTransactionStatusRequestEvents;
 
     ConsumerStub consumerStub;
 
@@ -47,7 +43,6 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
 
         twoPcRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         rollbackRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        reportTransactionStatusRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
         consumerStub = new ConsumerStub();
         consumerStub.postConstruct();
@@ -122,31 +117,9 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
         transaction.getFuture().get();
     }
 
-    @Test
-    public void testRemoteSuperiorOrderToCommit() throws InterruptedException, SQLException, XAException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
-        dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToCommitEvent(transaction.getXid()));
-        XAPlusReportTransactionStatusRequestEvent reportTransactionStatusRequestEvent =
-                reportTransactionStatusRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(reportTransactionStatusRequestEvent);
-        assertEquals(transaction.getXid(), reportTransactionStatusRequestEvent.getXid());
-    }
-
-    @Test
-    public void testRemoteSuperiorOrderToRollback() throws InterruptedException, SQLException, XAException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
-        dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(transaction.getXid()));
-        XAPlusReportTransactionStatusRequestEvent reportTransactionStatusRequestEvent =
-                reportTransactionStatusRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(reportTransactionStatusRequestEvent);
-        assertEquals(transaction.getXid(), reportTransactionStatusRequestEvent.getXid());
-    }
-
     private class ConsumerStub extends Bolt implements
             XAPlus2pcRequestEvent.Handler,
-            XAPlusRollbackRequestEvent.Handler,
-            XAPlusReportTransactionStatusRequestEvent.Handler {
-
+            XAPlusRollbackRequestEvent.Handler {
 
         ConsumerStub() {
             super("stub-consumer", QUEUE_SIZE);
@@ -162,17 +135,10 @@ public class XAPlusManagerServiceTest extends XAPlusTest {
             rollbackRequestEvents.put(event);
         }
 
-        @Override
-        public void handleReportTransactionStatusRequest(XAPlusReportTransactionStatusRequestEvent event)
-                throws InterruptedException {
-            reportTransactionStatusRequestEvents.put(event);
-        }
-
         void postConstruct() {
             threadPool.execute(this);
             dispatcher.subscribe(this, XAPlus2pcRequestEvent.class);
             dispatcher.subscribe(this, XAPlusRollbackRequestEvent.class);
-            dispatcher.subscribe(this, XAPlusReportTransactionStatusRequestEvent.class);
         }
     }
 }

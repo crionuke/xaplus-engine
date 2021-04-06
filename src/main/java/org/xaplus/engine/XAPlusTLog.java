@@ -7,7 +7,6 @@ import javax.sql.DataSource;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -35,32 +34,6 @@ class XAPlusTLog {
     XAPlusTLog(String serverId, XAPlusEngine engine) {
         this.serverId = serverId;
         this.engine = engine;
-    }
-
-    boolean findTransactionStatus(XAPlusXid xid) throws SQLException, NoSuchElementException {
-        DataSource tlogDataSource = engine.getTLogDataSource();
-        try (Connection connection = tlogDataSource.getConnection()) {
-            try (PreparedStatement statement = connection.prepareStatement(FIND_TX_STATUS_SQL)) {
-                statement.setFetchSize(FETCH_SIZE);
-                statement.setString(1, serverId);
-                statement.setBytes(2, xid.getGlobalTransactionId());
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    int branches = 0;
-                    while (resultSet.next()) {
-                        branches++;
-                        int count = resultSet.getInt(1);
-                        if (count < 2) {
-                            return false;
-                        }
-                    }
-                    if (branches == 0) {
-                        throw new NoSuchElementException(xid + " not found");
-                    } else {
-                        return true;
-                    }
-                }
-            }
-        }
     }
 
     Map<String, Map<XAPlusXid, Boolean>> findDanglingTransactions(long inflightCutoff) throws SQLException {

@@ -3,7 +3,6 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.journal.XAPlusReportTransactionStatusRequestEvent;
 import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlusCommitTransactionDecisionEvent;
@@ -76,8 +75,6 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                 // Just mark as rollback only, wait when preparation finished
                 transaction.markAsRollbackOnly();
             }
-        } else {
-            reportTransactionStatus(xid);
         }
     }
 
@@ -100,8 +97,6 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                     logger.warn("Remote superior order to commit, but transaction not prepared yet, xid={}", xid);
                 }
             }
-        } else {
-            reportTransactionStatus(xid);
         }
     }
 
@@ -273,21 +268,6 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                         logger.warn("Non XA+ or unknown resource with name={}, {}", superiorServerId, transaction);
                     }
                 }
-            }
-        }
-    }
-
-    void reportTransactionStatus(XAPlusXid xid) throws InterruptedException {
-        String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
-        try {
-            XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Report transaction status, superiorServerId={}, xid={}", superiorServerId, xid);
-            }
-            dispatcher.dispatch(new XAPlusReportTransactionStatusRequestEvent(xid, resource));
-        } catch (XAPlusSystemException e) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Non XA+ or unknown resource with name={}, xid={}", superiorServerId, xid);
             }
         }
     }
