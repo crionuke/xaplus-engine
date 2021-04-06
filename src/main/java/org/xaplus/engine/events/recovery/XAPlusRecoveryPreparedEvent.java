@@ -1,6 +1,7 @@
 package org.xaplus.engine.events.recovery;
 
 import com.crionuke.bolts.Event;
+import org.xaplus.engine.XAPlusUid;
 import org.xaplus.engine.XAPlusXid;
 
 import javax.transaction.xa.XAResource;
@@ -17,13 +18,13 @@ public final class XAPlusRecoveryPreparedEvent extends Event<XAPlusRecoveryPrepa
     private final Map<String, javax.jms.XAJMSContext> jmsContexts;
     private final Map<String, XAResource> xaResources;
     private final Map<String, Set<XAPlusXid>> recoveredXids;
-    private final Map<String, Map<XAPlusXid, Boolean>> danglingTransactions;
+    private final Map<XAPlusUid, Boolean> danglingTransactions;
 
     public XAPlusRecoveryPreparedEvent(Map<String, javax.sql.XAConnection> jdbcConnections,
                                        Map<String, javax.jms.XAJMSContext> jmsContexts,
                                        Map<String, XAResource> xaResources,
                                        Map<String, Set<XAPlusXid>> recoveredXids,
-                                       Map<String, Map<XAPlusXid, Boolean>> danglingTransactions) {
+                                       Map<XAPlusUid, Boolean> danglingTransactions) {
         super();
         if (jdbcConnections == null) {
             throw new NullPointerException("jdbcConnections is null");
@@ -68,7 +69,7 @@ public final class XAPlusRecoveryPreparedEvent extends Event<XAPlusRecoveryPrepa
         return recoveredXids;
     }
 
-    public Map<String, Map<XAPlusXid, Boolean>> getDanglingTransactions() {
+    public Map<XAPlusUid, Boolean> getDanglingTransactions() {
         return danglingTransactions;
     }
 

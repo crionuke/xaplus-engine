@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Ludovic Orban
  * @since 1.0.0
  */
-final class XAPlusUid {
+public final class XAPlusUid {
 
     static private final AtomicInteger sequenceGenerator = new AtomicInteger();
 

@@ -1,6 +1,7 @@
 package org.xaplus.engine.events.journal;
 
 import com.crionuke.bolts.Event;
+import org.xaplus.engine.XAPlusUid;
 import org.xaplus.engine.XAPlusXid;
 
 import java.util.Collections;
@@ -12,9 +13,9 @@ import java.util.Map;
  */
 public final class XAPlusDanglingTransactionsFoundEvent extends Event<XAPlusDanglingTransactionsFoundEvent.Handler> {
 
-    private final Map<String, Map<XAPlusXid, Boolean>> danglingTransactions;
+    private final Map<XAPlusUid, Boolean> danglingTransactions;
 
-    public XAPlusDanglingTransactionsFoundEvent(Map<String, Map<XAPlusXid, Boolean>> danglingTransactions) {
+    public XAPlusDanglingTransactionsFoundEvent(Map<XAPlusUid, Boolean> danglingTransactions) {
         super();
         if (danglingTransactions == null) {
             throw new NullPointerException("danglingTransactions is null");
@@ -27,7 +28,7 @@ public final class XAPlusDanglingTransactionsFoundEvent extends Event<XAPlusDang
         handler.handleDanglingTransactionFound(this);
     }
 
-    public Map<String, Map<XAPlusXid, Boolean>> getDanglingTransactions() {
+    public Map<XAPlusUid, Boolean> getDanglingTransactions() {
         return danglingTransactions;
     }
 

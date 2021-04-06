@@ -21,7 +21,7 @@ class XAPlusRecoveryPreparerTracker {
     private Map<String, XAResource> xaResources;
     private Set<String> remain;
     private Map<String, Set<XAPlusXid>> recoveredXids;
-    private Map<String, Map<XAPlusXid, Boolean>> danglingTransactions;
+    private Map<XAPlusUid, Boolean> danglingTransactions;
     private boolean failed;
 
     XAPlusRecoveryPreparerTracker() {
@@ -64,7 +64,7 @@ class XAPlusRecoveryPreparerTracker {
         remain.remove(uniqueName);
     }
 
-    void putDanglingTransactions(Map<String, Map<XAPlusXid, Boolean>> danglingTransactions) {
+    void putDanglingTransactions(Map<XAPlusUid, Boolean> danglingTransactions) {
         this.danglingTransactions.putAll(danglingTransactions);
     }
 
@@ -104,8 +104,8 @@ class XAPlusRecoveryPreparerTracker {
         return result;
     }
 
-    Map<String, Map<XAPlusXid, Boolean>> getDanglingTransactions() {
-        Map<String, Map<XAPlusXid, Boolean>> result = new HashMap<>();
+    Map<XAPlusUid, Boolean> getDanglingTransactions() {
+        Map<XAPlusUid, Boolean> result = new HashMap<>();
         result.putAll(danglingTransactions);
         return result;
     }

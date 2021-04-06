@@ -64,7 +64,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         XAPlusXid xid = transaction.getXid();
         try {
-            tlog.logCommitTransactionDecision(transaction);
+            tlog.logCommitDecision(xid.getGlobalTransactionIdUid());
             if (logger.isDebugEnabled()) {
                 logger.debug("Commit decision logged, xid={}, branches={}", xid, transaction.getBranches());
             }
@@ -87,7 +87,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         XAPlusXid xid = transaction.getXid();
         try {
-            tlog.logRollbackTransactionDecision(transaction);
+            tlog.logRollbackDecision(xid.getGlobalTransactionIdUid());
             if (logger.isDebugEnabled()) {
                 logger.debug("Rollback decision logged, xid={}, branches={}", xid, transaction.getBranches());
             }
@@ -110,9 +110,9 @@ class XAPlusJournalService extends Bolt implements
         boolean status = event.getStatus();
         try {
             if (status) {
-                tlog.logTransactionCommitted(transaction);
+                tlog.logCommittedStatus(xid.getGlobalTransactionIdUid());
             } else {
-                tlog.logTransactionRolledBack(transaction);
+                tlog.logRolledBackStatus(xid.getGlobalTransactionIdUid());
             }
             if (logger.isDebugEnabled()) {
                 logger.debug("Completed transaction logged, xid={}", xid);
@@ -136,7 +136,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
         try {
-            tlog.logCommitXidDecision(event.getXid(), event.getUniqueName());
+            tlog.logCommitDecision(event.getXid().getGlobalTransactionIdUid());
             if (logger.isDebugEnabled()) {
                 logger.debug("Commit decision for recovered xid logged, xid={}", xid);
             }
@@ -158,7 +158,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
         try {
-            tlog.logRollbackXidDecision(event.getXid(), event.getUniqueName());
+            tlog.logRollbackDecision(event.getXid().getGlobalTransactionIdUid());
             if (logger.isDebugEnabled()) {
                 logger.debug("Rollback decision for recovered xid logged, xid={}", xid);
             }
@@ -179,7 +179,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
         try {
-            tlog.logXidCommitted(xid, uniqueName);
+            tlog.logCommittedStatus(xid.getGlobalTransactionIdUid());
             if (logger.isDebugEnabled()) {
                 logger.debug("Done status for committed recovered xid logged, xid={}, xaResource={}",
                         xid, uniqueName);
@@ -200,7 +200,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
         try {
-            tlog.logXidRolledBack(xid, uniqueName);
+            tlog.logRolledBackStatus(xid.getGlobalTransactionIdUid());
             if (logger.isDebugEnabled()) {
                 logger.debug("Done status for rolled back recovered xid logged, xid={}, xaResource={}", xid, uniqueName);
             }
@@ -220,7 +220,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
         try {
-            tlog.logXidCommitted(xid, uniqueName);
+            tlog.logCommittedStatus(xid.getGlobalTransactionIdUid());
             if (logger.isDebugEnabled()) {
                 logger.debug("Commit status for dangling transaction logged, xid={}, xaResource={}",
                         xid, uniqueName);
@@ -241,7 +241,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         String uniqueName = event.getUniqueName();
         try {
-            tlog.logXidRolledBack(xid, uniqueName);
+            tlog.logRolledBackStatus(xid.getGlobalTransactionIdUid());
             if (logger.isDebugEnabled()) {
                 logger.debug("Rollback status for dangling transaction logged, xid={}, xaResource={}",
                         xid, uniqueName);
@@ -268,7 +268,7 @@ class XAPlusJournalService extends Bolt implements
             } else {
                 inflightCutoff = inFlightTransactions.first().getCreationTimeInMillis();
             }
-            Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = tlog.findDanglingTransactions(inflightCutoff);
+            Map<XAPlusUid, Boolean> danglingTransactions = tlog.findDanglingTransactions(inflightCutoff);
             dispatcher.dispatch(new XAPlusDanglingTransactionsFoundEvent(danglingTransactions));
         } catch (SQLException e) {
             if (logger.isWarnEnabled()) {

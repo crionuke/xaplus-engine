@@ -62,7 +62,6 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             }
             tracker.start(event.getJdbcConnections(), event.getJmsContexts(), event.getXaResources(),
                     event.getRecoveredXids(), event.getDanglingTransactions());
-            retryOrders();
             recoveryResources();
             // TODO: close all connections opened to recover resources
         }
@@ -183,33 +182,6 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         dispatcher.subscribe(this, XAPlusRollbackRecoveredXidDecisionLoggedEvent.class);
     }
 
-    private void retryOrders() throws InterruptedException {
-        Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = tracker.getDanglingTransactions();
-        for (String uniqueName : danglingTransactions.keySet()) {
-            // Ignore transactions on non XA+ resources
-            if (resources.isXAPlusResource(uniqueName)) {
-                try {
-                    XAPlusResource resource = resources.getXAPlusResource(uniqueName);
-                    Map<XAPlusXid, Boolean> transactions = danglingTransactions.get(uniqueName);
-                    for (XAPlusXid xid : transactions.keySet()) {
-                        boolean status = transactions.get(xid);
-                        if (status) {
-                            dispatcher.dispatch(new XAPlusRetryCommitOrderRequestEvent(xid, resource));
-                        } else {
-                            dispatcher.dispatch(new XAPlusRetryRollbackOrderRequestEvent(xid, resource));
-                        }
-                        ordersTracker.track(xid, uniqueName, status);
-                    }
-                } catch (XAPlusSystemException e) {
-                    if (logger.isErrorEnabled()) {
-                        logger.error("Internal error. Retry order for non XA+ or unknown resource, resource={}",
-                                uniqueName);
-                    }
-                }
-            }
-        }
-    }
-
     private void recoveryResources() throws InterruptedException {
         Map<String, Set<XAPlusXid>> recoveredXids = tracker.getRecoveredXids();
         Set<String> superiorServers = new HashSet<>();
@@ -218,14 +190,14 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             if (xaResource != null) {
                 Set<XAPlusXid> xids = recoveredXids.get(uniqueName);
                 for (XAPlusXid xid : xids) {
-                    Map<XAPlusXid, Boolean> danglingXids = tracker.getDanglingTransactions().get(uniqueName);
-                    if (danglingXids != null && danglingXids.containsKey(xid)) {
-                        boolean status = danglingXids.get(xid);
+                    Map<XAPlusUid, Boolean> danglingXids = tracker.getDanglingTransactions();
+                    if (danglingXids.containsKey(xid.getGlobalTransactionIdUid())) {
+                        boolean status = danglingXids.get(xid.getGlobalTransactionIdUid());
                         if (status) {
                             dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, xaResource, uniqueName));
                         } else {
-                            dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid,
-                                    xaResource, uniqueName));
+                            dispatcher.dispatch(
+                                    new XAPlusRollbackRecoveredXidRequestEvent(xid, xaResource, uniqueName));
                         }
                     } else {
                         String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();

@@ -19,7 +19,7 @@ class XAPlusRecoveryCommitterTracker {
     private Map<String, javax.jms.XAJMSContext> jmsContexts;
     private Map<String, XAResource> xaResources;
     private Map<String, Set<XAPlusXid>> recoveredXids;
-    private Map<String, Map<XAPlusXid, Boolean>> danglingTransactions;
+    private Map<XAPlusUid, Boolean> danglingTransactions;
 
     XAPlusRecoveryCommitterTracker() {
         started = false;
@@ -32,7 +32,7 @@ class XAPlusRecoveryCommitterTracker {
 
     void start(Map<String, XAConnection> jdbcConnections, Map<String, javax.jms.XAJMSContext> jmsContexts,
                Map<String, XAResource> xaResources, Map<String, Set<XAPlusXid>> recoveredXids,
-               Map<String, Map<XAPlusXid, Boolean>> danglingTransactions) {
+               Map<XAPlusUid, Boolean> danglingTransactions) {
         this.jdbcConnections = jdbcConnections;
         this.jmsContexts = jmsContexts;
         this.xaResources = xaResources;
@@ -60,7 +60,7 @@ class XAPlusRecoveryCommitterTracker {
         return recoveredXids;
     }
 
-    Map<String, Map<XAPlusXid, Boolean>> getDanglingTransactions() {
+    Map<XAPlusUid, Boolean> getDanglingTransactions() {
         return danglingTransactions;
     }
 

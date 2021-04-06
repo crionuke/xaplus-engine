@@ -19,7 +19,7 @@ package org.xaplus.engine;
  * @author Ludovic Orban
  * @since 1.0.0
  */
-public class XAPlusXid implements javax.transaction.xa.Xid {
+public final class XAPlusXid implements javax.transaction.xa.Xid {
 
     /**
      * int-encoded "Btnx" string. This is used as the globally unique ID to discriminate BTM XIDs.
