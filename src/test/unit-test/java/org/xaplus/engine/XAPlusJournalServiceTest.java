@@ -13,7 +13,6 @@ import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionRolledBackEven
 import org.xaplus.engine.events.recovery.XAPlusRecoveredXidCommittedEvent;
 import org.xaplus.engine.events.recovery.XAPlusRecoveredXidRolledBackEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
-import org.xaplus.engine.exceptions.XAPlusSystemException;
 
 import javax.transaction.xa.XAException;
 import java.sql.SQLException;
@@ -23,7 +22,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusJournalServiceTest extends XAPlusTest {
+public class XAPlusJournalServiceTest extends XAPlusUnitTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusJournalServiceTest.class);
 
     XAPlusTLog tlogMock;
@@ -83,7 +82,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
     public void testLogCommitTransactionDecisionFailed() throws InterruptedException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         Mockito.doThrow(new SQLException("log_exception")).when(tlogMock)
-                .logCommitTransactionDecision(transaction);
+                .logCommitDecision(transaction.getXid().getGlobalTransactionIdUid());
         dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
         XAPlusLogCommitTransactionDecisionFailedEvent event = commitTransactionDecisionFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -106,7 +105,7 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
     public void testLogRollbackTransactionDecisionFailed() throws InterruptedException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         Mockito.doThrow(new SQLException("log_exception")).when(tlogMock)
-                .logRollbackTransactionDecision(transaction);
+                .logRollbackDecision(transaction.getXid().getGlobalTransactionIdUid());
         dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
         XAPlusLogRollbackTransactionDecisionFailedEvent event = rollbackTransactionDecisionFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -143,7 +142,8 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
         String uniqueName = XA_RESOURCE_1;
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusRecoveredXidCommittedEvent(transaction.getXid(), uniqueName));
-        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS)).logXidCommitted(transaction.getXid(), uniqueName);
+        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS))
+                .logCommittedStatus(transaction.getXid().getGlobalTransactionIdUid());
     }
 
     @Test
@@ -151,7 +151,8 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
         String uniqueName = XA_RESOURCE_1;
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusRecoveredXidRolledBackEvent(transaction.getXid(), uniqueName));
-        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS)).logXidRolledBack(transaction.getXid(), uniqueName);
+        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS))
+                .logRolledBackStatus(transaction.getXid().getGlobalTransactionIdUid());
     }
 
     @Test
@@ -159,7 +160,8 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
         String uniqueName = XA_RESOURCE_1;
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusDanglingTransactionCommittedEvent(transaction.getXid(), uniqueName));
-        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS)).logXidCommitted(transaction.getXid(), uniqueName);
+        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS))
+                .logCommittedStatus(transaction.getXid().getGlobalTransactionIdUid());
     }
 
     @Test
@@ -167,12 +169,13 @@ public class XAPlusJournalServiceTest extends XAPlusTest {
         String uniqueName = XA_RESOURCE_1;
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusDanglingTransactionRolledBackEvent(transaction.getXid(), uniqueName));
-        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS)).logXidRolledBack(transaction.getXid(), uniqueName);
+        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS))
+                .logRolledBackStatus(transaction.getXid().getGlobalTransactionIdUid());
     }
 
     @Test
     public void testFindDanglingTransactionsRequestSuccessfully() throws InterruptedException, SQLException {
-        Map<String, Map<XAPlusXid, Boolean>> danglingTransactions = new HashMap<>();
+        Map<XAPlusUid, Boolean> danglingTransactions = new HashMap<>();
         Mockito.when(tlogMock.findDanglingTransactions(System.currentTimeMillis())).thenReturn(danglingTransactions);
         dispatcher.dispatch(new XAPlusFindDanglingTransactionsRequestEvent());
         XAPlusDanglingTransactionsFoundEvent event = danglingTransactionsFoundEvents

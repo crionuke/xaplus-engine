@@ -9,7 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class XAPlusIntegrationTest extends XAPlusTest {
+public class XAPlusIntegrationTest extends XAPlusUnitTest {
 
     static private final String INSERT_SQL = "INSERT INTO test (t_value) VALUES (?)";
     static private final String SELECT_SQL = "SELECT t_value FROM test";

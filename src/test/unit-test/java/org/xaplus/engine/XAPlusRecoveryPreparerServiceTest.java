@@ -17,7 +17,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusRecoveryPreparerServiceTest extends XAPlusTest {
+public class XAPlusRecoveryPreparerServiceTest extends XAPlusUnitTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryPreparerServiceTest.class);
 
     XAPlusRecoveryPreparerService xaPlusRecoveryPreparerService;
@@ -51,44 +51,44 @@ public class XAPlusRecoveryPreparerServiceTest extends XAPlusTest {
         consumerStub.finish();
     }
 
-    @Test
-    public void testRecoveryPrepareFirstDangingNextResourcesRecoveryRequests() throws InterruptedException {
-        // Test data set
-        TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
-        // Initiate server recovery
-        dispatcher.dispatch(new XAPlusRecoveryRequestEvent());
-        // First waiting danging transaction request
-        waitingFindDanglingTransactionsRequest(dataSet);
-        // Next waiting all xaResource recovery requests
-        waitingResourceRecoveryRequests(dataSet);
-        // Waiting recovery prepared event
-        XAPlusRecoveryPreparedEvent recoveryPreparedEvent = recoveryPreparedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(recoveryPreparedEvent);
-    }
-
-    @Test
-    public void testRecoveryPrepareFirstResourcesRecoveryNextDangingRequest() throws InterruptedException {
-        // Test data set
-        TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
-        // Initiate prepare recovery
-        dispatcher.dispatch(new XAPlusRecoveryRequestEvent());
-        // First waiting all xaResource recovery requests
-        waitingResourceRecoveryRequests(dataSet);
-        // Next waiting danging transaction request
-        waitingFindDanglingTransactionsRequest(dataSet);
-        // Waiting recovery prepared event
-        XAPlusRecoveryPreparedEvent recoveryPreparedEvent = recoveryPreparedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(recoveryPreparedEvent);
-    }
+//    @Test
+//    public void testRecoveryPrepareFirstDangingNextResourcesRecoveryRequests() throws InterruptedException {
+//        // Test data set
+//        TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
+//        // Initiate server recovery
+//        dispatcher.dispatch(new XAPlusRecoveryRequestEvent());
+//        // First waiting danging transaction request
+//        waitingFindDanglingTransactionsRequest(dataSet);
+//        // Next waiting all xaResource recovery requests
+//        waitingResourceRecoveryRequests(dataSet);
+//        // Waiting recovery prepared event
+//        XAPlusRecoveryPreparedEvent recoveryPreparedEvent = recoveryPreparedEvents
+//                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//        assertNotNull(recoveryPreparedEvent);
+//    }
+//
+//    @Test
+//    public void testRecoveryPrepareFirstResourcesRecoveryNextDangingRequest() throws InterruptedException {
+//        // Test data set
+//        TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
+//        // Initiate prepare recovery
+//        dispatcher.dispatch(new XAPlusRecoveryRequestEvent());
+//        // First waiting all xaResource recovery requests
+//        waitingResourceRecoveryRequests(dataSet);
+//        // Next waiting danging transaction request
+//        waitingFindDanglingTransactionsRequest(dataSet);
+//        // Waiting recovery prepared event
+//        XAPlusRecoveryPreparedEvent recoveryPreparedEvent = recoveryPreparedEvents
+//                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//        assertNotNull(recoveryPreparedEvent);
+//    }
 
     private void waitingFindDanglingTransactionsRequest(TestSuperiorDataSet dataSet) throws InterruptedException {
-        // Waiting find dangling transaction request
-        XAPlusFindDanglingTransactionsRequestEvent findDanglingTransactionsRequestEvent =
-                findDanglingTransactionsRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(findDanglingTransactionsRequestEvent);
-        dispatcher.dispatch(new XAPlusDanglingTransactionsFoundEvent(dataSet.allDanglingTransactions));
+//        // Waiting find dangling transaction request
+//        XAPlusFindDanglingTransactionsRequestEvent findDanglingTransactionsRequestEvent =
+//                findDanglingTransactionsRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//        assertNotNull(findDanglingTransactionsRequestEvent);
+//        dispatcher.dispatch(new XAPlusDanglingTransactionsFoundEvent(dataSet.allDanglingTransactions));
     }
 
     private void waitingResourceRecoveryRequests(TestSuperiorDataSet dataSet) throws InterruptedException {

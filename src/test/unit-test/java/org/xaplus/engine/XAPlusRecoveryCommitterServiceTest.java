@@ -20,7 +20,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class XAPlusRecoveryCommitterServiceTest extends XAPlusTest {
+public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryCommitterServiceTest.class);
 
     XAPlusRecoveryCommitterService xaPlusRecoveryCommitterService;
@@ -67,106 +67,106 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusTest {
         consumerStub.finish();
     }
 
-    @Test
-    public void testRecoveryRetryOrdersFromSuperiorSide() throws InterruptedException {
-        // Test transactions data set
-        TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
-        // Initiate prepare recovery
-        dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(new HashMap<>(), new HashMap<>(), new HashMap<>(),
-                new HashMap<>(), dataSet.allDanglingTransactions));
-        // Waiting retry orders requests for XA+ resources
-        Set<XAPlusXid> orders = new HashSet<>();
-        dataSet.xaPlusDanglingXids.keySet().forEach((xid) -> orders.add(xid));
-        for (Map.Entry<XAPlusXid, Boolean> entry : dataSet.xaPlusDanglingXids.entrySet()) {
-            Boolean status = entry.getValue();
-            if (status) {
-                XAPlusRetryCommitOrderRequestEvent retryCommitOrderRequestEvent =
-                        retryCommitOrderRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-                assertNotNull(retryCommitOrderRequestEvent);
-                XAPlusXid xid = retryCommitOrderRequestEvent.getXid();
-                assertTrue(orders.remove(xid));
-                // Response done
-                dispatcher.dispatch(new XAPlusRemoteSubordinateDoneEvent(xid));
-                // Waiting event that xid committed
-                XAPlusDanglingTransactionCommittedEvent danglingTransactionCommittedEvent =
-                        danglingTransactionCommittedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-                assertNotNull(danglingTransactionCommittedEvent);
-                assertEquals(xid, danglingTransactionCommittedEvent.getXid());
-            } else {
-                XAPlusRetryRollbackOrderRequestEvent retryRollbackOrderRequestEvent =
-                        retryRollbackOrderRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-                assertNotNull(retryRollbackOrderRequestEvent);
-                XAPlusXid xid = retryRollbackOrderRequestEvent.getXid();
-                assertTrue(orders.remove(xid));
-                // Response done
-                dispatcher.dispatch(new XAPlusRemoteSubordinateDoneEvent(xid));
-                // Waiting event that xid rolledback
-                XAPlusDanglingTransactionRolledBackEvent danglingTransactionRolledBackEvent =
-                        danglingTransactionRolledBackEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-                assertNotNull(danglingTransactionRolledBackEvent);
-                assertEquals(xid, danglingTransactionRolledBackEvent.getXid());
-            }
-        }
-        assertTrue(orders.isEmpty());
-    }
-
-    @Test
-    public void testRecoveryXAResourcesOnSuperiorSide() throws InterruptedException {
-        // Test transactions data set
-        TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
-        // Test xa resources
-        TestXAResources xaResources = new TestXAResources();
-        // Initiate prepare recovery
-        dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(xaResources.getJdbcConnections(),
-                xaResources.getJmsContexts(), xaResources.getXaResources(), dataSet.allPreparedXids,
-                dataSet.xaDanglingTransactions));
-        // Waiting commit requests
-        List<XAPlusXid> committedXid = dataSet.xaDanglingXids.entrySet().stream()
-                .filter((entry) -> entry.getValue())
-                .map((entry) -> entry.getKey())
-                .collect(Collectors.toList());
-        for (int i = 0; i < committedXid.size(); i++) {
-            XAPlusCommitRecoveredXidRequestEvent commitRecoveredXidRequestEvent =
-                    commitRecoveredXidRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-            assertNotNull(commitRecoveredXidRequestEvent);
-            assertTrue(committedXid.contains(commitRecoveredXidRequestEvent.getXid()));
-        }
-        // Waiting rollback requests
-        List<XAPlusXid> rolledBackXid = dataSet.xaDanglingXids.entrySet().stream()
-                .filter((entry) -> !entry.getValue())
-                .map((entry) -> entry.getKey())
-                .collect(Collectors.toList());
-        for (int i = 0; i < rolledBackXid.size() + dataSet.xaNoDecisionXids.size(); i++) {
-            XAPlusRollbackRecoveredXidRequestEvent rollbackRecoveredXidRequestEvent =
-                    rollbackRecoveredXidRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-            assertNotNull(rollbackRecoveredXidRequestEvent);
-            XAPlusXid xid = rollbackRecoveredXidRequestEvent.getXid();
-            assertTrue(rolledBackXid.contains(xid) || dataSet.xaNoDecisionXids.contains(xid));
-        }
-    }
-
-    @Test
-    public void testRecoveryXAResourcesOnSubordinateSide() throws InterruptedException {
-        // Test transactions data set
-        TestSubordinateDataSet dataSet = new TestSubordinateDataSet(XA_PLUS_RESOURCE_2, XA_PLUS_RESOURCE_3,
-                XA_PLUS_RESOURCE_1);
-        // Test xa resources
-        TestXAResources xaResources = new TestXAResources();
-        // Initiate prepare recovery
-        dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(xaResources.getJdbcConnections(),
-                xaResources.getJmsContexts(), xaResources.getXaResources(), dataSet.allPreparedXids,
-                dataSet.xaDanglingTransactions));
-        // Waiting retry requests
-        HashSet<String> superiors = new HashSet<>();
-        superiors.add(XA_PLUS_RESOURCE_2);
-        superiors.add(XA_PLUS_RESOURCE_3);
-        for (int i = 0; i < superiors.size(); i++) {
-            XAPlusRetryFromSuperiorRequestEvent retryFromSuperiorRequestEvent = retryFromSuperiorRequestEvents
-                    .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-            assertNotNull(retryFromSuperiorRequestEvent);
-            assertTrue(superiors.contains(retryFromSuperiorRequestEvent.getServerId()));
-        }
-    }
+//    @Test
+//    public void testRecoveryRetryOrdersFromSuperiorSide() throws InterruptedException {
+//        // Test transactions data set
+//        TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
+//        // Initiate prepare recovery
+//        dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(new HashMap<>(), new HashMap<>(), new HashMap<>(),
+//                new HashMap<>(), dataSet.allDanglingTransactions));
+//        // Waiting retry orders requests for XA+ resources
+//        Set<XAPlusXid> orders = new HashSet<>();
+//        dataSet.xaPlusDanglingXids.keySet().forEach((xid) -> orders.add(xid));
+//        for (Map.Entry<XAPlusXid, Boolean> entry : dataSet.xaPlusDanglingXids.entrySet()) {
+//            Boolean status = entry.getValue();
+//            if (status) {
+//                XAPlusRetryCommitOrderRequestEvent retryCommitOrderRequestEvent =
+//                        retryCommitOrderRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//                assertNotNull(retryCommitOrderRequestEvent);
+//                XAPlusXid xid = retryCommitOrderRequestEvent.getXid();
+//                assertTrue(orders.remove(xid));
+//                // Response done
+//                dispatcher.dispatch(new XAPlusRemoteSubordinateDoneEvent(xid));
+//                // Waiting event that xid committed
+//                XAPlusDanglingTransactionCommittedEvent danglingTransactionCommittedEvent =
+//                        danglingTransactionCommittedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//                assertNotNull(danglingTransactionCommittedEvent);
+//                assertEquals(xid, danglingTransactionCommittedEvent.getXid());
+//            } else {
+//                XAPlusRetryRollbackOrderRequestEvent retryRollbackOrderRequestEvent =
+//                        retryRollbackOrderRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//                assertNotNull(retryRollbackOrderRequestEvent);
+//                XAPlusXid xid = retryRollbackOrderRequestEvent.getXid();
+//                assertTrue(orders.remove(xid));
+//                // Response done
+//                dispatcher.dispatch(new XAPlusRemoteSubordinateDoneEvent(xid));
+//                // Waiting event that xid rolledback
+//                XAPlusDanglingTransactionRolledBackEvent danglingTransactionRolledBackEvent =
+//                        danglingTransactionRolledBackEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//                assertNotNull(danglingTransactionRolledBackEvent);
+//                assertEquals(xid, danglingTransactionRolledBackEvent.getXid());
+//            }
+//        }
+//        assertTrue(orders.isEmpty());
+//    }
+//
+//    @Test
+//    public void testRecoveryXAResourcesOnSuperiorSide() throws InterruptedException {
+//        // Test transactions data set
+//        TestSuperiorDataSet dataSet = new TestSuperiorDataSet(XA_PLUS_RESOURCE_1);
+//        // Test xa resources
+//        TestXAResources xaResources = new TestXAResources();
+//        // Initiate prepare recovery
+//        dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(xaResources.getJdbcConnections(),
+//                xaResources.getJmsContexts(), xaResources.getXaResources(), dataSet.allPreparedXids,
+//                dataSet.xaDanglingTransactions));
+//        // Waiting commit requests
+//        List<XAPlusXid> committedXid = dataSet.xaDanglingXids.entrySet().stream()
+//                .filter((entry) -> entry.getValue())
+//                .map((entry) -> entry.getKey())
+//                .collect(Collectors.toList());
+//        for (int i = 0; i < committedXid.size(); i++) {
+//            XAPlusCommitRecoveredXidRequestEvent commitRecoveredXidRequestEvent =
+//                    commitRecoveredXidRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//            assertNotNull(commitRecoveredXidRequestEvent);
+//            assertTrue(committedXid.contains(commitRecoveredXidRequestEvent.getXid()));
+//        }
+//        // Waiting rollback requests
+//        List<XAPlusXid> rolledBackXid = dataSet.xaDanglingXids.entrySet().stream()
+//                .filter((entry) -> !entry.getValue())
+//                .map((entry) -> entry.getKey())
+//                .collect(Collectors.toList());
+//        for (int i = 0; i < rolledBackXid.size() + dataSet.xaNoDecisionXids.size(); i++) {
+//            XAPlusRollbackRecoveredXidRequestEvent rollbackRecoveredXidRequestEvent =
+//                    rollbackRecoveredXidRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//            assertNotNull(rollbackRecoveredXidRequestEvent);
+//            XAPlusXid xid = rollbackRecoveredXidRequestEvent.getXid();
+//            assertTrue(rolledBackXid.contains(xid) || dataSet.xaNoDecisionXids.contains(xid));
+//        }
+//    }
+//
+//    @Test
+//    public void testRecoveryXAResourcesOnSubordinateSide() throws InterruptedException {
+//        // Test transactions data set
+//        TestSubordinateDataSet dataSet = new TestSubordinateDataSet(XA_PLUS_RESOURCE_2, XA_PLUS_RESOURCE_3,
+//                XA_PLUS_RESOURCE_1);
+//        // Test xa resources
+//        TestXAResources xaResources = new TestXAResources();
+//        // Initiate prepare recovery
+//        dispatcher.dispatch(new XAPlusRecoveryPreparedEvent(xaResources.getJdbcConnections(),
+//                xaResources.getJmsContexts(), xaResources.getXaResources(), dataSet.allPreparedXids,
+//                dataSet.xaDanglingTransactions));
+//        // Waiting retry requests
+//        HashSet<String> superiors = new HashSet<>();
+//        superiors.add(XA_PLUS_RESOURCE_2);
+//        superiors.add(XA_PLUS_RESOURCE_3);
+//        for (int i = 0; i < superiors.size(); i++) {
+//            XAPlusRetryFromSuperiorRequestEvent retryFromSuperiorRequestEvent = retryFromSuperiorRequestEvents
+//                    .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//            assertNotNull(retryFromSuperiorRequestEvent);
+//            assertTrue(superiors.contains(retryFromSuperiorRequestEvent.getServerId()));
+//        }
+//    }
 
     private class ConsumerStub extends Bolt implements
             XAPlusRetryCommitOrderRequestEvent.Handler,

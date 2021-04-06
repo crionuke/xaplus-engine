@@ -12,7 +12,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class XAPlusTest extends Assert {
+public class XAPlusUnitTest extends Assert {
     protected final int QUEUE_SIZE = 128;
     protected final int DEFAULT_TIMEOUT_S = 2;
     protected final int POLL_TIMIOUT_MS = 2000;

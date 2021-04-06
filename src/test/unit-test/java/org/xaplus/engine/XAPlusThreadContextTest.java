@@ -3,7 +3,7 @@ package org.xaplus.engine;
 import org.junit.Before;
 import org.junit.Test;
 
-public class XAPlusThreadContextTest extends XAPlusTest {
+public class XAPlusThreadContextTest extends XAPlusUnitTest {
 
     XAPlusThreadContext threadContext;
 
