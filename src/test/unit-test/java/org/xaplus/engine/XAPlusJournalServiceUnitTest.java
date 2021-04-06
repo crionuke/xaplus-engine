@@ -22,42 +22,19 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusJournalServiceTest extends XAPlusUnitTest {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusJournalServiceTest.class);
+public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusJournalServiceUnitTest.class);
 
-    XAPlusTLog tlogMock;
-    XAPlusJournalService xaPlusJournalService;
-
-    BlockingQueue<XAPlusCommitTransactionDecisionLoggedEvent> commitTransactionDecisionLoggedEvents;
-    BlockingQueue<XAPlusLogCommitTransactionDecisionFailedEvent> commitTransactionDecisionFailedEvents;
-    BlockingQueue<XAPlusRollbackTransactionDecisionLoggedEvent> rollbackTransactionDecisionLoggedEvents;
-    BlockingQueue<XAPlusLogRollbackTransactionDecisionFailedEvent> rollbackTransactionDecisionFailedEvents;
-    BlockingQueue<XAPlusCommitRecoveredXidDecisionLoggedEvent> commitRecoveredXidDecisionLoggedEvents;
-    BlockingQueue<XAPlusRollbackRecoveredXidDecisionLoggedEvent> rollbackRecoveredXidDecisionLoggedEvents;
-    BlockingQueue<XAPlusDanglingTransactionsFoundEvent> danglingTransactionsFoundEvents;
-    BlockingQueue<XAPlusFindDanglingTransactionsFailedEvent> findDanglingTransactionsFailedEvents;
-    BlockingQueue<XAPlusReportDoneStatusRequestEvent> reportDoneStatusRequestEvents;
-
-    ConsumerStub consumerStub;
+    private XAPlusTLog tlogMock;
+    private XAPlusJournalService xaPlusJournalService;
+    private ConsumerStub consumerStub;
 
     @Before
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
-
         tlogMock = Mockito.mock(XAPlusTLog.class);
         xaPlusJournalService = new XAPlusJournalService(properties, threadPool, dispatcher, tlogMock);
         xaPlusJournalService.postConstruct();
-
-        commitTransactionDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        commitTransactionDecisionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        rollbackTransactionDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        rollbackTransactionDecisionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        commitRecoveredXidDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        rollbackRecoveredXidDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        danglingTransactionsFoundEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        findDanglingTransactionsFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        reportDoneStatusRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-
         consumerStub = new ConsumerStub();
         consumerStub.postConstruct();
     }
@@ -72,8 +49,8 @@ public class XAPlusJournalServiceTest extends XAPlusUnitTest {
     public void testLogCommitTransactionDecisionSuccessfully() throws InterruptedException, SQLException, XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
-        XAPlusCommitTransactionDecisionLoggedEvent event = commitTransactionDecisionLoggedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusCommitTransactionDecisionLoggedEvent event =
+                consumerStub.commitTransactionDecisionLoggedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getTransaction().getXid());
     }
@@ -84,8 +61,8 @@ public class XAPlusJournalServiceTest extends XAPlusUnitTest {
         Mockito.doThrow(new SQLException("log_exception")).when(tlogMock)
                 .logCommitDecision(transaction.getXid().getGlobalTransactionIdUid());
         dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
-        XAPlusLogCommitTransactionDecisionFailedEvent event = commitTransactionDecisionFailedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusLogCommitTransactionDecisionFailedEvent event =
+                consumerStub.commitTransactionDecisionFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getTransaction().getXid());
     }
@@ -95,8 +72,8 @@ public class XAPlusJournalServiceTest extends XAPlusUnitTest {
             XAException {
         XAPlusTransaction transaction = createTestSuperiorTransaction();
         dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
-        XAPlusRollbackTransactionDecisionLoggedEvent event = rollbackTransactionDecisionLoggedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusRollbackTransactionDecisionLoggedEvent event =
+                consumerStub.rollbackTransactionDecisionLoggedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getTransaction().getXid());
     }
@@ -107,8 +84,8 @@ public class XAPlusJournalServiceTest extends XAPlusUnitTest {
         Mockito.doThrow(new SQLException("log_exception")).when(tlogMock)
                 .logRollbackDecision(transaction.getXid().getGlobalTransactionIdUid());
         dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
-        XAPlusLogRollbackTransactionDecisionFailedEvent event = rollbackTransactionDecisionFailedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusLogRollbackTransactionDecisionFailedEvent event =
+                consumerStub.rollbackTransactionDecisionFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getTransaction().getXid());
     }
@@ -118,8 +95,8 @@ public class XAPlusJournalServiceTest extends XAPlusUnitTest {
         String uniqueName = XA_RESOURCE_1;
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusLogCommitRecoveredXidDecisionEvent(transaction.getXid(), uniqueName));
-        XAPlusCommitRecoveredXidDecisionLoggedEvent event = commitRecoveredXidDecisionLoggedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusCommitRecoveredXidDecisionLoggedEvent event =
+                consumerStub.commitRecoveredXidDecisionLoggedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getXid());
         assertEquals(uniqueName, event.getUniqueName());
@@ -130,8 +107,8 @@ public class XAPlusJournalServiceTest extends XAPlusUnitTest {
         String uniqueName = XA_RESOURCE_1;
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusLogRollbackRecoveredXidDecisionEvent(transaction.getXid(), uniqueName));
-        XAPlusRollbackRecoveredXidDecisionLoggedEvent event = rollbackRecoveredXidDecisionLoggedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusRollbackRecoveredXidDecisionLoggedEvent event =
+                consumerStub.rollbackRecoveredXidDecisionLoggedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getXid());
         assertEquals(uniqueName, event.getUniqueName());
@@ -178,8 +155,8 @@ public class XAPlusJournalServiceTest extends XAPlusUnitTest {
         Map<XAPlusUid, Boolean> danglingTransactions = new HashMap<>();
         Mockito.when(tlogMock.findDanglingTransactions(System.currentTimeMillis())).thenReturn(danglingTransactions);
         dispatcher.dispatch(new XAPlusFindDanglingTransactionsRequestEvent());
-        XAPlusDanglingTransactionsFoundEvent event = danglingTransactionsFoundEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusDanglingTransactionsFoundEvent event =
+                consumerStub.danglingTransactionsFoundEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(danglingTransactions, event.getDanglingTransactions());
     }
@@ -189,8 +166,8 @@ public class XAPlusJournalServiceTest extends XAPlusUnitTest {
         Mockito.doThrow(new SQLException("find_exception")).when(tlogMock)
                 .findDanglingTransactions(Mockito.anyLong());
         dispatcher.dispatch(new XAPlusFindDanglingTransactionsRequestEvent());
-        XAPlusFindDanglingTransactionsFailedEvent event = findDanglingTransactionsFailedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusFindDanglingTransactionsFailedEvent event =
+                consumerStub.findDanglingTransactionsFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
     }
 
@@ -205,8 +182,27 @@ public class XAPlusJournalServiceTest extends XAPlusUnitTest {
             XAPlusFindDanglingTransactionsFailedEvent.Handler,
             XAPlusReportDoneStatusRequestEvent.Handler {
 
+        BlockingQueue<XAPlusCommitTransactionDecisionLoggedEvent> commitTransactionDecisionLoggedEvents;
+        BlockingQueue<XAPlusLogCommitTransactionDecisionFailedEvent> commitTransactionDecisionFailedEvents;
+        BlockingQueue<XAPlusRollbackTransactionDecisionLoggedEvent> rollbackTransactionDecisionLoggedEvents;
+        BlockingQueue<XAPlusLogRollbackTransactionDecisionFailedEvent> rollbackTransactionDecisionFailedEvents;
+        BlockingQueue<XAPlusCommitRecoveredXidDecisionLoggedEvent> commitRecoveredXidDecisionLoggedEvents;
+        BlockingQueue<XAPlusRollbackRecoveredXidDecisionLoggedEvent> rollbackRecoveredXidDecisionLoggedEvents;
+        BlockingQueue<XAPlusDanglingTransactionsFoundEvent> danglingTransactionsFoundEvents;
+        BlockingQueue<XAPlusFindDanglingTransactionsFailedEvent> findDanglingTransactionsFailedEvents;
+        BlockingQueue<XAPlusReportDoneStatusRequestEvent> reportDoneStatusRequestEvents;
+
         ConsumerStub() {
             super("consumer-stub", QUEUE_SIZE);
+            commitTransactionDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            commitTransactionDecisionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            rollbackTransactionDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            rollbackTransactionDecisionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            commitRecoveredXidDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            rollbackRecoveredXidDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            danglingTransactionsFoundEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            findDanglingTransactionsFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            reportDoneStatusRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override

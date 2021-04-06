@@ -3,9 +3,9 @@ package org.xaplus.engine;
 import org.junit.Before;
 import org.junit.Test;
 
-public class XAPlusThreadContextTest extends XAPlusUnitTest {
+public class XAPlusThreadContextUnitTest extends XAPlusUnitTest {
 
-    XAPlusThreadContext threadContext;
+    private XAPlusThreadContext threadContext;
 
     @Before
     public void beforeTest() {

@@ -12,22 +12,17 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusTickServiceTest extends XAPlusUnitTest {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusTickServiceTest.class);
+public class XAPlusTickServiceUnitTest extends XAPlusUnitTest {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusTickServiceUnitTest.class);
 
-    XAPlusTickService xaPlusTickService;
-
-    BlockingQueue<XAPlusTickEvent> tickEvents;
-    ConsumerStub consumerStub;
+    private XAPlusTickService xaPlusTickService;
+    private ConsumerStub consumerStub;
 
     @Before
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
-
         xaPlusTickService = new XAPlusTickService(properties, threadPool, dispatcher);
         xaPlusTickService.postConstruct();
-
-        tickEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         consumerStub = new ConsumerStub();
         consumerStub.postConstruct();
     }
@@ -40,9 +35,9 @@ public class XAPlusTickServiceTest extends XAPlusUnitTest {
 
     @Test
     public void testTickEvents() throws InterruptedException {
-        XAPlusTickEvent tick1 = tickEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        XAPlusTickEvent tick2 = tickEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        XAPlusTickEvent tick3 = tickEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusTickEvent tick1 = consumerStub.tickEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusTickEvent tick2 = consumerStub.tickEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusTickEvent tick3 = consumerStub.tickEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(tick1);
         assertTrue(tick1.getIndex() < tick2.getIndex());
         assertNotNull(tick2);
@@ -52,8 +47,11 @@ public class XAPlusTickServiceTest extends XAPlusUnitTest {
 
     private class ConsumerStub extends Bolt implements XAPlusTickEvent.Handler {
 
+        BlockingQueue<XAPlusTickEvent> tickEvents;
+
         ConsumerStub() {
             super("consumer-stub", QUEUE_SIZE);
+            tickEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override

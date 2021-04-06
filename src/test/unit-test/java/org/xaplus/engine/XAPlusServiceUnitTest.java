@@ -16,40 +16,17 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusServiceTest extends XAPlusUnitTest {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusServiceTest.class);
+public class XAPlusServiceUnitTest extends XAPlusUnitTest {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusServiceUnitTest.class);
 
-    XAPlusService xaPlusService;
-
-    BlockingQueue<XAPlusRecoveredXidCommittedEvent> recoveredXidCommittedEvents;
-    BlockingQueue<XAPlusCommitRecoveredXidFailedEvent> commitRecoveredXidFailedEvents;
-    BlockingQueue<XAPlusRecoveredXidRolledBackEvent> recoveredXidRolledBackEvents;
-    BlockingQueue<XAPlusRollbackRecoveredXidFailedEvent> rollbackRecoveredXidFailedEvents;
-    BlockingQueue<XAPlusForgetRecoveredXidRequestEvent> forgetRecoveredXidRequestEvents;
-    BlockingQueue<XAPlusReadiedStatusReportedEvent> readyStatusReportedEvents;
-    BlockingQueue<XAPlusReportReadiedStatusFailedEvent> reportReadyStatusFailedEvents;
-    BlockingQueue<XAPlusDoneStatusReportedEvent> doneStatusReportedEvents;
-    BlockingQueue<XAPlusReportDoneStatusFailedEvent> reportDoneStatusFailedEvents;
-
-    ConsumerStub consumerStub;
+    private XAPlusService xaPlusService;
+    private ConsumerStub consumerStub;
 
     @Before
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
-
         xaPlusService = new XAPlusService(properties, threadPool, dispatcher);
         xaPlusService.postConstruct();
-
-        recoveredXidCommittedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        commitRecoveredXidFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        recoveredXidRolledBackEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        rollbackRecoveredXidFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        forgetRecoveredXidRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        readyStatusReportedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        reportReadyStatusFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        doneStatusReportedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        reportDoneStatusFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-
         consumerStub = new ConsumerStub();
         consumerStub.postConstruct();
     }
@@ -68,7 +45,7 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
         dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(branchXid, xaPlusResourceMock, XA_RESOURCE_1));
         Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).commit(branchXid, false);
         XAPlusRecoveredXidCommittedEvent event =
-                recoveredXidCommittedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.recoveredXidCommittedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(branchXid, event.getXid());
         assertEquals(XA_RESOURCE_1, event.getUniqueName());
@@ -83,7 +60,7 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
                 .when(xaPlusResourceMock).commit(branchXid, false);
         dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(branchXid, xaPlusResourceMock, XA_RESOURCE_1));
         XAPlusRecoveredXidCommittedEvent event =
-                recoveredXidCommittedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.recoveredXidCommittedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(branchXid, event.getXid());
         assertEquals(XA_RESOURCE_1, event.getUniqueName());
@@ -98,11 +75,11 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
                 .when(xaPlusResourceMock).commit(branchXid, false);
         dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(branchXid, xaPlusResourceMock, XA_RESOURCE_1));
         XAPlusForgetRecoveredXidRequestEvent event1 =
-                forgetRecoveredXidRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.forgetRecoveredXidRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(branchXid, event1.getXid());
         XAPlusRecoveredXidCommittedEvent event2 =
-                recoveredXidCommittedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.recoveredXidCommittedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(branchXid, event2.getXid());
         assertEquals(XA_RESOURCE_1, event2.getUniqueName());
@@ -117,11 +94,11 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
                 .when(xaPlusResourceMock).commit(branchXid, false);
         dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(branchXid, xaPlusResourceMock, XA_RESOURCE_1));
         XAPlusForgetRecoveredXidRequestEvent event1 =
-                forgetRecoveredXidRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.forgetRecoveredXidRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(branchXid, event1.getXid());
         XAPlusCommitRecoveredXidFailedEvent event2 =
-                commitRecoveredXidFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.commitRecoveredXidFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(branchXid, event2.getXid());
         assertEquals(XA_RESOURCE_1, event2.getUniqueName());
@@ -136,7 +113,7 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
                 .when(xaPlusResourceMock).commit(branchXid, false);
         dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(branchXid, xaPlusResourceMock, XA_RESOURCE_1));
         XAPlusCommitRecoveredXidFailedEvent event =
-                commitRecoveredXidFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.commitRecoveredXidFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(branchXid, event.getXid());
         assertEquals(XA_RESOURCE_1, event.getUniqueName());
@@ -150,7 +127,7 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
         dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(branchXid, xaPlusResourceMock, XA_RESOURCE_1));
         Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).rollback(branchXid);
         XAPlusRecoveredXidRolledBackEvent event =
-                recoveredXidRolledBackEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.recoveredXidRolledBackEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(branchXid, event.getXid());
         assertEquals(XA_RESOURCE_1, event.getUniqueName());
@@ -165,7 +142,7 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
                 .when(xaPlusResourceMock).rollback(branchXid);
         dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(branchXid, xaPlusResourceMock, XA_RESOURCE_1));
         XAPlusRecoveredXidRolledBackEvent event =
-                recoveredXidRolledBackEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.recoveredXidRolledBackEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(branchXid, event.getXid());
         assertEquals(XA_RESOURCE_1, event.getUniqueName());
@@ -180,11 +157,11 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
                 .when(xaPlusResourceMock).rollback(branchXid);
         dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(branchXid, xaPlusResourceMock, XA_RESOURCE_1));
         XAPlusForgetRecoveredXidRequestEvent event1 =
-                forgetRecoveredXidRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.forgetRecoveredXidRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(branchXid, event1.getXid());
         XAPlusRecoveredXidRolledBackEvent event2 =
-                recoveredXidRolledBackEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.recoveredXidRolledBackEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(branchXid, event2.getXid());
         assertEquals(XA_RESOURCE_1, event2.getUniqueName());
@@ -199,11 +176,11 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
                 .when(xaPlusResourceMock).rollback(branchXid);
         dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(branchXid, xaPlusResourceMock, XA_RESOURCE_1));
         XAPlusForgetRecoveredXidRequestEvent event1 =
-                forgetRecoveredXidRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.forgetRecoveredXidRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(branchXid, event1.getXid());
         XAPlusRollbackRecoveredXidFailedEvent event2 =
-                rollbackRecoveredXidFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.rollbackRecoveredXidFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(branchXid, event2.getXid());
         assertEquals(XA_RESOURCE_1, event2.getUniqueName());
@@ -218,7 +195,7 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
                 .when(xaPlusResourceMock).rollback(branchXid);
         dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(branchXid, xaPlusResourceMock, XA_RESOURCE_1));
         XAPlusRollbackRecoveredXidFailedEvent event =
-                rollbackRecoveredXidFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.rollbackRecoveredXidFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(branchXid, event.getXid());
         assertEquals(XA_RESOURCE_1, event.getUniqueName());
@@ -230,7 +207,7 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         dispatcher.dispatch(new XAPlusReportReadiedStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
         Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).readied(transaction.getXid());
-        XAPlusReadiedStatusReportedEvent event = readyStatusReportedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusReadiedStatusReportedEvent event = consumerStub.readyStatusReportedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getXid());
     }
@@ -242,7 +219,7 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
         Mockito.doThrow(new XAPlusException("ready_exception")).when(xaPlusResourceMock).readied(transaction.getXid());
         dispatcher.dispatch(new XAPlusReportReadiedStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
         XAPlusReportReadiedStatusFailedEvent event =
-                reportReadyStatusFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.reportReadyStatusFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getXid());
     }
@@ -253,7 +230,7 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
         Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).done(transaction.getXid());
-        XAPlusDoneStatusReportedEvent event = doneStatusReportedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        XAPlusDoneStatusReportedEvent event = consumerStub.doneStatusReportedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getXid());
     }
@@ -265,7 +242,7 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
         Mockito.doThrow(new XAPlusException("done_exception")).when(xaPlusResourceMock).done(transaction.getXid());
         dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
         XAPlusReportDoneStatusFailedEvent event =
-                reportDoneStatusFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+                consumerStub.reportDoneStatusFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getXid());
     }
@@ -297,8 +274,27 @@ public class XAPlusServiceTest extends XAPlusUnitTest {
             XAPlusDoneStatusReportedEvent.Handler,
             XAPlusReportDoneStatusFailedEvent.Handler {
 
+        BlockingQueue<XAPlusRecoveredXidCommittedEvent> recoveredXidCommittedEvents;
+        BlockingQueue<XAPlusCommitRecoveredXidFailedEvent> commitRecoveredXidFailedEvents;
+        BlockingQueue<XAPlusRecoveredXidRolledBackEvent> recoveredXidRolledBackEvents;
+        BlockingQueue<XAPlusRollbackRecoveredXidFailedEvent> rollbackRecoveredXidFailedEvents;
+        BlockingQueue<XAPlusForgetRecoveredXidRequestEvent> forgetRecoveredXidRequestEvents;
+        BlockingQueue<XAPlusReadiedStatusReportedEvent> readyStatusReportedEvents;
+        BlockingQueue<XAPlusReportReadiedStatusFailedEvent> reportReadyStatusFailedEvents;
+        BlockingQueue<XAPlusDoneStatusReportedEvent> doneStatusReportedEvents;
+        BlockingQueue<XAPlusReportDoneStatusFailedEvent> reportDoneStatusFailedEvents;
+
         ConsumerStub() {
             super("stub-consumer", QUEUE_SIZE);
+            recoveredXidCommittedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            commitRecoveredXidFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            recoveredXidRolledBackEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            rollbackRecoveredXidFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            forgetRecoveredXidRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            readyStatusReportedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            reportReadyStatusFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            doneStatusReportedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            reportDoneStatusFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override

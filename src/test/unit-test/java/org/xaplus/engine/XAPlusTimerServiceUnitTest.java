@@ -19,8 +19,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusTimerServiceTest extends XAPlusUnitTest {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusTimerServiceTest.class);
+public class XAPlusTimerServiceUnitTest extends XAPlusUnitTest {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusTimerServiceUnitTest.class);
 
     private XAPlusTimerService xaPlusTimerService;
     private ConsumerStub consumerStub;
