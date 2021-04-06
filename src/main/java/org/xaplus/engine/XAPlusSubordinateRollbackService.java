@@ -3,17 +3,18 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.journal.XAPlusLogCompletedTransactionEvent;
-import org.xaplus.engine.events.journal.XAPlusLogRollbackTransactionDecisionFailedEvent;
-import org.xaplus.engine.events.journal.XAPlusRollbackTransactionDecisionLoggedEvent;
+import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
 import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
+import org.xaplus.engine.events.twopc.XAPlusRollbackTransactionDecisionEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchRolledBackEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchFailedEvent;
+import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
+import org.xaplus.engine.events.xaplus.XAPlusReportFailedStatusRequestEvent;
+import org.xaplus.engine.exceptions.XAPlusSystemException;
 
 class XAPlusSubordinateRollbackService extends Bolt implements
-        XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
-        XAPlusLogRollbackTransactionDecisionFailedEvent.Handler,
+        XAPlusRollbackTransactionDecisionEvent.Handler,
         XAPlusBranchRolledBackEvent.Handler,
         XAPlusRollbackBranchFailedEvent.Handler,
         XAPlusTransactionTimedOutEvent.Handler {
@@ -21,19 +22,20 @@ class XAPlusSubordinateRollbackService extends Bolt implements
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
+    private final XAPlusResources resources;
     private final XAPlusTracker tracker;
 
     XAPlusSubordinateRollbackService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
-                                     XAPlusTracker tracker) {
+                                     XAPlusResources resources, XAPlusTracker tracker) {
         super(properties.getServerId() + "-rollback", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
+        this.resources = resources;
         this.tracker = tracker;
     }
 
     @Override
-    public void handleRollbackTransactionDecisionLogged(XAPlusRollbackTransactionDecisionLoggedEvent event)
-            throws InterruptedException {
+    public void handleRollbackTransactionDecision(XAPlusRollbackTransactionDecisionEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -44,21 +46,6 @@ class XAPlusSubordinateRollbackService extends Bolt implements
             }
             transaction.reset();
             transaction.rollback(dispatcher);
-        }
-    }
-
-    @Override
-    public void handleLogRollbackTransactionDecisionFailed(XAPlusLogRollbackTransactionDecisionFailedEvent event)
-            throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusTransaction transaction = event.getTransaction();
-        if (transaction.isSubordinate()) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Rollback failed, {}", transaction);
-            }
-            dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
         }
     }
 
@@ -113,8 +100,7 @@ class XAPlusSubordinateRollbackService extends Bolt implements
 
     void postConstruct() {
         threadPool.execute(this);
-        dispatcher.subscribe(this, XAPlusRollbackTransactionDecisionLoggedEvent.class);
-        dispatcher.subscribe(this, XAPlusLogRollbackTransactionDecisionFailedEvent.class);
+        dispatcher.subscribe(this, XAPlusRollbackTransactionDecisionEvent.class);
         dispatcher.subscribe(this, XAPlusBranchRolledBackEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackBranchFailedEvent.class);
         dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
@@ -122,11 +108,22 @@ class XAPlusSubordinateRollbackService extends Bolt implements
 
     void check(XAPlusTransaction transaction) throws InterruptedException {
         if (transaction.isRollbackDone()) {
-            tracker.remove(transaction.getXid());
-            if (transaction.hasFailures()) {
-                dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
-            } else {
-                dispatcher.dispatch(new XAPlusLogCompletedTransactionEvent(transaction, false));
+            XAPlusXid xid = transaction.getXid();
+            tracker.remove(xid);
+            String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
+            try {
+                XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
+                if (transaction.hasFailures()) {
+                    dispatcher.dispatch(new XAPlusReportFailedStatusRequestEvent(xid, resource));
+                    dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
+                } else {
+                    dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
+                    dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
+                }
+            } catch (XAPlusSystemException e) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Non XA+ or unknown resource with name={}, {}", superiorServerId, transaction);
+                }
             }
         }
     }

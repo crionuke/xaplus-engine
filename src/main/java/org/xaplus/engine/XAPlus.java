@@ -15,7 +15,6 @@ public class XAPlus {
     final XAPlusManagerService managerService;
 
     final XAPlusSubordinateCommitterService subordinateCommitterService;
-    final XAPlusSubordinateCompleterService subordinateCompleterService;
     final XAPlusSubordinatePreparerService subordinatePreparerService;
     final XAPlusSubordinateRollbackService subordinateRollbackService;
 
@@ -54,12 +53,10 @@ public class XAPlus {
 
         subordinateCommitterService = new XAPlusSubordinateCommitterService(properties, threadPool, dispatcher,
                 resources, new XAPlusTracker());
-        subordinateCompleterService = new XAPlusSubordinateCompleterService(properties, threadPool, dispatcher,
-                resources, new XAPlusTracker());
         subordinatePreparerService = new XAPlusSubordinatePreparerService(properties, threadPool, dispatcher,
                 resources, new XAPlusTracker());
         subordinateRollbackService = new XAPlusSubordinateRollbackService(properties, threadPool, dispatcher,
-                new XAPlusTracker());
+                resources, new XAPlusTracker());
         superiorCommitterService = new XAPlusSuperiorCommitterService(properties, threadPool, dispatcher,
                 resources, new XAPlusTracker());
         superiorCompleterService = new XAPlusSuperiorCompleterService(properties, threadPool, dispatcher);
@@ -88,7 +85,6 @@ public class XAPlus {
         timerService.postConstruct();
         managerService.postConstruct();
         subordinateCommitterService.postConstruct();
-        subordinateCompleterService.postConstruct();
         subordinatePreparerService.postConstruct();
         subordinateRollbackService.postConstruct();
         superiorCommitterService.postConstruct();

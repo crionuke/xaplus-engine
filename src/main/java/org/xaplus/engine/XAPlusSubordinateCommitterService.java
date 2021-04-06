@@ -3,20 +3,18 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.journal.XAPlusCommitTransactionDecisionLoggedEvent;
-import org.xaplus.engine.events.journal.XAPlusLogCommitTransactionDecisionFailedEvent;
-import org.xaplus.engine.events.journal.XAPlusLogCompletedTransactionEvent;
-import org.xaplus.engine.events.journal.XAPlusLogRollbackTransactionDecisionEvent;
 import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
+import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
+import org.xaplus.engine.events.twopc.XAPlusCommitTransactionDecisionEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchCommittedEvent;
 import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
+import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportFailedStatusRequestEvent;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 
 class XAPlusSubordinateCommitterService extends Bolt implements
-        XAPlusCommitTransactionDecisionLoggedEvent.Handler,
-        XAPlusLogCommitTransactionDecisionFailedEvent.Handler,
+        XAPlusCommitTransactionDecisionEvent.Handler,
         XAPlusBranchCommittedEvent.Handler,
         XAPlusCommitBranchFailedEvent.Handler,
         XAPlusTransactionTimedOutEvent.Handler {
@@ -37,8 +35,7 @@ class XAPlusSubordinateCommitterService extends Bolt implements
     }
 
     @Override
-    public void handleCommitTransactionDecisionLogged(XAPlusCommitTransactionDecisionLoggedEvent event)
-            throws InterruptedException {
+    public void handleCommitTransactionDecision(XAPlusCommitTransactionDecisionEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -49,21 +46,6 @@ class XAPlusSubordinateCommitterService extends Bolt implements
             }
             transaction.reset();
             transaction.commit(dispatcher);
-        }
-    }
-
-    @Override
-    public void handleLogCommitTransactionDecisionFailed(XAPlusLogCommitTransactionDecisionFailedEvent event)
-            throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusTransaction transaction = event.getTransaction();
-        if (transaction.isSubordinate()) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Log rollback decision, {}", transaction);
-            }
-            dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
         }
     }
 
@@ -118,8 +100,7 @@ class XAPlusSubordinateCommitterService extends Bolt implements
 
     void postConstruct() {
         threadPool.execute(this);
-        dispatcher.subscribe(this, XAPlusCommitTransactionDecisionLoggedEvent.class);
-        dispatcher.subscribe(this, XAPlusLogCommitTransactionDecisionFailedEvent.class);
+        dispatcher.subscribe(this, XAPlusCommitTransactionDecisionEvent.class);
         dispatcher.subscribe(this, XAPlusBranchCommittedEvent.class);
         dispatcher.subscribe(this, XAPlusCommitBranchFailedEvent.class);
         dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
@@ -129,19 +110,20 @@ class XAPlusSubordinateCommitterService extends Bolt implements
         if (transaction.isCommitDone()) {
             XAPlusXid xid = transaction.getXid();
             tracker.remove(xid);
-            if (transaction.hasFailures()) {
-                String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
-                try {
-                    XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
+            String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
+            try {
+                XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
+                if (transaction.hasFailures()) {
                     dispatcher.dispatch(new XAPlusReportFailedStatusRequestEvent(xid, resource));
                     dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction));
-                } catch (XAPlusSystemException e) {
-                    if (logger.isWarnEnabled()) {
-                        logger.warn("Non XA+ or unknown resource with name={}, {}", superiorServerId, transaction);
-                    }
+                } else {
+                    dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
+                    dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
                 }
-            } else {
-                dispatcher.dispatch(new XAPlusLogCompletedTransactionEvent(transaction, true));
+            } catch (XAPlusSystemException e) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Non XA+ or unknown resource with name={}, {}", superiorServerId, transaction);
+                }
             }
         }
     }

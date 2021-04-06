@@ -3,11 +3,11 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.journal.XAPlusLogCommitTransactionDecisionEvent;
-import org.xaplus.engine.events.journal.XAPlusLogRollbackTransactionDecisionEvent;
 import org.xaplus.engine.events.journal.XAPlusReportTransactionStatusRequestEvent;
 import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
+import org.xaplus.engine.events.twopc.XAPlusCommitTransactionDecisionEvent;
+import org.xaplus.engine.events.twopc.XAPlusRollbackTransactionDecisionEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCreateTransactionEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
@@ -69,9 +69,9 @@ class XAPlusSubordinatePreparerService extends Bolt implements
             if (transaction.isPrepareDone() || transaction.isRollbackOnly()) {
                 tracker.remove(xid);
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Log rollback decision, {}", transaction);
+                    logger.debug("Rollback decision, {}", transaction);
                 }
-                dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
+                dispatcher.dispatch(new XAPlusRollbackTransactionDecisionEvent(transaction));
             } else {
                 // Just mark as rollback only, wait when preparation finished
                 transaction.markAsRollbackOnly();
@@ -92,9 +92,9 @@ class XAPlusSubordinatePreparerService extends Bolt implements
             XAPlusTransaction transaction = tracker.remove(xid);
             if (transaction.isPrepareDone()) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Log commit decision, {}", transaction);
+                    logger.debug("Commit decision, {}", transaction);
                 }
-                dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
+                dispatcher.dispatch(new XAPlusCommitTransactionDecisionEvent(transaction));
             } else {
                 if (logger.isWarnEnabled()) {
                     logger.warn("Remote superior order to commit, but transaction not prepared yet, xid={}", xid);
@@ -117,9 +117,9 @@ class XAPlusSubordinatePreparerService extends Bolt implements
             if (transaction.isRollbackOnly()) {
                 tracker.remove(xid);
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Log rollback decision, {}", transaction);
+                    logger.debug("Rollback decision, {}", transaction);
                 }
-                dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
+                dispatcher.dispatch(new XAPlusRollbackTransactionDecisionEvent(transaction));
             } else {
                 transaction.markAsRollbackOnly();
                 // Send branch cancelled event to superior
@@ -247,8 +247,6 @@ class XAPlusSubordinatePreparerService extends Bolt implements
         dispatcher.subscribe(this, XAPlusReportFailedStatusFailedEvent.class);
     }
 
-    // TODO: do not log decision on subordinate side
-
     void check(XAPlusTransaction transaction) throws InterruptedException {
         if (transaction.isPrepareDone()) {
             XAPlusXid xid = transaction.getXid();
@@ -256,9 +254,9 @@ class XAPlusSubordinatePreparerService extends Bolt implements
             if (transaction.isRollbackOnly()) {
                 tracker.remove(xid);
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Log rollback decision, {}", transaction);
+                    logger.debug("Rollback decision, {}", transaction);
                 }
-                dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
+                dispatcher.dispatch(new XAPlusRollbackTransactionDecisionEvent(transaction));
             } else {
                 String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
                 try {
