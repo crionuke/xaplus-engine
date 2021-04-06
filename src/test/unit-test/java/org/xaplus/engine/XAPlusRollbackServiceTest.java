@@ -19,7 +19,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusRollbackServiceTest extends XAPlusTest {
 public class XAPlusRollbackServiceTest extends XAPlusUnitTest {
 //    static private final Logger logger = LoggerFactory.getLogger(XAPlusRollbackServiceTest.class);
 //
