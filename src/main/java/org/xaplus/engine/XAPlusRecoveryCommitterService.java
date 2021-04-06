@@ -3,10 +3,6 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.journal.XAPlusCommitRecoveredXidDecisionLoggedEvent;
-import org.xaplus.engine.events.journal.XAPlusLogCommitRecoveredXidDecisionEvent;
-import org.xaplus.engine.events.journal.XAPlusLogRollbackRecoveredXidDecisionEvent;
-import org.xaplus.engine.events.journal.XAPlusRollbackRecoveredXidDecisionLoggedEvent;
 import org.xaplus.engine.events.recovery.*;
 import org.xaplus.engine.events.xaplus.*;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
@@ -20,9 +16,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         XAPlusRecoveryPreparedEvent.Handler,
         XAPlusRemoteSuperiorOrderToCommitEvent.Handler,
         XAPlusRemoteSuperiorOrderToRollbackEvent.Handler,
-        XAPlusRemoteSubordinateDoneEvent.Handler,
-        XAPlusCommitRecoveredXidDecisionLoggedEvent.Handler,
-        XAPlusRollbackRecoveredXidDecisionLoggedEvent.Handler {
+        XAPlusRemoteSubordinateDoneEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryCommitterService.class);
 
     private final XAPlusProperties properties;
@@ -64,6 +58,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     event.getRecoveredXids(), event.getDanglingTransactions());
             recoveryResources();
             // TODO: close all connections opened to recover resources
+            // TODO: handle timeout for recovery process
         }
     }
 
@@ -81,7 +76,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                 String uniqueName = entry.getValue();
                 XAResource resource = tracker.getXaResources().get(uniqueName);
                 if (resource != null) {
-                    dispatcher.dispatch(new XAPlusLogCommitRecoveredXidDecisionEvent(branchXid, uniqueName));
+                    dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, resource, uniqueName));
                 } else {
                     if (logger.isWarnEnabled()) {
                         logger.warn("Unknown XA xaResource to commit branch, resource={}, xid={}",
@@ -106,51 +101,13 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                 String uniqueName = entry.getValue();
                 XAResource resource = tracker.getXaResources().get(uniqueName);
                 if (resource != null) {
-                    dispatcher.dispatch(new XAPlusLogRollbackRecoveredXidDecisionEvent(branchXid, uniqueName));
+                    dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, resource, uniqueName));
                 } else {
                     if (logger.isWarnEnabled()) {
                         logger.warn("Unknown XA xaResource to rollback branch, resource={}, xid={}",
                                 uniqueName, branchXid);
                     }
                 }
-            }
-        }
-    }
-
-    @Override
-    public void handleCommitRecoveredXidDecisionLogged(XAPlusCommitRecoveredXidDecisionLoggedEvent event)
-            throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid xid = event.getXid();
-        String uniqueName = event.getUniqueName();
-        XAResource xaResource = tracker.getXaResources().get(uniqueName);
-        if (xaResource != null) {
-            dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, xaResource, uniqueName));
-        } else {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Unknown XA xaResource to commit recovered branch, resource={}, xid={}",
-                        uniqueName, xid);
-            }
-        }
-    }
-
-    @Override
-    public void handleRollbackRecoveredXidDecisionLogged(XAPlusRollbackRecoveredXidDecisionLoggedEvent event)
-            throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid xid = event.getXid();
-        String uniqueName = event.getUniqueName();
-        XAResource xaResource = tracker.getXaResources().get(uniqueName);
-        if (xaResource != null) {
-            dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, xaResource, uniqueName));
-        } else {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Unknown XA xaResource to rollback recovered branch, resource={}, xid={}",
-                        uniqueName, xid);
             }
         }
     }
@@ -178,8 +135,6 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         dispatcher.subscribe(this, XAPlusRemoteSubordinateDoneEvent.class);
         dispatcher.subscribe(this, XAPlusRemoteSuperiorOrderToCommitEvent.class);
         dispatcher.subscribe(this, XAPlusRemoteSuperiorOrderToRollbackEvent.class);
-        dispatcher.subscribe(this, XAPlusCommitRecoveredXidDecisionLoggedEvent.class);
-        dispatcher.subscribe(this, XAPlusRollbackRecoveredXidDecisionLoggedEvent.class);
     }
 
     private void recoveryResources() throws InterruptedException {
