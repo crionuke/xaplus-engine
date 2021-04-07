@@ -91,66 +91,6 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test
-    public void testLogCommitRecoveredXidDecisionSuccessfully() throws InterruptedException {
-        String uniqueName = XA_RESOURCE_1;
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusLogCommitRecoveredXidDecisionEvent(transaction.getXid(), uniqueName));
-        XAPlusCommitRecoveredXidDecisionLoggedEvent event =
-                consumerStub.commitRecoveredXidDecisionLoggedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event);
-        assertEquals(transaction.getXid(), event.getXid());
-        assertEquals(uniqueName, event.getUniqueName());
-    }
-
-    @Test
-    public void testLogRollbackRecoveredXidDecisionSuccessfully() throws InterruptedException {
-        String uniqueName = XA_RESOURCE_1;
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusLogRollbackRecoveredXidDecisionEvent(transaction.getXid(), uniqueName));
-        XAPlusRollbackRecoveredXidDecisionLoggedEvent event =
-                consumerStub.rollbackRecoveredXidDecisionLoggedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event);
-        assertEquals(transaction.getXid(), event.getXid());
-        assertEquals(uniqueName, event.getUniqueName());
-    }
-
-    @Test
-    public void testRecoveredXidCommitted() throws InterruptedException, SQLException {
-        String uniqueName = XA_RESOURCE_1;
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusRecoveredXidCommittedEvent(transaction.getXid(), uniqueName));
-        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS))
-                .logCommittedStatus(transaction.getXid().getGlobalTransactionIdUid());
-    }
-
-    @Test
-    public void testRecoveredXidRolledBack() throws InterruptedException, SQLException {
-        String uniqueName = XA_RESOURCE_1;
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusRecoveredXidRolledBackEvent(transaction.getXid(), uniqueName));
-        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS))
-                .logRolledBackStatus(transaction.getXid().getGlobalTransactionIdUid());
-    }
-
-    @Test
-    public void testDanglingTransactionCommitted() throws InterruptedException, SQLException {
-        String uniqueName = XA_RESOURCE_1;
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusDanglingTransactionCommittedEvent(transaction.getXid(), uniqueName));
-        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS))
-                .logCommittedStatus(transaction.getXid().getGlobalTransactionIdUid());
-    }
-
-    @Test
-    public void testDanglingTransactionRolledBack() throws InterruptedException, SQLException {
-        String uniqueName = XA_RESOURCE_1;
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusDanglingTransactionRolledBackEvent(transaction.getXid(), uniqueName));
-        Mockito.verify(tlogMock, Mockito.timeout(VERIFY_MS))
-                .logRolledBackStatus(transaction.getXid().getGlobalTransactionIdUid());
-    }
-
-    @Test
     public void testFindDanglingTransactionsRequestSuccessfully() throws InterruptedException, SQLException {
         Map<XAPlusUid, Boolean> danglingTransactions = new HashMap<>();
         Mockito.when(tlogMock.findDanglingTransactions(System.currentTimeMillis())).thenReturn(danglingTransactions);

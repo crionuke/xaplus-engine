@@ -102,22 +102,6 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
     }
 
     @Override
-    public void done(Xid xid) throws XAPlusException {
-        if (scenario.doneException) {
-            throw new XAPlusException("done request exception");
-        }
-        XAPlusXid xaPlusXid = new XAPlusXid(xid);
-        try {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Send done status from subordinate server, xid={}", xid);
-            }
-            dispatcher.dispatch(new XAPlusRemoteSubordinateDoneEvent(xaPlusXid));
-        } catch (InterruptedException e) {
-            throw new XAPlusException(e.getMessage());
-        }
-    }
-
-    @Override
     public void retry(String serverId) throws XAPlusException {
         if (scenario.retryException) {
             throw new XAPlusException("retry request exception");

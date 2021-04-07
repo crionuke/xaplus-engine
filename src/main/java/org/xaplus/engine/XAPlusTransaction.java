@@ -168,11 +168,6 @@ public class XAPlusTransaction {
             if (!xaPlusBranch.isCommitted()) {
                 return false;
             }
-            if (!xaPlusBranch.isFailed()) {
-                if (!xaPlusBranch.isDone()) {
-                    return false;
-                }
-            }
         }
         return true;
     }
@@ -186,11 +181,6 @@ public class XAPlusTransaction {
         for (Branch xaPlusBranch : xaPlusBranches.values()) {
             if (!xaPlusBranch.isRolledBack()) {
                 return false;
-            }
-            if (!xaPlusBranch.isFailed()) {
-                if (!xaPlusBranch.isDone()) {
-                    return false;
-                }
             }
         }
         return true;
@@ -252,13 +242,6 @@ public class XAPlusTransaction {
         }
     }
 
-    void branchDone(XAPlusXid branchXid) {
-        // Only XA+ branch can be done
-        if (xaPlusBranches.containsKey(branchXid)) {
-            xaPlusBranches.get(branchXid).markAsDone();
-        }
-    }
-
     void branchFailed(XAPlusXid branchXid) {
         if (xaBranches.containsKey(branchXid)) {
             xaBranches.get(branchXid).markAsFailed();
@@ -310,7 +293,6 @@ public class XAPlusTransaction {
         volatile boolean prepared;
         volatile boolean committed;
         volatile boolean rolledBack;
-        volatile boolean done;
         volatile boolean failed;
 
         Branch(XAPlusXid xid, XAPlusXid branchXid, XAResource xaResource, String uniqueName) {
@@ -321,7 +303,6 @@ public class XAPlusTransaction {
             prepared = false;
             committed = false;
             rolledBack = false;
-            done = false;
             failed = false;
         }
 
@@ -375,14 +356,6 @@ public class XAPlusTransaction {
 
         boolean isRolledBack() {
             return rolledBack;
-        }
-
-        void markAsDone() {
-            done = true;
-        }
-
-        boolean isDone() {
-            return done;
         }
 
         boolean isFailed() {

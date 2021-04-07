@@ -19,7 +19,6 @@ public class XAPlus {
     final XAPlusSubordinateRollbackService subordinateRollbackService;
 
     final XAPlusSuperiorCommitterService superiorCommitterService;
-    final XAPlusSuperiorCompleterService superiorCompleterService;
     final XAPlusSuperiorPreparerService superiorPreparerService;
     final XAPlusSuperiorRollbackService superiorRollbackService;
 
@@ -58,8 +57,7 @@ public class XAPlus {
         subordinateRollbackService = new XAPlusSubordinateRollbackService(properties, threadPool, dispatcher,
                 resources, new XAPlusTracker());
         superiorCommitterService = new XAPlusSuperiorCommitterService(properties, threadPool, dispatcher,
-                resources, new XAPlusTracker());
-        superiorCompleterService = new XAPlusSuperiorCompleterService(properties, threadPool, dispatcher);
+                new XAPlusTracker());
         superiorPreparerService = new XAPlusSuperiorPreparerService(properties, threadPool, dispatcher,
                 resources, new XAPlusTracker());
         superiorRollbackService = new XAPlusSuperiorRollbackService(properties, threadPool, dispatcher,
@@ -88,7 +86,6 @@ public class XAPlus {
         subordinatePreparerService.postConstruct();
         subordinateRollbackService.postConstruct();
         superiorCommitterService.postConstruct();
-        superiorCompleterService.postConstruct();
         superiorPreparerService.postConstruct();
         superiorRollbackService.postConstruct();
         recoveryPreparerService.postConstruct();

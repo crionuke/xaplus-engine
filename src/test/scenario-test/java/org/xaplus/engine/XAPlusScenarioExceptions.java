@@ -5,7 +5,6 @@ class XAPlusScenarioExceptions {
     volatile boolean failedException;
     volatile boolean commitException;
     volatile boolean rollbackException;
-    volatile boolean doneException;
     volatile boolean retryException;
 
     XAPlusScenarioExceptions() {
@@ -17,7 +16,6 @@ class XAPlusScenarioExceptions {
         failedException = false;
         commitException = false;
         rollbackException = false;
-        doneException = false;
         retryException = false;
     }
 }

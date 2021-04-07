@@ -14,7 +14,7 @@ import java.util.Map;
  */
 class XAPlusTLog {
     static final String DANGLING_SQL = "SELECT t_gtrid, t_status FROM tlog WHERE t_server_id = ? AND t_timestamp < ? GROUP BY t_gtrid, t_status HAVING COUNT(*) = 1";
-    static final String INSERT_SQL = "INSERT INTO tlog (t_timestamp, t_server_id, t_gtrid, t_status, t_complete) VALUES (?, ?, ?, ?, ?)";
+    static final String INSERT_SQL = "INSERT INTO tlog (t_timestamp, t_server_id, t_gtrid, t_status) VALUES (?, ?, ?, ?)";
 
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTLog.class);
     static private final int FETCH_SIZE = 50;
@@ -54,22 +54,14 @@ class XAPlusTLog {
     }
 
     void logCommitDecision(XAPlusUid gtrid) throws SQLException {
-        log(gtrid,true, false);
-    }
-
-    void logCommittedStatus(XAPlusUid gtrid) throws SQLException {
-        log(gtrid, true, true);
+        log(gtrid,true);
     }
 
     void logRollbackDecision(XAPlusUid gtrid) throws SQLException {
-        log(gtrid, false, false);
+        log(gtrid, false);
     }
 
-    void logRolledBackStatus(XAPlusUid gtrid) throws SQLException {
-        log(gtrid, false, true);
-    }
-
-    private void log(XAPlusUid gtrid, boolean tstatus, boolean complete) throws SQLException {
+    private void log(XAPlusUid gtrid, boolean tstatus) throws SQLException {
         DataSource tlogDataSource = engine.getTLogDataSource();
         try (Connection connection = tlogDataSource.getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(INSERT_SQL)) {
@@ -78,10 +70,9 @@ class XAPlusTLog {
                 statement.setString(2, serverId);
                 statement.setBytes(3, gtrid.getArray());
                 statement.setBoolean(4, tstatus);
-                statement.setBoolean(5, complete);
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Log timestamp={}, serverId={}, status={}, complete={}, gtrid={}",
-                            timestamp, serverId, tstatus, complete, gtrid);
+                    logger.debug("Log timestamp={}, serverId={}, status={}, gtrid={}",
+                            timestamp, serverId, tstatus, gtrid);
                 }
                 statement.executeUpdate();
             }

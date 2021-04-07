@@ -26,14 +26,6 @@ public interface XAPlusResource extends XAResource {
     void failed(Xid xid) throws XAPlusException;
 
     /**
-     * Report to superior that a transaction branch {@code xid} has been committed or rolled back by subordinate
-     *
-     * @param xid a transaction branch identifier
-     * @throws XAPlusException an error has occurred
-     */
-    void done(Xid xid) throws XAPlusException;
-
-    /**
      * Request dangling transactions status from superior
      *
      * @param serverId this server uid

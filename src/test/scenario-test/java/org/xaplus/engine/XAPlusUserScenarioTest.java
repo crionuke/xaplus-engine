@@ -96,33 +96,6 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     }
 
     @Test
-    public void testSuperiorCommitTransactionAndReportDoneStatusFromSubordinateToSuperiorFailed() throws InterruptedException {
-        // Setup scenario
-        requestSuperiorExceptions.doneException = true;
-        long value = startGlobalTransaction(false, false, false);
-        // Wait timeout
-        Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
-        // Check superior
-        XAPlusTestSuperiorFailedEvent event1 = testSuperiorFailedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event1);
-        assertEquals(value, event1.getValue());
-        // Wait timeout
-        Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
-        // Check subordinate
-        XAPlusTestSubordinateFinishedEvent event2 = testSubordinateFinishedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event2);
-        assertTrue(event2.getStatus());
-        assertEquals(value, event2.getValue());
-        // Reset scenario
-        requestSuperiorExceptions.reset();
-        // Superior recovery
-        superiorXAPlus.engine.startRecovery();
-        Thread.sleep(DEFAULT_TIMEOUT_S * 1000);
-    }
-
-    @Test
     public void testSuperiorRollbackBeforeRequest() throws InterruptedException {
         long value = startGlobalTransaction(true, false, false);
         // Check superior

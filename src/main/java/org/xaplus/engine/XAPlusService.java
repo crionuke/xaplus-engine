@@ -12,7 +12,7 @@ import javax.transaction.xa.XAResource;
 import java.util.Set;
 
 /**
- * @author Kirill Byvshev (k@byv.ssh)
+ * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
 class XAPlusService extends Bolt implements
@@ -26,7 +26,6 @@ class XAPlusService extends Bolt implements
         XAPlusForgetRecoveredXidRequestEvent.Handler,
         XAPlusReportFailedStatusRequestEvent.Handler,
         XAPlusReportReadiedStatusRequestEvent.Handler,
-        XAPlusReportDoneStatusRequestEvent.Handler,
         XAPlusRetryFromSuperiorRequestEvent.Handler,
         XAPlusRecoveryResourceRequestEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusService.class);
@@ -346,30 +345,6 @@ class XAPlusService extends Bolt implements
     }
 
     @Override
-    public void handleReportDoneStatusRequest(XAPlusReportDoneStatusRequestEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid xid = event.getXid();
-        XAPlusResource resource = event.getResource();
-        try {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Reporting done status for xid, xid={}", xid);
-            }
-            resource.done(xid);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Done status for branch reported, xid={}", xid);
-            }
-            dispatcher.dispatch(new XAPlusDoneStatusReportedEvent(xid));
-        } catch (XAPlusException doneException) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Report done status for xid failed as {}, xid={}", doneException.getMessage(), xid);
-            }
-            dispatcher.dispatch(new XAPlusReportDoneStatusFailedEvent(xid, doneException));
-        }
-    }
-
-    @Override
     public void handleRetryFromSuperiorRequest(XAPlusRetryFromSuperiorRequestEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
@@ -429,7 +404,6 @@ class XAPlusService extends Bolt implements
         dispatcher.subscribe(this, XAPlusForgetRecoveredXidRequestEvent.class);
         dispatcher.subscribe(this, XAPlusReportReadiedStatusRequestEvent.class);
         dispatcher.subscribe(this, XAPlusReportFailedStatusRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusReportDoneStatusRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRetryFromSuperiorRequestEvent.class);
         dispatcher.subscribe(this, XAPlusRecoveryResourceRequestEvent.class);
     }

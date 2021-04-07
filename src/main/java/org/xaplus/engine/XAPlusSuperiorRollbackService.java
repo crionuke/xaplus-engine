@@ -3,23 +3,19 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.journal.XAPlusLogCompletedTransactionEvent;
 import org.xaplus.engine.events.journal.XAPlusLogRollbackTransactionDecisionFailedEvent;
 import org.xaplus.engine.events.journal.XAPlusRollbackTransactionDecisionLoggedEvent;
+import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
 import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchRolledBackEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchFailedEvent;
-import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
-import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateFailedEvent;
 
 class XAPlusSuperiorRollbackService extends Bolt implements
         XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
         XAPlusLogRollbackTransactionDecisionFailedEvent.Handler,
         XAPlusBranchRolledBackEvent.Handler,
         XAPlusRollbackBranchFailedEvent.Handler,
-        XAPlusRemoteSubordinateDoneEvent.Handler,
-        XAPlusRemoteSubordinateFailedEvent.Handler,
         XAPlusTransactionTimedOutEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusSuperiorRollbackService.class);
 
@@ -102,41 +98,6 @@ class XAPlusSuperiorRollbackService extends Bolt implements
     }
 
     @Override
-    public void handleRemoteSubordinateDone(XAPlusRemoteSubordinateDoneEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid branchXid = event.getXid();
-        XAPlusXid transactionXid = tracker.getTransactionXid(branchXid);
-        if (transactionXid != null && tracker.contains(transactionXid)) {
-            XAPlusTransaction transaction = tracker.getTransaction(transactionXid);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Remote branch rolled back, branchXid={}, {}", branchXid, transaction);
-            }
-            transaction.branchDone(branchXid);
-            check(transaction);
-        }
-    }
-
-    @Override
-    public void handleRemoteSubordinateFailed(XAPlusRemoteSubordinateFailedEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid branchXid = event.getXid();
-        XAPlusXid transactionXid = tracker.getTransactionXid(branchXid);
-        if (transactionXid != null && tracker.contains(transactionXid)) {
-            XAPlusTransaction transaction = tracker.getTransaction(transactionXid);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Remote branch rollback failed, branchXid={}, {}", branchXid, transaction);
-            }
-            transaction.branchDone(branchXid);
-            transaction.branchFailed(branchXid);
-            check(transaction);
-        }
-    }
-
-    @Override
     public void handleTransactionTimedOut(XAPlusTransactionTimedOutEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
@@ -156,8 +117,6 @@ class XAPlusSuperiorRollbackService extends Bolt implements
         dispatcher.subscribe(this, XAPlusLogRollbackTransactionDecisionFailedEvent.class);
         dispatcher.subscribe(this, XAPlusBranchRolledBackEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackBranchFailedEvent.class);
-        dispatcher.subscribe(this, XAPlusRemoteSubordinateDoneEvent.class);
-        dispatcher.subscribe(this, XAPlusRemoteSubordinateFailedEvent.class);
         dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
     }
 
@@ -167,7 +126,7 @@ class XAPlusSuperiorRollbackService extends Bolt implements
             if (transaction.hasFailures()) {
                 dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
             } else {
-                dispatcher.dispatch(new XAPlusLogCompletedTransactionEvent(transaction, false));
+                dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
             }
         }
     }

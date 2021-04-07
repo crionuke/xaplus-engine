@@ -5,36 +5,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.journal.XAPlusCommitTransactionDecisionLoggedEvent;
 import org.xaplus.engine.events.journal.XAPlusLogCommitTransactionDecisionFailedEvent;
-import org.xaplus.engine.events.journal.XAPlusLogCompletedTransactionEvent;
-import org.xaplus.engine.events.journal.XAPlusLogRollbackTransactionDecisionEvent;
 import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
+import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchCommittedEvent;
 import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
-import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
-import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateFailedEvent;
 
 class XAPlusSuperiorCommitterService extends Bolt implements
         XAPlusCommitTransactionDecisionLoggedEvent.Handler,
         XAPlusLogCommitTransactionDecisionFailedEvent.Handler,
         XAPlusBranchCommittedEvent.Handler,
         XAPlusCommitBranchFailedEvent.Handler,
-        XAPlusRemoteSubordinateDoneEvent.Handler,
-        XAPlusRemoteSubordinateFailedEvent.Handler,
         XAPlusTransactionTimedOutEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusSuperiorCommitterService.class);
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final XAPlusResources resources;
     private final XAPlusTracker tracker;
 
-    XAPlusSuperiorCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
-                              XAPlusResources resources, XAPlusTracker tracker) {
+    XAPlusSuperiorCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
+                                   XAPlusDispatcher dispatcher, XAPlusTracker tracker) {
         super(properties.getServerId() + "-superior-committer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        this.resources = resources;
         this.tracker = tracker;
     }
 
@@ -63,9 +56,9 @@ class XAPlusSuperiorCommitterService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         if (transaction.isSuperior()) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Log rollback decision, {}", transaction);
+                logger.debug("Commit failed, {}", transaction);
             }
-            dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
+            dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction));
         }
     }
 
@@ -105,45 +98,6 @@ class XAPlusSuperiorCommitterService extends Bolt implements
     }
 
     @Override
-    public void handleRemoteSubordinateDone(XAPlusRemoteSubordinateDoneEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid branchXid = event.getXid();
-        XAPlusXid transactionXid = tracker.getTransactionXid(branchXid);
-        if (transactionXid != null && tracker.contains(transactionXid)) {
-            XAPlusTransaction transaction = tracker.getTransaction(transactionXid);
-            if (logger.isDebugEnabled()) {
-                String subordinateServerId = branchXid.getGlobalTransactionIdUid().extractServerId();
-                logger.debug("Remote branch done, subordinateServerId={}, xid={}, {}",
-                        subordinateServerId, branchXid, transaction);
-            }
-            transaction.branchDone(branchXid);
-            check(transaction);
-        }
-    }
-
-    @Override
-    public void handleRemoteSubordinateFailed(XAPlusRemoteSubordinateFailedEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid branchXid = event.getXid();
-        XAPlusXid transactionXid = tracker.getTransactionXid(branchXid);
-        if (transactionXid != null && tracker.contains(transactionXid)) {
-            XAPlusTransaction transaction = tracker.getTransaction(transactionXid);
-            if (logger.isDebugEnabled()) {
-                String subordinateServerId = branchXid.getGlobalTransactionIdUid().extractServerId();
-                logger.debug("Remote branch failed, subordinateServerId={}, xid={}, {}",
-                        subordinateServerId, branchXid, transaction);
-            }
-            transaction.branchDone(branchXid);
-            transaction.branchFailed(branchXid);
-            check(transaction);
-        }
-    }
-
-    @Override
     public void handleTransactionTimedOut(XAPlusTransactionTimedOutEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
@@ -163,8 +117,6 @@ class XAPlusSuperiorCommitterService extends Bolt implements
         dispatcher.subscribe(this, XAPlusLogCommitTransactionDecisionFailedEvent.class);
         dispatcher.subscribe(this, XAPlusBranchCommittedEvent.class);
         dispatcher.subscribe(this, XAPlusCommitBranchFailedEvent.class);
-        dispatcher.subscribe(this, XAPlusRemoteSubordinateDoneEvent.class);
-        dispatcher.subscribe(this, XAPlusRemoteSubordinateFailedEvent.class);
         dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
     }
 
@@ -174,7 +126,7 @@ class XAPlusSuperiorCommitterService extends Bolt implements
             if (transaction.hasFailures()) {
                 dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction));
             } else {
-                dispatcher.dispatch(new XAPlusLogCompletedTransactionEvent(transaction, true));
+                dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
             }
         }
     }

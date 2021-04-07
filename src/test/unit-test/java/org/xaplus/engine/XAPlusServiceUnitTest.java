@@ -225,29 +225,6 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test
-    public void testReportDoneStatusRequestSuccessfully() throws InterruptedException, XAPlusException {
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
-        XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
-        dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
-        Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).done(transaction.getXid());
-        XAPlusDoneStatusReportedEvent event = consumerStub.doneStatusReportedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event);
-        assertEquals(transaction.getXid(), event.getXid());
-    }
-
-    @Test
-    public void testReportDoneStatusRequestFailed() throws InterruptedException, XAPlusException {
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
-        XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
-        Mockito.doThrow(new XAPlusException("done_exception")).when(xaPlusResourceMock).done(transaction.getXid());
-        dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
-        XAPlusReportDoneStatusFailedEvent event =
-                consumerStub.reportDoneStatusFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event);
-        assertEquals(transaction.getXid(), event.getXid());
-    }
-
-    @Test
     public void testRetryFromSuperiorRequestSuccessfully() throws InterruptedException, XAPlusException {
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(XA_PLUS_RESOURCE_1, xaPlusResourceMock));

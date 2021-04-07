@@ -3,6 +3,5 @@ CREATE TABLE tlog (
     t_timestamp timestamp NOT NULL,
     t_server_id varchar(64) NOT NULL,
     t_gtrid bytea,
-    t_status boolean NOT NULL,
-    t_complete boolean NOT NULL
+    t_status boolean NOT NULL
 );
