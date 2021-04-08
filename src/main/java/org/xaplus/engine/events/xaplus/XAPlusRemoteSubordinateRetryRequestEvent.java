@@ -1,6 +1,7 @@
 package org.xaplus.engine.events.xaplus;
 
 import com.crionuke.bolts.Event;
+import org.xaplus.engine.XAPlusXid;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -8,14 +9,14 @@ import com.crionuke.bolts.Event;
  */
 public final class XAPlusRemoteSubordinateRetryRequestEvent extends Event<XAPlusRemoteSubordinateRetryRequestEvent.Handler> {
 
-    private final String subordinateServerId;
+    private final XAPlusXid xid;
 
-    public XAPlusRemoteSubordinateRetryRequestEvent(String subordinateServerId) {
+    public XAPlusRemoteSubordinateRetryRequestEvent(XAPlusXid xid) {
         super();
-        if (subordinateServerId == null) {
-            throw new NullPointerException("subordinateServerId is null");
+        if (xid == null) {
+            throw new NullPointerException("xid is null");
         }
-        this.subordinateServerId = subordinateServerId;
+        this.xid = xid;
     }
 
     @Override
@@ -25,11 +26,11 @@ public final class XAPlusRemoteSubordinateRetryRequestEvent extends Event<XAPlus
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "=(subordinateServerId=" + subordinateServerId + ")";
+        return getClass().getSimpleName() + "=(xid=" + xid + ")";
     }
 
-    public String getSubordinateServerId() {
-        return subordinateServerId;
+    public XAPlusXid getXid() {
+        return xid;
     }
 
     public interface Handler {

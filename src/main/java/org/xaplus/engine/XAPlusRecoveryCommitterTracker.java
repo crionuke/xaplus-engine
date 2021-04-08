@@ -3,87 +3,72 @@ package org.xaplus.engine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jms.JMSException;
-import javax.sql.XAConnection;
-import javax.transaction.xa.XAResource;
-import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * @author Kirill Byvshev (k@byv.sh)
+ * @since 1.0.0
+ */
 class XAPlusRecoveryCommitterTracker {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryCommitterTracker.class);
 
     private boolean started;
-    private Map<String, XAConnection> jdbcConnections;
-    private Map<String, javax.jms.XAJMSContext> jmsContexts;
-    private Map<String, XAResource> xaResources;
-    private Map<String, Set<XAPlusXid>> recoveredXids;
-    private Map<XAPlusUid, Boolean> danglingTransactions;
+    private Set<XAPlusRecoveredResource> recoveredResources;
+    private Map<XAPlusXid, XAPlusRecoveredResource> resourceByXid;
+    private Set<XAPlusXid> waiting;
 
     XAPlusRecoveryCommitterTracker() {
         started = false;
-        jdbcConnections = new HashMap<>();
-        jmsContexts = new HashMap<>();
-        xaResources = new HashMap<>();
-        recoveredXids = new HashMap<>();
-        danglingTransactions = new HashMap<>();
+        recoveredResources = new HashSet<>();
+        resourceByXid = new HashMap<>();
+        waiting = new HashSet<>();
     }
 
-    void start(Map<String, XAConnection> jdbcConnections, Map<String, javax.jms.XAJMSContext> jmsContexts,
-               Map<String, XAResource> xaResources, Map<String, Set<XAPlusXid>> recoveredXids,
-               Map<XAPlusUid, Boolean> danglingTransactions) {
-        this.jdbcConnections = jdbcConnections;
-        this.jmsContexts = jmsContexts;
-        this.xaResources = xaResources;
-        this.recoveredXids = recoveredXids;
-        this.danglingTransactions = danglingTransactions;
+    Set<XAPlusRecoveredResource> getRecoveredResources() {
+        return recoveredResources;
+    }
+
+    void start(Set<XAPlusRecoveredResource> resources) {
+        recoveredResources.addAll(resources);
+        started = true;
     }
 
     boolean isStarted() {
         return started;
     }
 
-    Map<String, XAConnection> getJdbcConnections() {
-        return jdbcConnections;
+    void track(XAPlusRecoveredResource recoveredResource, XAPlusXid xid) {
+        resourceByXid.put(xid, recoveredResource);
+        waiting.add(xid);
     }
 
-    Map<String, javax.jms.XAJMSContext> getJmsContexts() {
-        return jmsContexts;
+    XAPlusRecoveredResource getRecoveredResourceFor(XAPlusXid xid) {
+        return resourceByXid.get(xid);
     }
 
-    Map<String, XAResource> getXaResources() {
-        return xaResources;
+    boolean statusFound(XAPlusXid xid) {
+        return waiting.contains(xid);
     }
 
-    Map<String, Set<XAPlusXid>> getRecoveredXids() {
-        return recoveredXids;
+    boolean statusNotFound(XAPlusXid xid) {
+        return waiting.remove(xid);
     }
 
-    Map<XAPlusUid, Boolean> getDanglingTransactions() {
-        return danglingTransactions;
+    boolean xidRecovered(XAPlusXid xid) {
+        return waiting.remove(xid);
+    }
+
+    boolean isFinished() {
+        return waiting.isEmpty();
     }
 
     void reset() {
         started = false;
-        for (String uniqueName : jdbcConnections.keySet()) {
-            XAConnection connection = jdbcConnections.get(uniqueName);
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                if (logger.isWarnEnabled()) {
-                    logger.warn("Close connection to {} failed, {}", uniqueName, e.getMessage());
-                }
-            }
-        }
-        jdbcConnections.clear();
-        for (String uniqueName : jmsContexts.keySet()) {
-            javax.jms.XAJMSContext context = jmsContexts.get(uniqueName);
-            context.close();
-        }
-        jmsContexts.clear();
-        xaResources.clear();
-        recoveredXids.clear();
-        danglingTransactions.clear();
+        recoveredResources.clear();
+        resourceByXid.clear();
+        waiting.clear();
     }
 }

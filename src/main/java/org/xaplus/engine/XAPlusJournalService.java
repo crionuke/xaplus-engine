@@ -4,19 +4,12 @@ import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.journal.*;
-import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionCommittedEvent;
-import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionRolledBackEvent;
-import org.xaplus.engine.events.recovery.XAPlusRecoveredXidCommittedEvent;
-import org.xaplus.engine.events.recovery.XAPlusRecoveredXidRolledBackEvent;
-import org.xaplus.engine.events.tm.XAPlusTransactionClosedEvent;
-import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
-import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
+import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateRetryRequestEvent;
+import org.xaplus.engine.events.xaplus.XAPlusRetryCommitOrderRequestEvent;
+import org.xaplus.engine.events.xaplus.XAPlusRetryRollbackOrderRequestEvent;
+import org.xaplus.engine.exceptions.XAPlusSystemException;
 
 import java.sql.SQLException;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -25,27 +18,22 @@ import java.util.TreeSet;
 class XAPlusJournalService extends Bolt implements
         XAPlusLogCommitTransactionDecisionEvent.Handler,
         XAPlusLogRollbackTransactionDecisionEvent.Handler,
-        XAPlusFindDanglingTransactionsRequestEvent.Handler,
-        XAPlusUserCommitRequestEvent.Handler,
-        XAPlusUserRollbackRequestEvent.Handler,
-        XAPlusTransactionClosedEvent.Handler {
+        XAPlusFindRecoveredXidStatusRequestEvent.Handler,
+        XAPlusRemoteSubordinateRetryRequestEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusJournalService.class);
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
+    private final XAPlusResources resources;
     private final XAPlusTLog tlog;
-    private final long startTime;
-    private final SortedSet<XAPlusTransaction> inFlightTransactions;
 
     XAPlusJournalService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
-                         XAPlusTLog tlog) {
+                         XAPlusResources resources, XAPlusTLog tlog) {
         super(properties.getServerId() + "-journal", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
+        this.resources = resources;
         this.tlog = tlog;
-        startTime = System.currentTimeMillis();
-        inFlightTransactions = new TreeSet<>(Comparator
-                .comparingLong((transaction) -> transaction.getCreationTimeInMillis()));
     }
 
     @Override
@@ -94,62 +82,49 @@ class XAPlusJournalService extends Bolt implements
     }
 
     @Override
-    public void handleFindDanglingTransactionsRequest(XAPlusFindDanglingTransactionsRequestEvent event)
+    public void handleFindRecoveredXidStatusRequest(XAPlusFindRecoveredXidStatusRequestEvent event)
             throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
+        XAPlusXid xid = event.getXid();
+        XAPlusRecoveredResource recoveredResource = event.getRecoveredResource();
         try {
-            long inflightCutoff;
-            if (inFlightTransactions.isEmpty()) {
-                // If no transaction yet use app start time
-                inflightCutoff = startTime;
-            } else {
-                inflightCutoff = inFlightTransactions.first().getCreationTimeInMillis();
-            }
-            Map<XAPlusUid, Boolean> danglingTransactions = tlog.findDanglingTransactions(inflightCutoff);
-            dispatcher.dispatch(new XAPlusDanglingTransactionsFoundEvent(danglingTransactions));
-        } catch (SQLException e) {
+            boolean status = tlog.findTransactionStatus(xid.getGlobalTransactionIdUid());
+            dispatcher.dispatch(new XAPlusRecoveredXidStatusFoundEvent(xid, recoveredResource, status));
+        } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Find dangling transaction from journal failed as {}", e.getMessage());
+                logger.warn("Find transaction status request failed as {}, xid={}", sqle.getMessage(), xid);
             }
-            dispatcher.dispatch(new XAPlusFindDanglingTransactionsFailedEvent(e));
+            dispatcher.dispatch(new XAPlusFindRecoveredXidStatusFailedEvent(xid, recoveredResource, sqle));
         }
     }
 
     @Override
-    public void handleUserCommitRequest(XAPlusUserCommitRequestEvent event) throws InterruptedException {
+    public void handleRemoteSubordinateRetryRequest(XAPlusRemoteSubordinateRetryRequestEvent event)
+            throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusTransaction transaction = event.getTransaction();
-        inFlightTransactions.add(transaction);
-        if (logger.isTraceEnabled()) {
-            logger.trace("Transaction added to in-flight list, {}", transaction);
-        }
-    }
-
-    @Override
-    public void handleUserRollbackRequest(XAPlusUserRollbackRequestEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusTransaction transaction = event.getTransaction();
-        inFlightTransactions.add(transaction);
-        if (logger.isTraceEnabled()) {
-            logger.trace("Transaction added to in-flight list, {}", transaction);
-        }
-    }
-
-    @Override
-    public void handleTransactionClosed(XAPlusTransactionClosedEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusTransaction transaction = event.getTransaction();
-        if (inFlightTransactions.remove(transaction)) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Transaction removed from in-flight list, {}", transaction);
+        XAPlusXid xid = event.getXid();
+        try {
+            boolean status = tlog.findTransactionStatus(xid.getGlobalTransactionIdUid());
+            String subordinateServerId = xid.getBranchQualifierUid().extractServerId();
+            try {
+                XAPlusResource resource = resources.getXAPlusResource(subordinateServerId);
+                if (status) {
+                    dispatcher.dispatch(new XAPlusRetryCommitOrderRequestEvent(xid, resource));
+                } else {
+                    dispatcher.dispatch(new XAPlusRetryRollbackOrderRequestEvent(xid, resource));
+                }
+            } catch (XAPlusSystemException e) {
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Non XA+ or unknown resource with name={}, xid={}", subordinateServerId, xid);
+                }
+            }
+        } catch (SQLException sqle) {
+            if (logger.isWarnEnabled()) {
+                logger.warn("Recovery transaction status failed as {}, xid={}", sqle.getMessage(), xid);
             }
         }
     }
@@ -158,9 +133,7 @@ class XAPlusJournalService extends Bolt implements
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusLogCommitTransactionDecisionEvent.class);
         dispatcher.subscribe(this, XAPlusLogRollbackTransactionDecisionEvent.class);
-        dispatcher.subscribe(this, XAPlusFindDanglingTransactionsRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusUserCommitRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusUserRollbackRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusTransactionClosedEvent.class);
+        dispatcher.subscribe(this, XAPlusFindRecoveredXidStatusRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusRemoteSubordinateRetryRequestEvent.class);
     }
 }

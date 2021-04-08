@@ -65,9 +65,9 @@ public class XAPlus {
         recoveryPreparerService = new XAPlusRecoveryPreparerService(properties, threadPool, dispatcher, resources,
                 new XAPlusRecoveryPreparerTracker());
         recoveryCommitterService = new XAPlusRecoveryCommitterService(properties, threadPool, dispatcher, resources,
-                new XAPlusRecoveryCommitterTracker(), new XAPlusRecoveryOrdersTracker(),
-                new XAPlusRecoveryRetriesTracker());
-        journalService = new XAPlusJournalService(properties, threadPool, dispatcher, new XAPlusTLog(serverId, engine));
+                new XAPlusRecoveryCommitterTracker());
+        journalService = new XAPlusJournalService(properties, threadPool, dispatcher, resources,
+                new XAPlusTLog(serverId, engine));
         xaPlusService = new XAPlusService(properties, threadPool, dispatcher);
 
         constructed = false;

@@ -2,6 +2,7 @@ package org.xaplus.engine.stubs;
 
 import org.xaplus.engine.XAPlusException;
 import org.xaplus.engine.XAPlusResource;
+import org.xaplus.engine.XAPlusXid;
 
 import javax.transaction.xa.Xid;
 
@@ -18,7 +19,7 @@ public class XAPlusResourceStub extends XAResourceStub implements XAPlusResource
     }
 
     @Override
-    public void retry(String serverId) throws XAPlusException {
+    public void retry(XAPlusXid xid) throws XAPlusException {
 
     }
 }

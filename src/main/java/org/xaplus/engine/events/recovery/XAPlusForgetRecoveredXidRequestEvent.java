@@ -1,6 +1,7 @@
 package org.xaplus.engine.events.recovery;
 
 import com.crionuke.bolts.Event;
+import org.xaplus.engine.XAPlusRecoveredResource;
 import org.xaplus.engine.XAPlusXid;
 
 import javax.transaction.xa.XAResource;
@@ -12,9 +13,9 @@ import javax.transaction.xa.XAResource;
 public final class XAPlusForgetRecoveredXidRequestEvent extends Event<XAPlusForgetRecoveredXidRequestEvent.Handler> {
 
     private final XAPlusXid xid;
-    private final XAResource resource;
+    private final XAPlusRecoveredResource resource;
 
-    public XAPlusForgetRecoveredXidRequestEvent(XAPlusXid xid, XAResource resource) {
+    public XAPlusForgetRecoveredXidRequestEvent(XAPlusXid xid, XAPlusRecoveredResource resource) {
         super();
         if (xid == null) {
             throw new NullPointerException("xid is null");
@@ -40,7 +41,7 @@ public final class XAPlusForgetRecoveredXidRequestEvent extends Event<XAPlusForg
         return xid;
     }
 
-    public XAResource getResource() {
+    public XAPlusRecoveredResource getResource() {
         return resource;
     }
 

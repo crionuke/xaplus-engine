@@ -102,15 +102,15 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
     }
 
     @Override
-    public void retry(String serverId) throws XAPlusException {
+    public void retry(XAPlusXid xid) throws XAPlusException {
         if (scenario.retryException) {
             throw new XAPlusException("retry request exception");
         }
         try {
             if (logger.isDebugEnabled()) {
-                logger.debug("Send retry request from subordinate server, serverId={}", serverId);
+                logger.debug("Send retry request, xid={}", xid);
             }
-            dispatcher.dispatch(new XAPlusRemoteSubordinateRetryRequestEvent(serverId));
+            dispatcher.dispatch(new XAPlusRemoteSubordinateRetryRequestEvent(xid));
         } catch (InterruptedException e) {
             throw new XAPlusException(e.getMessage());
         }

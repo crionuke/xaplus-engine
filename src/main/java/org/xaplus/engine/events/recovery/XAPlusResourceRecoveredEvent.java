@@ -1,6 +1,7 @@
 package org.xaplus.engine.events.recovery;
 
 import com.crionuke.bolts.Event;
+import org.xaplus.engine.XAPlusRecoveredResource;
 import org.xaplus.engine.XAPlusXid;
 
 import java.util.Collections;
@@ -12,19 +13,14 @@ import java.util.Set;
  */
 public final class XAPlusResourceRecoveredEvent extends Event<XAPlusResourceRecoveredEvent.Handler> {
 
-    private final String uniqueName;
-    private final Set<XAPlusXid> recoveredXids;
+    private final XAPlusRecoveredResource recoveredResource;
 
-    public XAPlusResourceRecoveredEvent(String uniqueName, Set<XAPlusXid> recoveredXids) {
+    public XAPlusResourceRecoveredEvent(XAPlusRecoveredResource recoveredResource) {
         super();
-        if (uniqueName == null) {
-            throw new NullPointerException("uniqueName is null");
+        if (recoveredResource == null) {
+            throw new NullPointerException("recoveredResource is null");
         }
-        if (recoveredXids == null) {
-            throw new NullPointerException("recoveredXids is null");
-        }
-        this.recoveredXids = Collections.unmodifiableSet(recoveredXids);
-        this.uniqueName = uniqueName;
+        this.recoveredResource = recoveredResource;
     }
 
     @Override
@@ -34,15 +30,11 @@ public final class XAPlusResourceRecoveredEvent extends Event<XAPlusResourceReco
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "=(uniqueName=" + uniqueName + ")";
+        return getClass().getSimpleName() + "=(recoveredResource=" + recoveredResource + ")";
     }
 
-    public String getUniqueName() {
-        return uniqueName;
-    }
-
-    public Set<XAPlusXid> getRecoveredXids() {
-        return recoveredXids;
+    public XAPlusRecoveredResource getRecoveredResource() {
+        return recoveredResource;
     }
 
     public interface Handler {

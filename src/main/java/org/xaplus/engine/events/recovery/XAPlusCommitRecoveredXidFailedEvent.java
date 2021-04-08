@@ -1,6 +1,7 @@
 package org.xaplus.engine.events.recovery;
 
 import com.crionuke.bolts.Event;
+import org.xaplus.engine.XAPlusRecoveredResource;
 import org.xaplus.engine.XAPlusXid;
 
 /**
@@ -10,18 +11,18 @@ import org.xaplus.engine.XAPlusXid;
 public final class XAPlusCommitRecoveredXidFailedEvent extends Event<XAPlusCommitRecoveredXidFailedEvent.Handler> {
 
     private final XAPlusXid xid;
-    private final String uniqueName;
+    private final XAPlusRecoveredResource resource;
 
-    public XAPlusCommitRecoveredXidFailedEvent(XAPlusXid xid, String uniqueName) {
+    public XAPlusCommitRecoveredXidFailedEvent(XAPlusXid xid, XAPlusRecoveredResource resource) {
         super();
         if (xid == null) {
             throw new NullPointerException("xid is null");
         }
-        if (uniqueName == null) {
-            throw new NullPointerException("uniqueName is null");
+        if (resource == null) {
+            throw new NullPointerException("resource is null");
         }
         this.xid = xid;
-        this.uniqueName = uniqueName;
+        this.resource = resource;
     }
 
     @Override
@@ -31,16 +32,15 @@ public final class XAPlusCommitRecoveredXidFailedEvent extends Event<XAPlusCommi
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "=(xid=" + xid +
-                ", uniqueName=" + uniqueName + ")";
+        return getClass().getSimpleName() + "=(xid=" + xid + ", resource=" + resource + ")";
     }
 
     public XAPlusXid getXid() {
         return xid;
     }
 
-    public String getUniqueName() {
-        return uniqueName;
+    public XAPlusRecoveredResource getResource() {
+        return resource;
     }
 
     public interface Handler {

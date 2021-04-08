@@ -1,6 +1,7 @@
 package org.xaplus.engine.events.recovery;
 
 import com.crionuke.bolts.Event;
+import org.xaplus.engine.XAPlusRecoveredResource;
 import org.xaplus.engine.XAPlusXid;
 
 import javax.transaction.xa.XAResource;
@@ -12,10 +13,9 @@ import javax.transaction.xa.XAResource;
 public final class XAPlusRollbackRecoveredXidRequestEvent extends Event<XAPlusRollbackRecoveredXidRequestEvent.Handler> {
 
     private final XAPlusXid xid;
-    private final XAResource resource;
-    private final String uniqueName;
+    private final XAPlusRecoveredResource resource;
 
-    public XAPlusRollbackRecoveredXidRequestEvent(XAPlusXid xid, XAResource resource, String uniqueName) {
+    public XAPlusRollbackRecoveredXidRequestEvent(XAPlusXid xid, XAPlusRecoveredResource resource) {
         super();
         if (xid == null) {
             throw new NullPointerException("xid is null");
@@ -23,18 +23,13 @@ public final class XAPlusRollbackRecoveredXidRequestEvent extends Event<XAPlusRo
         if (resource == null) {
             throw new NullPointerException("resource is null");
         }
-        if (uniqueName == null) {
-            throw new NullPointerException("uniqueName is null");
-        }
         this.xid = xid;
         this.resource = resource;
-        this.uniqueName = uniqueName;
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "=(xid=" + xid +
-                ", uniqueName=" + uniqueName + ")";
+        return getClass().getSimpleName() + "=(xid=" + xid + ", resource=" + resource + ")";
     }
 
     @Override
@@ -46,12 +41,8 @@ public final class XAPlusRollbackRecoveredXidRequestEvent extends Event<XAPlusRo
         return xid;
     }
 
-    public XAResource getResource() {
+    public XAPlusRecoveredResource getResource() {
         return resource;
-    }
-
-    public String getUniqueName() {
-        return uniqueName;
     }
 
     public interface Handler {

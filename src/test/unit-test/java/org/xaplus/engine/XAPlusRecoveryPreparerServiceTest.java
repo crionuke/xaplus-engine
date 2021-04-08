@@ -92,20 +92,20 @@ public class XAPlusRecoveryPreparerServiceTest extends XAPlusUnitTest {
     }
 
     private void waitingResourceRecoveryRequests(TestSuperiorDataSet dataSet) throws InterruptedException {
-        // Waiting recovery requests for XA resources
-        for (int i = 0; i < dataSet.allPreparedXids.size(); i++) {
-            XAPlusRecoveryResourceRequestEvent recoveryResourceRequestEvent =
-                    recoveryResourceRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-            assertNotNull(recoveryResourceRequestEvent);
-            String uniqueName = recoveryResourceRequestEvent.getUniqueName();
-            if (dataSet.allPreparedXids.containsKey(uniqueName)) {
-                // Response
-                dispatcher.dispatch(new XAPlusResourceRecoveredEvent(uniqueName,
-                        dataSet.allPreparedXids.get(uniqueName)));
-            } else {
-                fail("unknown xaResource name=" + uniqueName + " to recovery");
-            }
-        }
+//        // Waiting recovery requests for XA resources
+//        for (int i = 0; i < dataSet.allPreparedXids.size(); i++) {
+//            XAPlusRecoveryResourceRequestEvent recoveryResourceRequestEvent =
+//                    recoveryResourceRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+//            assertNotNull(recoveryResourceRequestEvent);
+//            String uniqueName = recoveryResourceRequestEvent.getUniqueName();
+//            if (dataSet.allPreparedXids.containsKey(uniqueName)) {
+//                // Response
+//                dispatcher.dispatch(new XAPlusResourceRecoveredEvent(uniqueName,
+//                        dataSet.allPreparedXids.get(uniqueName)));
+//            } else {
+//                fail("unknown xaResource name=" + uniqueName + " to recovery");
+//            }
+//        }
     }
 
     private class ConsumerStub extends Bolt implements

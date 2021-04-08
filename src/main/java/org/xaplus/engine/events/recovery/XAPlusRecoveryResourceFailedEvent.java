@@ -1,6 +1,7 @@
 package org.xaplus.engine.events.recovery;
 
 import com.crionuke.bolts.Event;
+import org.xaplus.engine.XAPlusRecoveredResource;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -8,24 +9,24 @@ import com.crionuke.bolts.Event;
  */
 public final class XAPlusRecoveryResourceFailedEvent extends Event<XAPlusRecoveryResourceFailedEvent.Handler> {
 
-    private final String uniqueName;
+    private final XAPlusRecoveredResource recoveredResource;
     private final Exception exception;
 
-    public XAPlusRecoveryResourceFailedEvent(String uniqueName, Exception exception) {
+    public XAPlusRecoveryResourceFailedEvent(XAPlusRecoveredResource recoveredResource, Exception exception) {
         super();
-        if (uniqueName == null) {
-            throw new NullPointerException("uniqueName is null");
+        if (recoveredResource == null) {
+            throw new NullPointerException("recoveredResource is null");
         }
         if (exception == null) {
             throw new NullPointerException("exception is null");
         }
-        this.uniqueName = uniqueName;
+        this.recoveredResource = recoveredResource;
         this.exception = exception;
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "=(uniqueName=" + uniqueName +
+        return getClass().getSimpleName() + "=(recoveredResource=" + recoveredResource +
                 ", exception=" + exception + ")";
     }
 
@@ -34,8 +35,8 @@ public final class XAPlusRecoveryResourceFailedEvent extends Event<XAPlusRecover
         handler.handleRecoveryResourceFailed(this);
     }
 
-    public String getUniqueName() {
-        return uniqueName;
+    public XAPlusRecoveredResource getRecoveredResource() {
+        return recoveredResource;
     }
 
     public Exception getException() {

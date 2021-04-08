@@ -1,6 +1,7 @@
 package org.xaplus.engine.events.recovery;
 
 import com.crionuke.bolts.Event;
+import org.xaplus.engine.XAPlusRecoveredResource;
 
 import javax.transaction.xa.XAResource;
 
@@ -10,19 +11,14 @@ import javax.transaction.xa.XAResource;
  */
 public final class XAPlusRecoveryResourceRequestEvent extends Event<XAPlusRecoveryResourceRequestEvent.Handler> {
 
-    private final String uniqueName;
-    private final XAResource resource;
+    private final XAPlusRecoveredResource recoveredResource;
 
-    public XAPlusRecoveryResourceRequestEvent(String uniqueName, XAResource resource) {
+    public XAPlusRecoveryResourceRequestEvent(XAPlusRecoveredResource recoveredResource) {
         super();
-        if (uniqueName == null) {
-            throw new NullPointerException("uniqueName is null");
+        if (recoveredResource == null) {
+            throw new NullPointerException("recoveredResource is null");
         }
-        if (resource == null) {
-            throw new NullPointerException("resource is null");
-        }
-        this.resource = resource;
-        this.uniqueName = uniqueName;
+        this.recoveredResource = recoveredResource;
     }
 
     @Override
@@ -32,15 +28,11 @@ public final class XAPlusRecoveryResourceRequestEvent extends Event<XAPlusRecove
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "=(uniqueName=" + uniqueName + ")";
+        return getClass().getSimpleName() + "=(recoveredResource=" + recoveredResource + ")";
     }
 
-    public String getUniqueName() {
-        return uniqueName;
-    }
-
-    public XAResource getResource() {
-        return resource;
+    public XAPlusRecoveredResource getRecoveredResource() {
+        return recoveredResource;
     }
 
     public interface Handler {

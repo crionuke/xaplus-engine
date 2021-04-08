@@ -33,7 +33,7 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
         tlogMock = Mockito.mock(XAPlusTLog.class);
-        xaPlusJournalService = new XAPlusJournalService(properties, threadPool, dispatcher, tlogMock);
+        xaPlusJournalService = new XAPlusJournalService(properties, threadPool, dispatcher, resources, tlogMock);
         xaPlusJournalService.postConstruct();
         consumerStub = new ConsumerStub();
         consumerStub.postConstruct();
@@ -88,27 +88,6 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
                 consumerStub.rollbackTransactionDecisionFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getTransaction().getXid());
-    }
-
-    @Test
-    public void testFindDanglingTransactionsRequestSuccessfully() throws InterruptedException, SQLException {
-        Map<XAPlusUid, Boolean> danglingTransactions = new HashMap<>();
-        Mockito.when(tlogMock.findDanglingTransactions(System.currentTimeMillis())).thenReturn(danglingTransactions);
-        dispatcher.dispatch(new XAPlusFindDanglingTransactionsRequestEvent());
-        XAPlusDanglingTransactionsFoundEvent event =
-                consumerStub.danglingTransactionsFoundEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event);
-        assertEquals(danglingTransactions, event.getDanglingTransactions());
-    }
-
-    @Test
-    public void testFindDanglingTransactionsRequestFailed() throws InterruptedException, SQLException {
-        Mockito.doThrow(new SQLException("find_exception")).when(tlogMock)
-                .findDanglingTransactions(Mockito.anyLong());
-        dispatcher.dispatch(new XAPlusFindDanglingTransactionsRequestEvent());
-        XAPlusFindDanglingTransactionsFailedEvent event =
-                consumerStub.findDanglingTransactionsFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event);
     }
 
     private class ConsumerStub extends Bolt implements

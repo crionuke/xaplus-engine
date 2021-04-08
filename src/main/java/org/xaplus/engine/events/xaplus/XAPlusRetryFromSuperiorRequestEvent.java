@@ -2,6 +2,7 @@ package org.xaplus.engine.events.xaplus;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusResource;
+import org.xaplus.engine.XAPlusXid;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -9,18 +10,18 @@ import org.xaplus.engine.XAPlusResource;
  */
 public final class XAPlusRetryFromSuperiorRequestEvent extends Event<XAPlusRetryFromSuperiorRequestEvent.Handler> {
 
-    private final String serverId;
+    private final XAPlusXid xid;
     private final XAPlusResource resource;
 
-    public XAPlusRetryFromSuperiorRequestEvent(String serverId, XAPlusResource resource) {
+    public XAPlusRetryFromSuperiorRequestEvent(XAPlusXid xid, XAPlusResource resource) {
         super();
-        if (serverId == null) {
-            throw new NullPointerException("serverId is null");
+        if (xid == null) {
+            throw new NullPointerException("xid is null");
         }
         if (resource == null) {
             throw new NullPointerException("resource is null");
         }
-        this.serverId = serverId;
+        this.xid = xid;
         this.resource = resource;
     }
 
@@ -31,11 +32,11 @@ public final class XAPlusRetryFromSuperiorRequestEvent extends Event<XAPlusRetry
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "=(serverId=" + serverId + ")";
+        return getClass().getSimpleName() + "=(xid=" + xid + ")";
     }
 
-    public String getServerId() {
-        return serverId;
+    public XAPlusXid getXid() {
+        return xid;
     }
 
     public XAPlusResource getResource() {

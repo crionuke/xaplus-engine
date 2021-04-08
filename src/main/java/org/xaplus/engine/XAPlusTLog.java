@@ -13,11 +13,10 @@ import java.util.Map;
  * @since 1.0.0
  */
 class XAPlusTLog {
-    static final String DANGLING_SQL = "SELECT t_gtrid, t_status FROM tlog WHERE t_server_id = ? AND t_timestamp < ? GROUP BY t_gtrid, t_status HAVING COUNT(*) = 1";
+    static final String SELECT_SQL = "SELECT t_status FROM tlog WHERE t_gtrid = ?";
     static final String INSERT_SQL = "INSERT INTO tlog (t_timestamp, t_server_id, t_gtrid, t_status) VALUES (?, ?, ?, ?)";
 
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTLog.class);
-    static private final int FETCH_SIZE = 50;
 
     private final String serverId;
     private final XAPlusEngine engine;
@@ -27,29 +26,27 @@ class XAPlusTLog {
         this.engine = engine;
     }
 
-    Map<XAPlusUid, Boolean> findDanglingTransactions(long inflightCutoff) throws SQLException {
+    Boolean findTransactionStatus(XAPlusUid gtrid) throws SQLException {
         DataSource tlogDataSource = engine.getTLogDataSource();
         try (Connection connection = tlogDataSource.getConnection()) {
-            Map<XAPlusUid, Boolean> danglingTransactions = new HashMap<>();
-            try (PreparedStatement statement = connection.prepareStatement(DANGLING_SQL)) {
-                statement.setFetchSize(FETCH_SIZE);
-                statement.setString(1, serverId);
-                statement.setTimestamp(2, new Timestamp(inflightCutoff));
+            try (PreparedStatement statement = connection.prepareStatement(SELECT_SQL)) {
+                statement.setBytes(1, gtrid.getArray());
                 try (ResultSet resultSet = statement.executeQuery()) {
-                    while (resultSet.next()) {
-                        XAPlusUid gtrid = new XAPlusUid(resultSet.getBytes(1));
-                        boolean tstatus = resultSet.getBoolean(2);
+                    if (resultSet.next()) {
+                        boolean tStatus = resultSet.getBoolean(1);
                         if (logger.isTraceEnabled()) {
-                            logger.trace("Dangling transaction found, gtrid={}, status={}", gtrid, tstatus);
+                            logger.trace("Transaction status found, status={}, gtrid={}", tStatus, gtrid);
                         }
-                        danglingTransactions.put(gtrid, tstatus);
+                        return tStatus;
+                    } else {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("Transaction status not found, gtrid={}", gtrid);
+                        }
+                        // If not found, then return rollback status
+                        return false;
                     }
                 }
             }
-            if (logger.isDebugEnabled()) {
-                logger.debug("{} dangling transactions found.", danglingTransactions.size());
-            }
-            return danglingTransactions;
         }
     }
 

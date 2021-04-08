@@ -3,20 +3,31 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xaplus.engine.events.journal.XAPlusFindRecoveredXidStatusFailedEvent;
+import org.xaplus.engine.events.journal.XAPlusFindRecoveredXidStatusRequestEvent;
+import org.xaplus.engine.events.journal.XAPlusRecoveredXidStatusFoundEvent;
 import org.xaplus.engine.events.recovery.*;
-import org.xaplus.engine.events.xaplus.*;
+import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToCommitEvent;
+import org.xaplus.engine.events.xaplus.XAPlusRemoteSuperiorOrderToRollbackEvent;
+import org.xaplus.engine.events.xaplus.XAPlusRetryFromSuperiorRequestEvent;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 
-import javax.transaction.xa.XAResource;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
+/**
+ * @author Kirill Byvshev (k@byv.sh)
+ * @since 1.0.0
+ */
 class XAPlusRecoveryCommitterService extends Bolt implements
         XAPlusRecoveryPreparedEvent.Handler,
+        XAPlusRecoveredXidStatusFoundEvent.Handler,
         XAPlusRemoteSuperiorOrderToCommitEvent.Handler,
         XAPlusRemoteSuperiorOrderToRollbackEvent.Handler,
-        XAPlusRemoteSubordinateDoneEvent.Handler {
+        XAPlusFindRecoveredXidStatusFailedEvent.Handler,
+        XAPlusRecoveredXidCommittedEvent.Handler,
+        XAPlusCommitRecoveredXidFailedEvent.Handler,
+        XAPlusRecoveredXidRolledBackEvent.Handler,
+        XAPlusRollbackRecoveredXidFailedEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryCommitterService.class);
 
     private final XAPlusProperties properties;
@@ -24,21 +35,16 @@ class XAPlusRecoveryCommitterService extends Bolt implements
     private final XAPlusDispatcher dispatcher;
     private final XAPlusResources resources;
     private final XAPlusRecoveryCommitterTracker tracker;
-    private final XAPlusRecoveryOrdersTracker ordersTracker;
-    private final XAPlusRecoveryRetriesTracker retriesTracker;
 
     XAPlusRecoveryCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
                                    XAPlusDispatcher dispatcher, XAPlusResources resources,
-                                   XAPlusRecoveryCommitterTracker tracker, XAPlusRecoveryOrdersTracker ordersTracker,
-                                   XAPlusRecoveryRetriesTracker retriesTracker) {
+                                   XAPlusRecoveryCommitterTracker tracker) {
         super(properties.getServerId() + "-recovery-committer", properties.getQueueSize());
         this.properties = properties;
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.resources = resources;
         this.tracker = tracker;
-        this.ordersTracker = ordersTracker;
-        this.retriesTracker = retriesTracker;
     }
 
     @Override
@@ -54,11 +60,47 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Commit recovery, {}", System.currentTimeMillis());
             }
-            tracker.start(event.getJdbcConnections(), event.getJmsContexts(), event.getXaResources(),
-                    event.getRecoveredXids(), event.getDanglingTransactions());
-            recoveryResources();
-            // TODO: close all connections opened to recover resources
+            Set<XAPlusRecoveredResource> recoveredResources = event.getRecoveredResources();
+            tracker.start(recoveredResources);
+            for (XAPlusRecoveredResource recoveredResource : recoveredResources) {
+                for (XAPlusXid recoveredXid : recoveredResource.getRecoveredXids()) {
+                    String superiorServerId = recoveredXid.getGlobalTransactionIdUid().extractServerId();
+                    if (superiorServerId.equals(properties.getServerId())) {
+                        tracker.track(recoveredResource, recoveredXid);
+                        // Recovery transaction status from tlog
+                        dispatcher.dispatch(
+                                new XAPlusFindRecoveredXidStatusRequestEvent(recoveredXid, recoveredResource));
+                    } else {
+                        try {
+                            XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
+                            // Request transaction status from superior
+                            dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(recoveredXid, resource));
+                        } catch (XAPlusSystemException e) {
+                            if (logger.isWarnEnabled()) {
+                                logger.warn("Non XA+ or unknown resource with name={}, {}",
+                                        superiorServerId, e.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
             // TODO: handle timeout for recovery process
+        }
+    }
+
+    @Override
+    public void handleRecoveredXidStatusFound(XAPlusRecoveredXidStatusFoundEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        if (tracker.statusFound(xid)) {
+            XAPlusRecoveredResource recoveredResource = event.getRecoveredResource();
+            if (event.getStatus()) {
+                dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, recoveredResource));
+            } else {
+                dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, recoveredResource));
+            }
         }
     }
 
@@ -69,119 +111,100 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        Map<XAPlusXid, String> branches = retriesTracker.remove(xid);
-        if (branches != null) {
-            for (Map.Entry<XAPlusXid, String> entry : branches.entrySet()) {
-                XAPlusXid branchXid = entry.getKey();
-                String uniqueName = entry.getValue();
-                XAResource resource = tracker.getXaResources().get(uniqueName);
-                if (resource != null) {
-                    dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, resource, uniqueName));
-                } else {
-                    if (logger.isWarnEnabled()) {
-                        logger.warn("Unknown XA xaResource to commit branch, resource={}, xid={}",
-                                uniqueName, branchXid);
-                    }
-                }
-            }
+        if (tracker.statusFound(xid)) {
+            XAPlusRecoveredResource recoveredResource = tracker.getRecoveredResourceFor(xid);
+            dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, recoveredResource));
         }
     }
 
     @Override
     public void handleRemoteSuperiorOrderToRollback(XAPlusRemoteSuperiorOrderToRollbackEvent event)
             throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
         XAPlusXid xid = event.getXid();
-        Map<XAPlusXid, String> branches = retriesTracker.remove(xid);
-        if (branches != null) {
-            for (Map.Entry<XAPlusXid, String> entry : branches.entrySet()) {
-                XAPlusXid branchXid = entry.getKey();
-                String uniqueName = entry.getValue();
-                XAResource resource = tracker.getXaResources().get(uniqueName);
-                if (resource != null) {
-                    dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, resource, uniqueName));
-                } else {
-                    if (logger.isWarnEnabled()) {
-                        logger.warn("Unknown XA xaResource to rollback branch, resource={}, xid={}",
-                                uniqueName, branchXid);
-                    }
-                }
-            }
+        if (tracker.statusFound(xid)) {
+            XAPlusRecoveredResource recoveredResource = tracker.getRecoveredResourceFor(xid);
+            dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, recoveredResource));
         }
     }
 
     @Override
-    public void handleRemoteSubordinateDone(XAPlusRemoteSubordinateDoneEvent event) throws InterruptedException {
+    public void handleFindRecoveredXidStatusFailed(XAPlusFindRecoveredXidStatusFailedEvent event)
+            throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        String uniqueName = ordersTracker.getUniqueName(xid);
-        if (uniqueName != null) {
-            if (ordersTracker.getStatus(xid)) {
-                dispatcher.dispatch(new XAPlusDanglingTransactionCommittedEvent(xid, uniqueName));
-            } else {
-                dispatcher.dispatch(new XAPlusDanglingTransactionRolledBackEvent(xid, uniqueName));
-            }
-            ordersTracker.remove(xid);
+        if (tracker.statusNotFound(xid)) {
+            check();
+        }
+    }
+
+    @Override
+    public void handleRecoveredXidCommitted(XAPlusRecoveredXidCommittedEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        if (tracker.xidRecovered(xid)) {
+            check();
+        }
+    }
+
+    @Override
+    public void handleCommitRecoveredXidFailed(XAPlusCommitRecoveredXidFailedEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        if (tracker.xidRecovered(xid)) {
+            check();
+        }
+    }
+
+    @Override
+    public void handleRecoveredXidRolledBack(XAPlusRecoveredXidRolledBackEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        if (tracker.xidRecovered(xid)) {
+            check();
+        }
+    }
+
+    @Override
+    public void handleRollbackRecoveredXidFailed(XAPlusRollbackRecoveredXidFailedEvent event)
+            throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        XAPlusXid xid = event.getXid();
+        if (tracker.xidRecovered(xid)) {
+            check();
         }
     }
 
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusRecoveryPreparedEvent.class);
-        dispatcher.subscribe(this, XAPlusRemoteSubordinateDoneEvent.class);
+        dispatcher.subscribe(this, XAPlusRecoveredXidStatusFoundEvent.class);
         dispatcher.subscribe(this, XAPlusRemoteSuperiorOrderToCommitEvent.class);
         dispatcher.subscribe(this, XAPlusRemoteSuperiorOrderToRollbackEvent.class);
+        dispatcher.subscribe(this, XAPlusFindRecoveredXidStatusFailedEvent.class);
+        dispatcher.subscribe(this, XAPlusRecoveredXidCommittedEvent.class);
+        dispatcher.subscribe(this, XAPlusCommitRecoveredXidFailedEvent.class);
+        dispatcher.subscribe(this, XAPlusRecoveredXidRolledBackEvent.class);
+        dispatcher.subscribe(this, XAPlusRollbackRecoveredXidFailedEvent.class);
     }
 
-    private void recoveryResources() throws InterruptedException {
-        Map<String, Set<XAPlusXid>> recoveredXids = tracker.getRecoveredXids();
-        Set<String> superiorServers = new HashSet<>();
-        for (String uniqueName : recoveredXids.keySet()) {
-            XAResource xaResource = tracker.getXaResources().get(uniqueName);
-            if (xaResource != null) {
-                Set<XAPlusXid> xids = recoveredXids.get(uniqueName);
-                for (XAPlusXid xid : xids) {
-                    Map<XAPlusUid, Boolean> danglingXids = tracker.getDanglingTransactions();
-                    if (danglingXids.containsKey(xid.getGlobalTransactionIdUid())) {
-                        boolean status = danglingXids.get(xid.getGlobalTransactionIdUid());
-                        if (status) {
-                            dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, xaResource, uniqueName));
-                        } else {
-                            dispatcher.dispatch(
-                                    new XAPlusRollbackRecoveredXidRequestEvent(xid, xaResource, uniqueName));
-                        }
-                    } else {
-                        String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
-                        if (superiorServerId.equals(properties.getServerId())) {
-                            // Rollback recovered transaction's xid as was no commit command found
-                            dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(
-                                    xid, xaResource, uniqueName));
-                        } else {
-                            retriesTracker.track(xid, uniqueName);
-                            if (superiorServers.add(superiorServerId)) {
-                                try {
-                                    dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(superiorServerId,
-                                            resources.getXAPlusResource(superiorServerId)));
-                                } catch (XAPlusSystemException e) {
-                                    if (logger.isWarnEnabled()) {
-                                        logger.warn("Unknown XA+ resource to retry orders, xaResource={}",
-                                                superiorServerId);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                if (logger.isWarnEnabled()) {
-                    logger.warn("Unknown XA resource to recovery, resource={}", uniqueName);
-                }
+    private void check() throws InterruptedException {
+        if (tracker.isFinished()) {
+            Set<XAPlusRecoveredResource> recoveredResources = tracker.getRecoveredResources();
+            // Close all connections opened to recovery
+            for (XAPlusRecoveredResource recoveredResource : recoveredResources) {
+                recoveredResource.close();
             }
+            tracker.reset();
         }
-        // TODO: Handle orphan transaction found in journal but not recovered from XA resource
     }
 }

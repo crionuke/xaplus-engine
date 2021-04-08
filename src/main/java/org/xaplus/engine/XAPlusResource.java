@@ -26,10 +26,10 @@ public interface XAPlusResource extends XAResource {
     void failed(Xid xid) throws XAPlusException;
 
     /**
-     * Request dangling transactions status from superior
+     * Request transaction status from superior
      *
-     * @param serverId this server uid
+     * @param xid a transaction branch identifier
      * @throws XAPlusException an error has occured
      */
-    void retry(String serverId) throws XAPlusException;
+    void retry(XAPlusXid xid) throws XAPlusException;
 }
