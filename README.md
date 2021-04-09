@@ -10,7 +10,7 @@ First, to achieve global transactions engine works with resources managers over 
 
 Next, engine use XA+ interface (see 2) to communicate with each others of participant of global transaction.
 
-Also superior side or initiator of global transaction make transactions log with all decision over transactions to recovery after failover.
+Also engine on superior side or initiator of global transaction make transactions log with all decision over transactions to recovery after failover.
 
 **Links**
 
