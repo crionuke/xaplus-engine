@@ -1,5 +1,6 @@
 package org.xaplus.engine;
 
+import org.apache.tomcat.jdbc.pool.DataSource;
 import org.postgresql.xa.PGXADataSource;
 
 import javax.sql.XAConnection;
@@ -15,6 +16,15 @@ public class XAPlusIntegrationTest extends XAPlusUnitTest {
     static private final String SELECT_SQL = "SELECT t_value FROM test";
 
     protected PGXADataSource xaDataSource;
+
+    protected DataSource createTLog() {
+        DataSource dataSource = new DataSource();
+        dataSource.setUrl("jdbc:postgresql://localhost:10000/tlog");
+        dataSource.setDriverClassName("org.postgresql.Driver");
+        dataSource.setUsername("tlog");
+        dataSource.setPassword("qwe123");
+        return dataSource;
+    }
 
     protected void createXADataSource() {
         xaDataSource = new PGXADataSource();
