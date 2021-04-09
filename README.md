@@ -12,7 +12,7 @@ Next, engine use XA+ interface (see 2) to communicate with each others of partic
 
 Also engine on superior side or initiator of global transaction make transactions log with all decisions over transactions to recovery after failover if needed.
 
-**Links**
+## Links
 
 1. [The XA Specification](https://pubs.opengroup.org/onlinepubs/009680699/toc.pdf)
 1. [The XA+ Specification Version 2](https://pubs.opengroup.org/onlinepubs/008057699/toc.pdf)
