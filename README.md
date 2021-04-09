@@ -1,5 +1,5 @@
 # xaplus-engine
-Transaction processing engine based on XA and XA+ protocols.
+Transactions processing engine based on XA and XA+ protocols.
 
 This engine support three type of transactions:
 * **Local** - boundaries of transactions are limited by one resource manager;

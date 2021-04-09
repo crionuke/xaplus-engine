@@ -9,7 +9,7 @@
     <version>1.0.0</version>
 
     <name>xaplus-engine</name>
-    <description>Transaction processing engine based on XA and XA+ protocols</description>
+    <description>Transactions processing engine based on XA and XA+ protocols</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
