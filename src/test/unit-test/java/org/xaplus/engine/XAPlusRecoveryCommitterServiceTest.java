@@ -23,8 +23,6 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
     BlockingQueue<XAPlusRetryCommitOrderRequestEvent> retryCommitOrderRequestEvents;
     BlockingQueue<XAPlusRetryRollbackOrderRequestEvent> retryRollbackOrderRequestEvents;
 
-    BlockingQueue<XAPlusDanglingTransactionCommittedEvent> danglingTransactionCommittedEvents;
-    BlockingQueue<XAPlusDanglingTransactionRolledBackEvent> danglingTransactionRolledBackEvents;
     BlockingQueue<XAPlusLogCommitRecoveredXidDecisionEvent> logCommitRecoveredXidDecisionEvents;
     BlockingQueue<XAPlusLogRollbackRecoveredXidDecisionEvent> logRollbackRecoveredXidDecisionEvents;
     BlockingQueue<XAPlusCommitRecoveredXidRequestEvent> commitRecoveredXidRequestEvents;
@@ -43,8 +41,6 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
 
         retryCommitOrderRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         retryRollbackOrderRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        danglingTransactionCommittedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        danglingTransactionRolledBackEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         logCommitRecoveredXidDecisionEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         logRollbackRecoveredXidDecisionEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         commitRecoveredXidRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -165,8 +161,6 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
     private class ConsumerStub extends Bolt implements
             XAPlusRetryCommitOrderRequestEvent.Handler,
             XAPlusRetryRollbackOrderRequestEvent.Handler,
-            XAPlusDanglingTransactionCommittedEvent.Handler,
-            XAPlusDanglingTransactionRolledBackEvent.Handler,
             XAPlusLogCommitRecoveredXidDecisionEvent.Handler,
             XAPlusLogRollbackRecoveredXidDecisionEvent.Handler,
             XAPlusCommitRecoveredXidRequestEvent.Handler,
@@ -190,16 +184,6 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
         @Override
         public void handleCommitRecoveredXidRequest(XAPlusCommitRecoveredXidRequestEvent event) throws InterruptedException {
             commitRecoveredXidRequestEvents.add(event);
-        }
-
-        @Override
-        public void handleDanglingTransactionCommitted(XAPlusDanglingTransactionCommittedEvent event) throws InterruptedException {
-            danglingTransactionCommittedEvents.add(event);
-        }
-
-        @Override
-        public void handleDanglingTransactionRolledBack(XAPlusDanglingTransactionRolledBackEvent event) throws InterruptedException {
-            danglingTransactionRolledBackEvents.add(event);
         }
 
         @Override
@@ -227,8 +211,6 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
             dispatcher.subscribe(this, XAPlusRetryCommitOrderRequestEvent.class);
             dispatcher.subscribe(this, XAPlusRetryRollbackOrderRequestEvent.class);
             dispatcher.subscribe(this, XAPlusRecoveryResourceRequestEvent.class);
-            dispatcher.subscribe(this, XAPlusDanglingTransactionCommittedEvent.class);
-            dispatcher.subscribe(this, XAPlusDanglingTransactionRolledBackEvent.class);
             dispatcher.subscribe(this, XAPlusLogCommitRecoveredXidDecisionEvent.class);
             dispatcher.subscribe(this, XAPlusLogRollbackRecoveredXidDecisionEvent.class);
             dispatcher.subscribe(this, XAPlusCommitRecoveredXidRequestEvent.class);

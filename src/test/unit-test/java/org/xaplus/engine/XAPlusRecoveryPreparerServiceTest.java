@@ -3,26 +3,19 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.journal.XAPlusDanglingTransactionsFoundEvent;
-import org.xaplus.engine.events.journal.XAPlusFindDanglingTransactionsRequestEvent;
 import org.xaplus.engine.events.recovery.XAPlusRecoveryPreparedEvent;
-import org.xaplus.engine.events.recovery.XAPlusRecoveryRequestEvent;
 import org.xaplus.engine.events.recovery.XAPlusRecoveryResourceRequestEvent;
-import org.xaplus.engine.events.recovery.XAPlusResourceRecoveredEvent;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 public class XAPlusRecoveryPreparerServiceTest extends XAPlusUnitTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryPreparerServiceTest.class);
 
     XAPlusRecoveryPreparerService xaPlusRecoveryPreparerService;
 
-    BlockingQueue<XAPlusFindDanglingTransactionsRequestEvent> findDanglingTransactionsRequestEvents;
     BlockingQueue<XAPlusRecoveryResourceRequestEvent> recoveryResourceRequestEvents;
     BlockingQueue<XAPlusRecoveryPreparedEvent> recoveryPreparedEvents;
 
@@ -37,7 +30,6 @@ public class XAPlusRecoveryPreparerServiceTest extends XAPlusUnitTest {
                         new XAPlusRecoveryPreparerTracker());
         xaPlusRecoveryPreparerService.postConstruct();
 
-        findDanglingTransactionsRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         recoveryResourceRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         recoveryPreparedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
 
@@ -109,17 +101,11 @@ public class XAPlusRecoveryPreparerServiceTest extends XAPlusUnitTest {
     }
 
     private class ConsumerStub extends Bolt implements
-            XAPlusFindDanglingTransactionsRequestEvent.Handler,
             XAPlusRecoveryResourceRequestEvent.Handler,
             XAPlusRecoveryPreparedEvent.Handler {
 
         ConsumerStub() {
             super("stub-consumer", QUEUE_SIZE);
-        }
-
-        @Override
-        public void handleFindDanglingTransactionsRequest(XAPlusFindDanglingTransactionsRequestEvent event) throws InterruptedException {
-            findDanglingTransactionsRequestEvents.put(event);
         }
 
         @Override
@@ -134,7 +120,6 @@ public class XAPlusRecoveryPreparerServiceTest extends XAPlusUnitTest {
 
         void postConstruct() {
             threadPool.execute(this);
-            dispatcher.subscribe(this, XAPlusFindDanglingTransactionsRequestEvent.class);
             dispatcher.subscribe(this, XAPlusRecoveryResourceRequestEvent.class);
             dispatcher.subscribe(this, XAPlusRecoveryPreparedEvent.class);
         }

@@ -89,9 +89,7 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
             XAPlusLogRollbackTransactionDecisionFailedEvent.Handler,
             XAPlusCommitRecoveredXidDecisionLoggedEvent.Handler,
-            XAPlusRollbackRecoveredXidDecisionLoggedEvent.Handler,
-            XAPlusDanglingTransactionsFoundEvent.Handler,
-            XAPlusFindDanglingTransactionsFailedEvent.Handler{
+            XAPlusRollbackRecoveredXidDecisionLoggedEvent.Handler {
 
         BlockingQueue<XAPlusCommitTransactionDecisionLoggedEvent> commitTransactionDecisionLoggedEvents;
         BlockingQueue<XAPlusLogCommitTransactionDecisionFailedEvent> commitTransactionDecisionFailedEvents;
@@ -99,8 +97,6 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
         BlockingQueue<XAPlusLogRollbackTransactionDecisionFailedEvent> rollbackTransactionDecisionFailedEvents;
         BlockingQueue<XAPlusCommitRecoveredXidDecisionLoggedEvent> commitRecoveredXidDecisionLoggedEvents;
         BlockingQueue<XAPlusRollbackRecoveredXidDecisionLoggedEvent> rollbackRecoveredXidDecisionLoggedEvents;
-        BlockingQueue<XAPlusDanglingTransactionsFoundEvent> danglingTransactionsFoundEvents;
-        BlockingQueue<XAPlusFindDanglingTransactionsFailedEvent> findDanglingTransactionsFailedEvents;
 
         ConsumerStub() {
             super("consumer-stub", QUEUE_SIZE);
@@ -110,8 +106,6 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             rollbackTransactionDecisionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             commitRecoveredXidDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             rollbackRecoveredXidDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-            danglingTransactionsFoundEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-            findDanglingTransactionsFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override
@@ -149,16 +143,6 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             rollbackRecoveredXidDecisionLoggedEvents.put(event);
         }
 
-        @Override
-        public void handleDanglingTransactionFound(XAPlusDanglingTransactionsFoundEvent event) throws InterruptedException {
-            danglingTransactionsFoundEvents.put(event);
-        }
-
-        @Override
-        public void handleFindDanglingTransactionsFailed(XAPlusFindDanglingTransactionsFailedEvent event) throws InterruptedException {
-            findDanglingTransactionsFailedEvents.put(event);
-        }
-
         void postConstruct() {
             threadPool.execute(this);
             dispatcher.subscribe(this, XAPlusCommitTransactionDecisionLoggedEvent.class);
@@ -167,8 +151,6 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             dispatcher.subscribe(this, XAPlusLogRollbackTransactionDecisionFailedEvent.class);
             dispatcher.subscribe(this, XAPlusCommitRecoveredXidDecisionLoggedEvent.class);
             dispatcher.subscribe(this, XAPlusRollbackRecoveredXidDecisionLoggedEvent.class);
-            dispatcher.subscribe(this, XAPlusDanglingTransactionsFoundEvent.class);
-            dispatcher.subscribe(this, XAPlusFindDanglingTransactionsFailedEvent.class);
         }
     }
 }
