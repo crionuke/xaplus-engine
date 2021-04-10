@@ -38,28 +38,38 @@ public class XAPlusIntegrationTest extends XAPlusUnitTest {
         private final XAResource xaResource;
         private final Connection connection;
         private final XAPlusXid xid;
+        private final XAPlusXid branchXid;
 
         XAPlusTestTransaction(XADataSource xaDataSource, String serverId) throws SQLException {
-            xaConnection = xaDataSource.getXAConnection();
-            xaResource = xaConnection.getXAResource();
-            connection = xaConnection.getConnection();
-            xid = new XAPlusXid(XAPlusUid.generate(serverId), XAPlusUid.generate(serverId));
+            this.xaConnection = xaDataSource.getXAConnection();
+            this.xaResource = xaConnection.getXAResource();
+            this.connection = xaConnection.getConnection();
+            this.xid = new XAPlusXid(XAPlusUid.generate(serverId), XAPlusUid.generate(serverId));
+            this.branchXid = XAPlusXid.generate(xid.getGlobalTransactionIdUid(), serverId);
+        }
+
+        XAResource getXaResource() {
+            return xaResource;
         }
 
         XAPlusXid getXid() {
             return xid;
         }
 
+        XAPlusXid getBranchXid() {
+            return branchXid;
+        }
+
         void start() throws XAException {
-            xaResource.start(xid, XAResource.TMNOFLAGS);
+            xaResource.start(branchXid, XAResource.TMNOFLAGS);
         }
 
         void end() throws XAException {
-            xaResource.end(xid, XAResource.TMSUCCESS);
+            xaResource.end(branchXid, XAResource.TMSUCCESS);
         }
 
         void prepare() throws XAException {
-            int vote = xaResource.prepare(xid);
+            int vote = xaResource.prepare(branchXid);
             assertEquals(0, vote);
         }
 
@@ -73,6 +83,7 @@ public class XAPlusIntegrationTest extends XAPlusUnitTest {
         }
 
         void close() throws SQLException {
+            connection.close();
             xaConnection.close();
         }
     }

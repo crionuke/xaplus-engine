@@ -29,13 +29,11 @@ class XAPlusService extends Bolt implements
         XAPlusRecoveryResourceRequestEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusService.class);
 
-    private final XAPlusProperties properties;
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
 
     XAPlusService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
         super(properties.getServerId() + "-xaplus", properties.getQueueSize());
-        this.properties = properties;
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
     }
@@ -118,7 +116,7 @@ class XAPlusService extends Bolt implements
             dispatcher.dispatch(new XAPlusBranchRolledBackEvent(xid, branchXid));
         } catch (XAException rollingBackException) {
             if (logger.isWarnEnabled()) {
-                logger.warn("Rollback branch failed as {}, xid={}", branchXid, rollingBackException.getMessage());
+                logger.warn("Rollback branch failed as {}, xid={}", rollingBackException.getMessage(), branchXid);
             }
             dispatcher.dispatch(new XAPlusRollbackBranchFailedEvent(xid, branchXid, rollingBackException));
         }

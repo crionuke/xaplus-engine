@@ -15,146 +15,114 @@ import java.util.concurrent.TimeUnit;
 public class XAPlusServiceIntegrationTest extends XAPlusIntegrationTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusServiceIntegrationTest.class);
 
-    XAPlusService xaPlusService;
-
-    BlockingQueue<XAPlusBranchPreparedEvent> branchPreparedEvents;
-    BlockingQueue<XAPlusPrepareBranchFailedEvent> prepareBranchFailedEvents;
-    BlockingQueue<XAPlusBranchCommittedEvent> branchCommittedEvents;
-    BlockingQueue<XAPlusCommitBranchFailedEvent> commitBranchFailedEvents;
-    BlockingQueue<XAPlusBranchRolledBackEvent> branchRolledBackEvents;
-    BlockingQueue<XAPlusRollbackBranchFailedEvent> rollbackBranchFailedEvents;
-
-    ConsumerStub consumerStub;
+    private XAPlusService xaPlusService;
+    private ConsumerStub consumerStub;
 
     @Before
     public void beforeTest() {
-//        createXAPlusComponents(XA_PLUS_RESOURCE_1);
-//        createXADataSource();
-//
-//        xaPlusService = new XAPlusService(properties, threadPool, dispatcher);
-//        xaPlusService.postConstruct();
-//
-//        branchPreparedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-//        prepareBranchFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-//        branchCommittedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-//        commitBranchFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-//        branchRolledBackEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-//        rollbackBranchFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-//
-//        consumerStub = new ConsumerStub();
-//        consumerStub.postConstruct();
+        createXAPlusComponents(XA_PLUS_RESOURCE_1);
+        xaPlusService = new XAPlusService(properties, threadPool, dispatcher);
+        xaPlusService.postConstruct();
+        consumerStub = new ConsumerStub();
+        consumerStub.postConstruct();
     }
 
-//    @After
-//    public void afterTest() {
-//        xaPlusService.finish();
-//        consumerStub.finish();
-//    }
-//
-//    @Test
-//    public void testPrepareBranchRequestSuccessfully() throws Exception {
-//        try (OneBranchTransaction transaction = new OneBranchTransaction(properties.getServerId())) {
-//            // Prepare
-//            transaction.start();
-//            transaction.insert();
-//            // Use
-//            dispatcher.dispatch(new XAPlusPrepareBranchRequestEvent(transaction.getXid(),
-//                    transaction.getBranchXid(), transaction.getXaResource()));
-//            XAPlusBranchPreparedEvent event = branchPreparedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-//            // Assert
-//            assertNotNull(event);
-//            assertEquals(transaction.getXid(), event.getXid());
-//            assertEquals(transaction.getBranchXid(), event.getBranchXid());
-//        }
-//    }
-//
-//    @Test
-//    public void testPrepareBranchRequestFailed() throws Exception {
-//        try (OneBranchTransaction transaction = new OneBranchTransaction(properties.getServerId())) {
-//            // Prepare - no branch start for prepare failure simulation
-//            transaction.insert();
-//            // Use
-//            dispatcher.dispatch(new XAPlusPrepareBranchRequestEvent(transaction.getXid(),
-//                    transaction.getBranchXid(), transaction.getXaResource()));
-//            XAPlusPrepareBranchFailedEvent event =
-//                    prepareBranchFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-//            // Assert
-//            assertNotNull(event);
-//            assertEquals(transaction.getXid(), event.getXid());
-//            assertEquals(transaction.getBranchXid(), event.getBranchXid());
-//        }
-//    }
-//
-//    @Test
-//    public void testCommitBranchRequestSuccessfully() throws Exception {
-//        try (OneBranchTransaction transaction = new OneBranchTransaction(properties.getServerId())) {
-//            // Prepare
-//            transaction.start();
-//            transaction.insert();
-//            transaction.end();
-//            transaction.prepare();
-//            // Use
-//            dispatcher.dispatch(new XAPlusCommitBranchRequestEvent(transaction.getXid(),
-//                    transaction.getBranchXid(), transaction.getXaResource()));
-//            XAPlusBranchCommittedEvent event = branchCommittedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-//            // Assert
-//            assertNotNull(event);
-//            assertEquals(transaction.getXid(), event.getXid());
-//            assertEquals(transaction.getBranchXid(), event.getBranchXid());
-//        }
-//    }
-//
-//    @Test
-//    public void testCommitBranchRequestFailed() throws Exception {
-//        try (OneBranchTransaction transaction = new OneBranchTransaction(properties.getServerId())) {
-//            // Prepare - no prepare phase to commit failure simulation
-//            transaction.start();
-//            transaction.insert();
-//            transaction.end();
-//            // Use
-//            dispatcher.dispatch(new XAPlusCommitBranchRequestEvent(transaction.getXid(),
-//                    transaction.getBranchXid(), transaction.getXaResource()));
-//            XAPlusCommitBranchFailedEvent event = commitBranchFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-//            // Assert
-//            assertNotNull(event);
-//            assertEquals(transaction.getXid(), event.getXid());
-//            assertEquals(transaction.getBranchXid(), event.getBranchXid());
-//        }
-//    }
-//
-//    @Test
-//    public void testRollbackBranchRequestSuccessfully() throws Exception {
-//        try (OneBranchTransaction transaction = new OneBranchTransaction(properties.getServerId())) {
-//            // Prepare
-//            transaction.start();
-//            transaction.insert();
-//            // Use
-//            dispatcher.dispatch(new XAPlusRollbackBranchRequestEvent(transaction.getXid(),
-//                    transaction.getBranchXid(), transaction.getXaResource()));
-//            XAPlusBranchRolledBackEvent event = branchRolledBackEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-//            // Assert
-//            assertNotNull(event);
-//            assertEquals(transaction.getXid(), event.getXid());
-//            assertEquals(transaction.getBranchXid(), event.getBranchXid());
-//        }
-//    }
-//
-//    @Test
-//    public void testRollbackBranchRequestFailed() throws Exception {
-//        try (OneBranchTransaction transaction = new OneBranchTransaction(properties.getServerId())) {
-//            // Prepare - no start to rollback failure simulation
-//            transaction.insert();
-//            // Use
-//            dispatcher.dispatch(new XAPlusRollbackBranchRequestEvent(transaction.getXid(),
-//                    transaction.getBranchXid(), transaction.getXaResource()));
-//            XAPlusRollbackBranchFailedEvent event =
-//                    rollbackBranchFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-//            // Assert
-//            assertNotNull(event);
-//            assertEquals(transaction.getXid(), event.getXid());
-//            assertEquals(transaction.getBranchXid(), event.getBranchXid());
-//        }
-//    }
+    @After
+    public void afterTest() {
+        xaPlusService.finish();
+        consumerStub.finish();
+    }
+
+    @Test
+    public void testPrepareBranchRequestSuccessfully() throws Exception {
+        XAPlusTestTransaction transaction = new XAPlusTestTransaction(createXADataSource(), properties.getServerId());
+        transaction.start();
+        transaction.insert();
+        XAPlusXid xid = transaction.getXid();
+        XAPlusXid branchXid = transaction.getBranchXid();
+        dispatcher.dispatch(new XAPlusPrepareBranchRequestEvent(xid, branchXid, transaction.getXaResource()));
+        XAPlusBranchPreparedEvent event = consumerStub
+                .branchPreparedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(xid, event.getXid());
+        assertEquals(branchXid, event.getBranchXid());
+    }
+
+    @Test
+    public void testPrepareBranchRequestFailed() throws Exception {
+        XAPlusTestTransaction transaction = new XAPlusTestTransaction(createXADataSource(), properties.getServerId());
+        transaction.insert();
+        XAPlusXid xid = transaction.getXid();
+        XAPlusXid branchXid = transaction.getBranchXid();
+        dispatcher.dispatch(new XAPlusPrepareBranchRequestEvent(xid, branchXid, transaction.getXaResource()));
+        XAPlusPrepareBranchFailedEvent event = consumerStub
+                .prepareBranchFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(xid, event.getXid());
+        assertEquals(branchXid, event.getBranchXid());
+    }
+
+    @Test
+    public void testCommitBranchRequestSuccessfully() throws Exception {
+        XAPlusTestTransaction transaction = new XAPlusTestTransaction(createXADataSource(), properties.getServerId());
+        transaction.start();
+        transaction.insert();
+        transaction.end();
+        transaction.prepare();
+        XAPlusXid xid = transaction.getXid();
+        XAPlusXid branchXid = transaction.getBranchXid();
+        dispatcher.dispatch(new XAPlusCommitBranchRequestEvent(xid, branchXid, transaction.getXaResource()));
+        XAPlusBranchCommittedEvent event = consumerStub
+                .branchCommittedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(xid, event.getXid());
+        assertEquals(branchXid, event.getBranchXid());
+    }
+
+    @Test
+    public void testCommitBranchRequestFailed() throws Exception {
+        XAPlusTestTransaction transaction = new XAPlusTestTransaction(createXADataSource(), properties.getServerId());
+        transaction.start();
+        transaction.insert();
+        transaction.end();
+        XAPlusXid xid = transaction.getXid();
+        XAPlusXid branchXid = transaction.getBranchXid();
+        dispatcher.dispatch(new XAPlusCommitBranchRequestEvent(xid, branchXid, transaction.getXaResource()));
+        XAPlusCommitBranchFailedEvent event = consumerStub
+                .commitBranchFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(xid, event.getXid());
+        assertEquals(branchXid, event.getBranchXid());
+    }
+
+    @Test
+    public void testRollbackBranchRequestSuccessfully() throws Exception {
+        XAPlusTestTransaction transaction = new XAPlusTestTransaction(createXADataSource(), properties.getServerId());
+        transaction.start();
+        transaction.insert();
+        XAPlusXid xid = transaction.getXid();
+        XAPlusXid branchXid = transaction.getBranchXid();
+        dispatcher.dispatch(new XAPlusRollbackBranchRequestEvent(xid, branchXid, transaction.getXaResource()));
+        XAPlusBranchRolledBackEvent event = consumerStub
+                .branchRolledBackEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(xid, event.getXid());
+        assertEquals(branchXid, event.getBranchXid());
+    }
+
+    @Test
+    public void testRollbackBranchRequestFailed() throws Exception {
+        XAPlusTestTransaction transaction = new XAPlusTestTransaction(createXADataSource(), properties.getServerId());
+        transaction.insert();
+        XAPlusXid xid = transaction.getXid();
+        XAPlusXid branchXid = transaction.getBranchXid();
+        dispatcher.dispatch(new XAPlusRollbackBranchRequestEvent(xid, branchXid, transaction.getXaResource()));
+        XAPlusRollbackBranchFailedEvent event = consumerStub
+                .rollbackBranchFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(xid, event.getXid());
+        assertEquals(branchXid, event.getBranchXid());
+    }
 
     private class ConsumerStub extends Bolt implements
             XAPlusBranchPreparedEvent.Handler,
@@ -164,8 +132,22 @@ public class XAPlusServiceIntegrationTest extends XAPlusIntegrationTest {
             XAPlusBranchRolledBackEvent.Handler,
             XAPlusRollbackBranchFailedEvent.Handler {
 
+        BlockingQueue<XAPlusBranchPreparedEvent> branchPreparedEvents;
+        BlockingQueue<XAPlusPrepareBranchFailedEvent> prepareBranchFailedEvents;
+        BlockingQueue<XAPlusBranchCommittedEvent> branchCommittedEvents;
+        BlockingQueue<XAPlusCommitBranchFailedEvent> commitBranchFailedEvents;
+        BlockingQueue<XAPlusBranchRolledBackEvent> branchRolledBackEvents;
+        BlockingQueue<XAPlusRollbackBranchFailedEvent> rollbackBranchFailedEvents;
+
         ConsumerStub() {
             super("stub-consumer", QUEUE_SIZE);
+
+            branchPreparedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            prepareBranchFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            branchCommittedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            commitBranchFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            branchRolledBackEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            rollbackBranchFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override

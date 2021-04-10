@@ -27,31 +27,33 @@ public class XAPlusRecoveredResourceIntegrationTest extends XAPlusIntegrationTes
         // First server
         XAPlusTestTransaction transaction1 = new XAPlusTestTransaction(xaDataSource, XA_PLUS_RESOURCE_1);
         prepareTransaction(transaction1);
-        logger.info("{}", transaction1.getXid());
+        logger.info("{}", transaction1.getBranchXid());
         // Second server
         XAPlusTestTransaction transaction21 = new XAPlusTestTransaction(xaDataSource, XA_PLUS_RESOURCE_2);
         prepareTransaction(transaction21);
-        logger.info("{}", transaction21.getXid());
+        logger.info("{}", transaction21.getBranchXid());
         XAPlusTestTransaction transaction22 = new XAPlusTestTransaction(xaDataSource, XA_PLUS_RESOURCE_2);
         prepareTransaction(transaction22);
-        logger.info("{}", transaction22.getXid());
+        logger.info("{}", transaction22.getBranchXid());
         // Third server
         XAPlusTestTransaction transaction31 = new XAPlusTestTransaction(xaDataSource, XA_PLUS_RESOURCE_3);
         prepareTransaction(transaction31);
-        logger.info("{}", transaction31.getXid());
+        logger.info("{}", transaction31.getBranchXid());
         XAPlusTestTransaction transaction32 = new XAPlusTestTransaction(xaDataSource, XA_PLUS_RESOURCE_3);
         prepareTransaction(transaction32);
-        logger.info("{}", transaction32.getXid());
+        logger.info("{}", transaction32.getBranchXid());
         XAPlusTestTransaction transaction33 = new XAPlusTestTransaction(xaDataSource, XA_PLUS_RESOURCE_3);
         prepareTransaction(transaction33);
-        logger.info("{}", transaction33.getXid());
+        logger.info("{}", transaction33.getBranchXid());
         // Recovery
         testRecoveryFor(XA_PLUS_RESOURCE_1,
-                new XAPlusXid[]{transaction1.getXid()});
+                new XAPlusXid[]{transaction1.getBranchXid()});
         testRecoveryFor(XA_PLUS_RESOURCE_2,
-                new XAPlusXid[]{transaction21.getXid(), transaction22.getXid()});
+                new XAPlusXid[]{transaction21.getBranchXid(), transaction22.getBranchXid()});
         testRecoveryFor(XA_PLUS_RESOURCE_3,
-                new XAPlusXid[]{transaction31.getXid(), transaction32.getXid(), transaction33.getXid()});
+                new XAPlusXid[]{transaction31.getBranchXid(),
+                        transaction32.getBranchXid(),
+                        transaction33.getBranchXid()});
     }
 
     private void prepareTransaction(XAPlusTestTransaction transaction) throws XAException, SQLException {
