@@ -3,22 +3,17 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.journal.XAPlusLogCommitRecoveredXidDecisionEvent;
 import org.xaplus.engine.events.journal.XAPlusLogRollbackRecoveredXidDecisionEvent;
 import org.xaplus.engine.events.recovery.*;
-import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateDoneEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRetryCommitOrderRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRetryFromSuperiorRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRetryRollbackOrderRequestEvent;
 
-import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryCommitterServiceTest.class);

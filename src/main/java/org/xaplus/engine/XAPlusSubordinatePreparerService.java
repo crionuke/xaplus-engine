@@ -15,6 +15,10 @@ import org.xaplus.engine.events.xa.XAPlusPrepareBranchFailedEvent;
 import org.xaplus.engine.events.xaplus.*;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 
+/**
+ * @author Kirill Byvshev (k@byv.sh)
+ * @since 1.0.0
+ */
 class XAPlusSubordinatePreparerService extends Bolt implements
         XAPlusUserCreateTransactionEvent.Handler,
         XAPlusRemoteSuperiorOrderToRollbackEvent.Handler,

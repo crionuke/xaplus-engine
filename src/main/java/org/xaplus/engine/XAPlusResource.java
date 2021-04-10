@@ -29,7 +29,7 @@ public interface XAPlusResource extends XAResource {
      * Request transaction status from superior
      *
      * @param xid a transaction branch identifier
-     * @throws XAPlusException an error has occured
+     * @throws XAPlusException an error has occurred
      */
     void retry(XAPlusXid xid) throws XAPlusException;
 }

@@ -9,10 +9,13 @@ import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlusCommitTransactionDecisionEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchCommittedEvent;
 import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
-import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportFailedStatusRequestEvent;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 
+/**
+ * @author Kirill Byvshev (k@byv.sh)
+ * @since 1.0.0
+ */
 class XAPlusSubordinateCommitterService extends Bolt implements
         XAPlusCommitTransactionDecisionEvent.Handler,
         XAPlusBranchCommittedEvent.Handler,
@@ -25,8 +28,8 @@ class XAPlusSubordinateCommitterService extends Bolt implements
     private final XAPlusResources resources;
     private final XAPlusTracker tracker;
 
-    XAPlusSubordinateCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
-                                     XAPlusResources resources, XAPlusTracker tracker) {
+    XAPlusSubordinateCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
+                                      XAPlusDispatcher dispatcher, XAPlusResources resources, XAPlusTracker tracker) {
         super(properties.getServerId() + "-subordinate-committer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
@@ -35,7 +38,8 @@ class XAPlusSubordinateCommitterService extends Bolt implements
     }
 
     @Override
-    public void handleCommitTransactionDecision(XAPlusCommitTransactionDecisionEvent event) throws InterruptedException {
+    public void handleCommitTransactionDecision(XAPlusCommitTransactionDecisionEvent event)
+            throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -117,7 +121,6 @@ class XAPlusSubordinateCommitterService extends Bolt implements
                     dispatcher.dispatch(new XAPlusReportFailedStatusRequestEvent(xid, resource));
                     dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction));
                 } else {
-                    dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
                     dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
                 }
             } catch (XAPlusSystemException e) {

@@ -8,16 +8,9 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.journal.*;
-import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionCommittedEvent;
-import org.xaplus.engine.events.recovery.XAPlusDanglingTransactionRolledBackEvent;
-import org.xaplus.engine.events.recovery.XAPlusRecoveredXidCommittedEvent;
-import org.xaplus.engine.events.recovery.XAPlusRecoveredXidRolledBackEvent;
-import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
 
 import javax.transaction.xa.XAException;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -98,8 +91,7 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             XAPlusCommitRecoveredXidDecisionLoggedEvent.Handler,
             XAPlusRollbackRecoveredXidDecisionLoggedEvent.Handler,
             XAPlusDanglingTransactionsFoundEvent.Handler,
-            XAPlusFindDanglingTransactionsFailedEvent.Handler,
-            XAPlusReportDoneStatusRequestEvent.Handler {
+            XAPlusFindDanglingTransactionsFailedEvent.Handler{
 
         BlockingQueue<XAPlusCommitTransactionDecisionLoggedEvent> commitTransactionDecisionLoggedEvents;
         BlockingQueue<XAPlusLogCommitTransactionDecisionFailedEvent> commitTransactionDecisionFailedEvents;
@@ -109,7 +101,6 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
         BlockingQueue<XAPlusRollbackRecoveredXidDecisionLoggedEvent> rollbackRecoveredXidDecisionLoggedEvents;
         BlockingQueue<XAPlusDanglingTransactionsFoundEvent> danglingTransactionsFoundEvents;
         BlockingQueue<XAPlusFindDanglingTransactionsFailedEvent> findDanglingTransactionsFailedEvents;
-        BlockingQueue<XAPlusReportDoneStatusRequestEvent> reportDoneStatusRequestEvents;
 
         ConsumerStub() {
             super("consumer-stub", QUEUE_SIZE);
@@ -121,7 +112,6 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             rollbackRecoveredXidDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             danglingTransactionsFoundEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             findDanglingTransactionsFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-            reportDoneStatusRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override
@@ -169,11 +159,6 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             findDanglingTransactionsFailedEvents.put(event);
         }
 
-        @Override
-        public void handleReportDoneStatusRequest(XAPlusReportDoneStatusRequestEvent event) throws InterruptedException {
-            reportDoneStatusRequestEvents.put(event);
-        }
-
         void postConstruct() {
             threadPool.execute(this);
             dispatcher.subscribe(this, XAPlusCommitTransactionDecisionLoggedEvent.class);
@@ -184,7 +169,6 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             dispatcher.subscribe(this, XAPlusRollbackRecoveredXidDecisionLoggedEvent.class);
             dispatcher.subscribe(this, XAPlusDanglingTransactionsFoundEvent.class);
             dispatcher.subscribe(this, XAPlusFindDanglingTransactionsFailedEvent.class);
-            dispatcher.subscribe(this, XAPlusReportDoneStatusRequestEvent.class);
         }
     }
 }

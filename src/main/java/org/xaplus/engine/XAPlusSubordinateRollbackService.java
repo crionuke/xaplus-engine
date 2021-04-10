@@ -9,10 +9,13 @@ import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.twopc.XAPlusRollbackTransactionDecisionEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchRolledBackEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchFailedEvent;
-import org.xaplus.engine.events.xaplus.XAPlusReportDoneStatusRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportFailedStatusRequestEvent;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 
+/**
+ * @author Kirill Byvshev (k@byv.sh)
+ * @since 1.0.0
+ */
 class XAPlusSubordinateRollbackService extends Bolt implements
         XAPlusRollbackTransactionDecisionEvent.Handler,
         XAPlusBranchRolledBackEvent.Handler,
@@ -117,7 +120,6 @@ class XAPlusSubordinateRollbackService extends Bolt implements
                     dispatcher.dispatch(new XAPlusReportFailedStatusRequestEvent(xid, resource));
                     dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
                 } else {
-                    dispatcher.dispatch(new XAPlusReportDoneStatusRequestEvent(xid, resource));
                     dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
                 }
             } catch (XAPlusSystemException e) {

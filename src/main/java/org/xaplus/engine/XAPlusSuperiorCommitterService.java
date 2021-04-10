@@ -11,6 +11,10 @@ import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchCommittedEvent;
 import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
 
+/**
+ * @author Kirill Byvshev (k@byv.sh)
+ * @since 1.0.0
+ */
 class XAPlusSuperiorCommitterService extends Bolt implements
         XAPlusCommitTransactionDecisionLoggedEvent.Handler,
         XAPlusLogCommitTransactionDecisionFailedEvent.Handler,

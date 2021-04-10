@@ -8,7 +8,9 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.recovery.*;
-import org.xaplus.engine.events.xaplus.*;
+import org.xaplus.engine.events.xaplus.XAPlusReadyStatusReportedEvent;
+import org.xaplus.engine.events.xaplus.XAPlusReportReadyStatusFailedEvent;
+import org.xaplus.engine.events.xaplus.XAPlusReportReadyStatusRequestEvent;
 import org.xaplus.engine.stubs.XAPlusResourceStub;
 
 import javax.transaction.xa.XAException;
@@ -247,9 +249,7 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
             XAPlusRollbackRecoveredXidFailedEvent.Handler,
             XAPlusForgetRecoveredXidRequestEvent.Handler,
             XAPlusReadyStatusReportedEvent.Handler,
-            XAPlusReportReadyStatusFailedEvent.Handler,
-            XAPlusDoneStatusReportedEvent.Handler,
-            XAPlusReportDoneStatusFailedEvent.Handler {
+            XAPlusReportReadyStatusFailedEvent.Handler {
 
         BlockingQueue<XAPlusRecoveredXidCommittedEvent> recoveredXidCommittedEvents;
         BlockingQueue<XAPlusCommitRecoveredXidFailedEvent> commitRecoveredXidFailedEvents;
@@ -258,8 +258,6 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
         BlockingQueue<XAPlusForgetRecoveredXidRequestEvent> forgetRecoveredXidRequestEvents;
         BlockingQueue<XAPlusReadyStatusReportedEvent> readyStatusReportedEvents;
         BlockingQueue<XAPlusReportReadyStatusFailedEvent> reportReadyStatusFailedEvents;
-        BlockingQueue<XAPlusDoneStatusReportedEvent> doneStatusReportedEvents;
-        BlockingQueue<XAPlusReportDoneStatusFailedEvent> reportDoneStatusFailedEvents;
 
         ConsumerStub() {
             super("stub-consumer", QUEUE_SIZE);
@@ -270,8 +268,6 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
             forgetRecoveredXidRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             readyStatusReportedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             reportReadyStatusFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-            doneStatusReportedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-            reportDoneStatusFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override
@@ -312,16 +308,6 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
             reportReadyStatusFailedEvents.put(event);
         }
 
-        @Override
-        public void handleDoneStatusReported(XAPlusDoneStatusReportedEvent event) throws InterruptedException {
-            doneStatusReportedEvents.put(event);
-        }
-
-        @Override
-        public void handleReportDoneStatusFailed(XAPlusReportDoneStatusFailedEvent event) throws InterruptedException {
-            reportDoneStatusFailedEvents.put(event);
-        }
-
         void postConstruct() {
             threadPool.execute(this);
             dispatcher.subscribe(this, XAPlusRecoveredXidCommittedEvent.class);
@@ -331,8 +317,6 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
             dispatcher.subscribe(this, XAPlusForgetRecoveredXidRequestEvent.class);
             dispatcher.subscribe(this, XAPlusReadyStatusReportedEvent.class);
             dispatcher.subscribe(this, XAPlusReportReadyStatusFailedEvent.class);
-            dispatcher.subscribe(this, XAPlusDoneStatusReportedEvent.class);
-            dispatcher.subscribe(this, XAPlusReportDoneStatusFailedEvent.class);
         }
     }
 }

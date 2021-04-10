@@ -2,6 +2,10 @@ package org.xaplus.engine;
 
 import java.util.*;
 
+/**
+ * @author Kirill Byvshev (k@byv.sh)
+ * @since 1.0.0
+ */
 class XAPlusTimerState {
     private final Map<XAPlusXid, XAPlusTransaction> transactions;
 

@@ -11,6 +11,10 @@ import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchRolledBackEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchFailedEvent;
 
+/**
+ * @author Kirill Byvshev (k@byv.sh)
+ * @since 1.0.0
+ */
 class XAPlusSuperiorRollbackService extends Bolt implements
         XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
         XAPlusLogRollbackTransactionDecisionFailedEvent.Handler,

@@ -1,5 +1,9 @@
 package org.xaplus.engine;
 
+/**
+ * @author Kirill Byvshev (k@byv.sh)
+ * @since 1.0.0
+ */
 public class XAPlus {
 
     private final static int MAX_SERVER_ID_LENGTH = 51;
