@@ -22,50 +22,42 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class XAPlusScenarioTest extends Assert {
-    static final int QUEUE_SIZE = 128;
-    static final int DEFAULT_TIMEOUT_S = 4;
-    static final int POLL_TIMIOUT_MS = 2000;
-    static final String INSERT_VALUE = "INSERT INTO test (t_value) VALUES(?)";
-    static final String XA_RESOURCE_DATABASE_1 = "database1";
-    static final String XA_RESOURCE_DATABASE_2 = "database2";
-    static final String XA_PLUS_LOCAL = "local";
-    static final String XA_PLUS_DISTRIBUTED = "distributed";
-    static final String XA_PLUS_SUPERIOR = "superior";
-    static final String XA_PLUS_SUBORDINATE = "subordinate";
     static private final Logger logger = LoggerFactory.getLogger(XAPlusScenarioTest.class);
 
-    DataSource tlog;
-    PGXADataSource database1;
-    PGXADataSource database2;
+    static protected final int QUEUE_SIZE = 128;
+    static protected final int DEFAULT_TIMEOUT_S = 4;
+    static protected final int POLL_TIMIOUT_MS = 2000;
+    static protected final String INSERT_VALUE = "INSERT INTO test (t_value) VALUES(?)";
+    static protected final String XA_RESOURCE_DATABASE_1 = "database1";
+    static protected final String XA_RESOURCE_DATABASE_2 = "database2";
+    static protected final String XA_PLUS_LOCAL = "local";
+    static protected final String XA_PLUS_DISTRIBUTED = "distributed";
+    static protected final String XA_PLUS_SUPERIOR = "superior";
+    static protected final String XA_PLUS_SUBORDINATE = "subordinate";
 
-    XAPlus localXAPlus;
-    XAPlus distributedXAPlus;
-    XAPlus superiorXAPlus;
-    XAPlus subordinateXAPLus;
+    protected DataSource tlog;
+    protected PGXADataSource database1;
+    protected PGXADataSource database2;
 
-    XAPlusScenarioExceptions requestSuperiorExceptions;
-    XAPlusScenarioExceptions requestSubordinateExceptions;
+    protected XAPlus localXAPlus;
+    protected XAPlus distributedXAPlus;
+    protected XAPlus superiorXAPlus;
+    protected XAPlus subordinateXAPLus;
 
-    XAPlusTestServer superiorServer;
-    XAPlusTestServer subordinateServer;
+    protected XAPlusScenarioExceptions requestSuperiorExceptions;
+    protected XAPlusScenarioExceptions requestSubordinateExceptions;
 
-    BlockingQueue<XAPlusLocalTransactionFinishedEvent> localTransactionFinishedEvents;
-    BlockingQueue<XAPlusLocalTransactionFailedEvent> localTransactionFailedEvents;
-    BlockingQueue<XAPlusDistributedTransactionFinishedEvent> distributedTransactionFinishedEvents;
-    BlockingQueue<XAPlusDistributedTransactionFailedEvent> distributedTransactionFailedEvents;
-    BlockingQueue<XAPlusTestSuperiorFinishedEvent> testSuperiorFinishedEvents;
-    BlockingQueue<XAPlusTestSuperiorFailedEvent> testSuperiorFailedEvents;
-    BlockingQueue<XAPlusTestSubordinateFinishedEvent> testSubordinateFinishedEvents;
-    BlockingQueue<XAPlusTestSubordinateFailedEvent> testSubordinateFailedEvents;
+    protected XAPlusTestServer superiorServer;
+    protected XAPlusTestServer subordinateServer;
 
-    ExecutorService testThreadPool;
-    Dispatcher testDispatcher;
+    protected ExecutorService testThreadPool;
+    protected Dispatcher testDispatcher;
 
-    LocalTransactionBolt localTransactionBoltBolt;
-    DistributedTransactionBolt distributedTransactionBoltBolt;
-    GlobalTransactionSuperiorBolt globalTransactionSuperiorBolt;
-    GlobalTransactionSubordinateBolt globalTransactionSubordinateBolt;
-    Controller controllerBolt;
+    protected LocalTransactionBolt localTransactionBoltBolt;
+    protected DistributedTransactionBolt distributedTransactionBoltBolt;
+    protected GlobalTransactionSuperiorBolt globalTransactionSuperiorBolt;
+    protected GlobalTransactionSubordinateBolt globalTransactionSubordinateBolt;
+    protected ConsumerBolt consumerBolt;
 
     void createComponents() {
         // Datasources to tests
@@ -85,16 +77,6 @@ public class XAPlusScenarioTest extends Assert {
         superiorServer = new XAPlusTestServer(requestSuperiorExceptions, superiorXAPlus.dispatcher);
         subordinateServer = new XAPlusTestServer(requestSubordinateExceptions, subordinateXAPLus.dispatcher);
 
-        // Container for events
-        localTransactionFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        localTransactionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        distributedTransactionFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        distributedTransactionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        testSuperiorFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        testSuperiorFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        testSubordinateFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        testSubordinateFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-
         testThreadPool = Executors.newFixedThreadPool(16);
         testDispatcher = new Dispatcher();
 
@@ -107,8 +89,8 @@ public class XAPlusScenarioTest extends Assert {
         globalTransactionSuperiorBolt.postConstruct();
         globalTransactionSubordinateBolt = new GlobalTransactionSubordinateBolt(subordinateXAPLus);
         globalTransactionSubordinateBolt.postConstruct();
-        controllerBolt = new Controller();
-        controllerBolt.postConstruct();
+        consumerBolt = new ConsumerBolt();
+        consumerBolt.postConstruct();
     }
 
     void construct() {
@@ -442,7 +424,7 @@ public class XAPlusScenarioTest extends Assert {
     }
 
     // Bolt to collect events to queues
-    class Controller extends Bolt implements
+    class ConsumerBolt extends Bolt implements
             XAPlusLocalTransactionFinishedEvent.Handler,
             XAPlusLocalTransactionFailedEvent.Handler,
             XAPlusDistributedTransactionFinishedEvent.Handler,
@@ -452,8 +434,26 @@ public class XAPlusScenarioTest extends Assert {
             XAPlusTestSubordinateFinishedEvent.Handler,
             XAPlusTestSubordinateFailedEvent.Handler {
 
-        Controller() {
-            super("controller", QUEUE_SIZE);
+        BlockingQueue<XAPlusLocalTransactionFinishedEvent> localTransactionFinishedEvents;
+        BlockingQueue<XAPlusLocalTransactionFailedEvent> localTransactionFailedEvents;
+        BlockingQueue<XAPlusDistributedTransactionFinishedEvent> distributedTransactionFinishedEvents;
+        BlockingQueue<XAPlusDistributedTransactionFailedEvent> distributedTransactionFailedEvents;
+        BlockingQueue<XAPlusTestSuperiorFinishedEvent> testSuperiorFinishedEvents;
+        BlockingQueue<XAPlusTestSuperiorFailedEvent> testSuperiorFailedEvents;
+        BlockingQueue<XAPlusTestSubordinateFinishedEvent> testSubordinateFinishedEvents;
+        BlockingQueue<XAPlusTestSubordinateFailedEvent> testSubordinateFailedEvents;
+
+        ConsumerBolt() {
+            super("consumer-bolt", QUEUE_SIZE);
+            // Container for events
+            localTransactionFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            localTransactionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            distributedTransactionFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            distributedTransactionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            testSuperiorFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            testSuperiorFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            testSubordinateFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            testSubordinateFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override

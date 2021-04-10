@@ -8,8 +8,8 @@ import org.xaplus.engine.events.*;
 
 import java.util.concurrent.TimeUnit;
 
-public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusUserScenarioTest.class);
+public class XAPlusGlobalTransactionScenarioTest extends XAPlusScenarioTest {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusGlobalTransactionScenarioTest.class);
 
     @Before
     public void beforeTest() {
@@ -18,38 +18,16 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     }
 
     @Test
-    public void testCommitLocalTransaction() throws InterruptedException {
-        long value = startLocalTransaction();
-        // Check transaction
-        XAPlusLocalTransactionFinishedEvent event1 = localTransactionFinishedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event1);
-        assertEquals(value, event1.getValue());
-        assertTrue(event1.getStatus());
-    }
-
-    @Test
-    public void testCommitDistributedTransaction() throws InterruptedException {
-        long value = startDistributedTransaction();
-        // Check transaction
-        XAPlusDistributedTransactionFinishedEvent event1 = distributedTransactionFinishedEvents
-                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
-        assertNotNull(event1);
-        assertEquals(value, event1.getValue());
-        assertTrue(event1.getStatus());
-    }
-
-    @Test
     public void testSuperiorCommitTransaction() throws InterruptedException {
         long value = startGlobalTransaction(false, false, false);
         // Check superior
-        XAPlusTestSuperiorFinishedEvent event1 = testSuperiorFinishedEvents
+        XAPlusTestSuperiorFinishedEvent event1 = consumerBolt.testSuperiorFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
         assertTrue(event1.getStatus());
         // Check subordinate
-        XAPlusTestSubordinateFinishedEvent event2 = testSubordinateFinishedEvents
+        XAPlusTestSubordinateFinishedEvent event2 = consumerBolt.testSubordinateFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(value, event2.getValue());
@@ -65,12 +43,12 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
         // Wait timeout
         Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
         // Check superior
-        XAPlusTestSuperiorFailedEvent event1 = testSuperiorFailedEvents
+        XAPlusTestSuperiorFailedEvent event1 = consumerBolt.testSuperiorFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
         // Check subordinate
-        XAPlusTestSubordinateFailedEvent event2 = testSubordinateFailedEvents
+        XAPlusTestSubordinateFailedEvent event2 = consumerBolt.testSubordinateFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(value, event2.getValue());
@@ -82,14 +60,14 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
         requestSubordinateExceptions.commitException = true;
         long value = startGlobalTransaction(false, false, false);
         // Check superior
-        XAPlusTestSuperiorFailedEvent event1 = testSuperiorFailedEvents
+        XAPlusTestSuperiorFailedEvent event1 = consumerBolt.testSuperiorFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
         // Wait timeout
         Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
         // Check subordinate
-        XAPlusTestSubordinateFailedEvent event2 = testSubordinateFailedEvents
+        XAPlusTestSubordinateFailedEvent event2 = consumerBolt.testSubordinateFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(value, event2.getValue());
@@ -99,7 +77,7 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     public void testSuperiorRollbackBeforeRequest() throws InterruptedException {
         long value = startGlobalTransaction(true, false, false);
         // Check superior
-        XAPlusTestSuperiorFinishedEvent event1 = testSuperiorFinishedEvents
+        XAPlusTestSuperiorFinishedEvent event1 = consumerBolt.testSuperiorFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
@@ -110,7 +88,7 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     public void testSuperiorRollbackBeforeCommit() throws InterruptedException {
         long value = startGlobalTransaction(false, true, false);
         // Check superior
-        XAPlusTestSuperiorFinishedEvent event1 = testSuperiorFinishedEvents
+        XAPlusTestSuperiorFinishedEvent event1 = consumerBolt.testSuperiorFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
@@ -121,13 +99,13 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     public void testSubordinateRollbackBeforeCommit() throws InterruptedException {
         long value = startGlobalTransaction(false, false, true);
         // Check superior
-        XAPlusTestSuperiorFinishedEvent event1 = testSuperiorFinishedEvents
+        XAPlusTestSuperiorFinishedEvent event1 = consumerBolt.testSuperiorFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
         assertFalse(event1.getStatus());
         // Check subordinate
-        XAPlusTestSubordinateFinishedEvent event2 = testSubordinateFinishedEvents
+        XAPlusTestSubordinateFinishedEvent event2 = consumerBolt.testSubordinateFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(value, event2.getValue());
@@ -142,12 +120,12 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
         // Wait timeout
         Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);
         // Check superior
-        XAPlusTestSuperiorFailedEvent event1 = testSuperiorFailedEvents
+        XAPlusTestSuperiorFailedEvent event1 = consumerBolt.testSuperiorFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
         // Check subordinate
-        XAPlusTestSubordinateFailedEvent event2 = testSubordinateFailedEvents
+        XAPlusTestSubordinateFailedEvent event2 = consumerBolt.testSubordinateFailedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(value, event2.getValue());
