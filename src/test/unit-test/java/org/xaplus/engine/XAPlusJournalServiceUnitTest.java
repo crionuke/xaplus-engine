@@ -8,6 +8,8 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.journal.*;
+import org.xaplus.engine.stubs.XAConnectionStub;
+import org.xaplus.engine.stubs.XADataSourceStub;
 
 import javax.transaction.xa.XAException;
 import java.sql.SQLException;
@@ -83,20 +85,61 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
         assertEquals(transaction.getXid(), event.getTransaction().getXid());
     }
 
+    @Test
+    public void testFindRecoveredXidStatusRequestEventSuccessfully() throws InterruptedException, SQLException, XAException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
+        XAPlusRecoveredResource recoveredResource =
+                new XAPlusRecoveredResource(XA_RESOURCE_1, properties.getServerId(), System.currentTimeMillis(), new XAConnectionStub());
+        // Test 1
+        XAPlusXid bxid1 = createJdbcXid(transaction);
+        Mockito.doReturn(true).when(tlogMock)
+                .findTransactionStatus(bxid1.getGlobalTransactionIdUid());
+        dispatcher.dispatch(new XAPlusFindRecoveredXidStatusRequestEvent(bxid1, recoveredResource));
+        XAPlusRecoveredXidStatusFoundEvent event1 =
+                consumerStub.recoveredXidStatusFoundEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertTrue(event1.getStatus());
+        assertEquals(recoveredResource.getUniqueName(), event1.getRecoveredResource().getUniqueName());
+        // Test 2
+        XAPlusXid bxid2 = createJdbcXid(transaction);
+        Mockito.doReturn(false).when(tlogMock)
+                .findTransactionStatus(bxid2.getGlobalTransactionIdUid());
+        dispatcher.dispatch(new XAPlusFindRecoveredXidStatusRequestEvent(bxid2, recoveredResource));
+        XAPlusRecoveredXidStatusFoundEvent event2 =
+                consumerStub.recoveredXidStatusFoundEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertFalse(event2.getStatus());
+        assertEquals(recoveredResource.getUniqueName(), event2.getRecoveredResource().getUniqueName());
+    }
+
+    @Test
+    public void testFindRecoveredXidStatusRequestEventFailed() throws InterruptedException, SQLException, XAException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
+        XAPlusRecoveredResource recoveredResource = new XAPlusRecoveredResource(XA_RESOURCE_1, properties.getServerId(),
+                System.currentTimeMillis(), new XAConnectionStub());
+        XAPlusXid xid = transaction.getXid();
+        Mockito.doThrow(new SQLException("find_exception")).when(tlogMock)
+                .findTransactionStatus(xid.getGlobalTransactionIdUid());
+        dispatcher.dispatch(new XAPlusFindRecoveredXidStatusRequestEvent(xid, recoveredResource));
+        XAPlusFindRecoveredXidStatusFailedEvent event =
+                consumerStub.findRecoveredXidStatusFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event);
+        assertEquals(xid, event.getXid());
+        assertEquals(recoveredResource.getUniqueName(), event.getRecoveredResource().getUniqueName());
+    }
+
     private class ConsumerStub extends Bolt implements
             XAPlusCommitTransactionDecisionLoggedEvent.Handler,
             XAPlusLogCommitTransactionDecisionFailedEvent.Handler,
             XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
             XAPlusLogRollbackTransactionDecisionFailedEvent.Handler,
-            XAPlusCommitRecoveredXidDecisionLoggedEvent.Handler,
-            XAPlusRollbackRecoveredXidDecisionLoggedEvent.Handler {
+            XAPlusRecoveredXidStatusFoundEvent.Handler,
+            XAPlusFindRecoveredXidStatusFailedEvent.Handler {
 
         BlockingQueue<XAPlusCommitTransactionDecisionLoggedEvent> commitTransactionDecisionLoggedEvents;
         BlockingQueue<XAPlusLogCommitTransactionDecisionFailedEvent> commitTransactionDecisionFailedEvents;
         BlockingQueue<XAPlusRollbackTransactionDecisionLoggedEvent> rollbackTransactionDecisionLoggedEvents;
         BlockingQueue<XAPlusLogRollbackTransactionDecisionFailedEvent> rollbackTransactionDecisionFailedEvents;
-        BlockingQueue<XAPlusCommitRecoveredXidDecisionLoggedEvent> commitRecoveredXidDecisionLoggedEvents;
-        BlockingQueue<XAPlusRollbackRecoveredXidDecisionLoggedEvent> rollbackRecoveredXidDecisionLoggedEvents;
+        BlockingQueue<XAPlusRecoveredXidStatusFoundEvent> recoveredXidStatusFoundEvents;
+        BlockingQueue<XAPlusFindRecoveredXidStatusFailedEvent> findRecoveredXidStatusFailedEvents;
 
         ConsumerStub() {
             super("consumer-stub", QUEUE_SIZE);
@@ -104,8 +147,8 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             commitTransactionDecisionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             rollbackTransactionDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             rollbackTransactionDecisionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-            commitRecoveredXidDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-            rollbackRecoveredXidDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            recoveredXidStatusFoundEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            findRecoveredXidStatusFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override
@@ -132,15 +175,13 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
         }
 
         @Override
-        public void handleCommitRecoveredXidDecisionLogged(XAPlusCommitRecoveredXidDecisionLoggedEvent event)
-                throws InterruptedException {
-            commitRecoveredXidDecisionLoggedEvents.put(event);
+        public void handleRecoveredXidStatusFound(XAPlusRecoveredXidStatusFoundEvent event) throws InterruptedException {
+            recoveredXidStatusFoundEvents.put(event);
         }
 
         @Override
-        public void handleRollbackRecoveredXidDecisionLogged(XAPlusRollbackRecoveredXidDecisionLoggedEvent event)
-                throws InterruptedException {
-            rollbackRecoveredXidDecisionLoggedEvents.put(event);
+        public void handleFindRecoveredXidStatusFailed(XAPlusFindRecoveredXidStatusFailedEvent event) throws InterruptedException {
+            findRecoveredXidStatusFailedEvents.put(event);
         }
 
         void postConstruct() {
@@ -149,8 +190,8 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             dispatcher.subscribe(this, XAPlusLogCommitTransactionDecisionFailedEvent.class);
             dispatcher.subscribe(this, XAPlusRollbackTransactionDecisionLoggedEvent.class);
             dispatcher.subscribe(this, XAPlusLogRollbackTransactionDecisionFailedEvent.class);
-            dispatcher.subscribe(this, XAPlusCommitRecoveredXidDecisionLoggedEvent.class);
-            dispatcher.subscribe(this, XAPlusRollbackRecoveredXidDecisionLoggedEvent.class);
+            dispatcher.subscribe(this, XAPlusRecoveredXidStatusFoundEvent.class);
+            dispatcher.subscribe(this, XAPlusFindRecoveredXidStatusFailedEvent.class);
         }
     }
 }

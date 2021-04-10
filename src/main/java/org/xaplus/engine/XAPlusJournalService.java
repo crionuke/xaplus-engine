@@ -91,6 +91,9 @@ class XAPlusJournalService extends Bolt implements
         XAPlusRecoveredResource recoveredResource = event.getRecoveredResource();
         try {
             boolean status = tlog.findTransactionStatus(xid.getGlobalTransactionIdUid());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Status for recovered xid found, status={}, xid={}", status, xid);
+            }
             dispatcher.dispatch(new XAPlusRecoveredXidStatusFoundEvent(xid, recoveredResource, status));
         } catch (SQLException sqle) {
             if (logger.isWarnEnabled()) {
