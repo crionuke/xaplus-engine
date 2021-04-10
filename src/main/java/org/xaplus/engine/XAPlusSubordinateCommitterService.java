@@ -114,19 +114,10 @@ class XAPlusSubordinateCommitterService extends Bolt implements
         if (transaction.isCommitDone()) {
             XAPlusXid xid = transaction.getXid();
             tracker.remove(xid);
-            String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
-            try {
-                XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
-                if (transaction.hasFailures()) {
-                    dispatcher.dispatch(new XAPlusReportFailedStatusRequestEvent(xid, resource));
-                    dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction));
-                } else {
-                    dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
-                }
-            } catch (XAPlusSystemException e) {
-                if (logger.isWarnEnabled()) {
-                    logger.warn("Non XA+ or unknown resource with name={}, {}", superiorServerId, transaction);
-                }
+            if (transaction.hasFailures()) {
+                dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction));
+            } else {
+                dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
             }
         }
     }

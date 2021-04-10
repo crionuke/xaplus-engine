@@ -113,19 +113,10 @@ class XAPlusSubordinateRollbackService extends Bolt implements
         if (transaction.isRollbackDone()) {
             XAPlusXid xid = transaction.getXid();
             tracker.remove(xid);
-            String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
-            try {
-                XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
-                if (transaction.hasFailures()) {
-                    dispatcher.dispatch(new XAPlusReportFailedStatusRequestEvent(xid, resource));
-                    dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
-                } else {
-                    dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
-                }
-            } catch (XAPlusSystemException e) {
-                if (logger.isWarnEnabled()) {
-                    logger.warn("Non XA+ or unknown resource with name={}, {}", superiorServerId, transaction);
-                }
+            if (transaction.hasFailures()) {
+                dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
+            } else {
+                dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
             }
         }
     }
