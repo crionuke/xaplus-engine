@@ -25,7 +25,8 @@ public class XAPlusRecoveredResource {
     private final XAResource xaResource;
     private final Set<XAPlusXid> recoveredXids;
 
-    XAPlusRecoveredResource(String uniqueName, long inFlightCutoff, javax.sql.XAConnection jdbcConnection) throws SQLException {
+    XAPlusRecoveredResource(String uniqueName, long inFlightCutoff, javax.sql.XAConnection jdbcConnection)
+            throws SQLException {
         this.uniqueName = uniqueName;
         this.inFlightCutoff = inFlightCutoff;
         this.jdbcConnection = jdbcConnection;
@@ -94,7 +95,7 @@ public class XAPlusRecoveredResource {
                 .filter(xid -> xid.getBranchQualifierUid().extractTimestamp() < inFlightCutoff)
                 .collect(Collectors.toSet());
         recoveredXids.addAll(filteredXids);
-        return xids.size();
+        return filteredXids.size();
     }
 
     private int recover(Set<XAPlusXid> xids, String serverId, int flag) throws XAException {

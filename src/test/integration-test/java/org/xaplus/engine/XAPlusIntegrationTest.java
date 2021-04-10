@@ -4,6 +4,7 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 import org.postgresql.xa.PGXADataSource;
 
 import javax.sql.XAConnection;
+import javax.sql.XADataSource;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import java.sql.Connection;
@@ -13,9 +14,6 @@ import java.sql.SQLException;
 public class XAPlusIntegrationTest extends XAPlusUnitTest {
 
     static private final String INSERT_SQL = "INSERT INTO test (t_value) VALUES (?)";
-    static private final String SELECT_SQL = "SELECT t_value FROM test";
-
-    protected PGXADataSource xaDataSource;
 
     protected DataSource createTLog() {
         DataSource dataSource = new DataSource();
@@ -26,66 +24,55 @@ public class XAPlusIntegrationTest extends XAPlusUnitTest {
         return dataSource;
     }
 
-    protected void createXADataSource() {
-        xaDataSource = new PGXADataSource();
+    protected XADataSource createXADataSource() {
+        PGXADataSource xaDataSource = new PGXADataSource();
         xaDataSource.setUrl("jdbc:postgresql://localhost:10001/test");
         xaDataSource.setUser("test");
         xaDataSource.setPassword("qwe123");
+        return xaDataSource;
     }
 
     class TestResource implements AutoCloseable {
 
-        final XAConnection xaConnection;
-        final XAResource xaResource;
-        final Connection connection;
+        protected final XAConnection xaConnection;
+        protected final XAResource xaResource;
+        protected final Connection connection;
 
-        TestResource() throws SQLException {
+        TestResource(XADataSource xaDataSource) throws SQLException {
             xaConnection = xaDataSource.getXAConnection();
             xaResource = xaConnection.getXAResource();
             connection = xaConnection.getConnection();
         }
 
-        XAResource getXaResource() {
-            return xaResource;
-        }
-
         @Override
-        public void close() throws Exception {
-            connection.close();
+        public void close() throws SQLException {
             xaConnection.close();
         }
     }
 
-    class OneBranchTransaction extends TestResource {
+    class OneBranchTransaction extends TestResource{
 
-        private final XAPlusTransaction xaPlusTransaction;
-        private final XAPlusXid branchXid;
+        private final XAPlusXid xid;
 
-        OneBranchTransaction(String serverId) throws SQLException {
-            super();
-            XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(serverId), XAPlusUid.generate(serverId));
-            xaPlusTransaction = new XAPlusTransaction(xid, properties.getDefaultTimeoutInSeconds(), serverId);
-            branchXid = XAPlusXid.generate(xid.getGlobalTransactionIdUid(), serverId);
+        OneBranchTransaction(XADataSource xaDataSource, String serverId) throws SQLException {
+            super(xaDataSource);
+            xid = new XAPlusXid(XAPlusUid.generate(serverId), XAPlusUid.generate(serverId));
         }
 
         XAPlusXid getXid() {
-            return xaPlusTransaction.getXid();
-        }
-
-        XAPlusXid getBranchXid() {
-            return branchXid;
+            return xid;
         }
 
         void start() throws XAException {
-            xaResource.start(branchXid, XAResource.TMNOFLAGS);
+            xaResource.start(xid, XAResource.TMNOFLAGS);
         }
 
         void end() throws XAException {
-            xaResource.end(branchXid, XAResource.TMSUCCESS);
+            xaResource.end(xid, XAResource.TMSUCCESS);
         }
 
         void prepare() throws XAException {
-            int vote = xaResource.prepare(branchXid);
+            int vote = xaResource.prepare(xid);
             assertEquals(0, vote);
         }
 
