@@ -28,6 +28,7 @@ class XAPlusRecoveryPreparerService extends Bolt implements
         XAPlusTransactionClosedEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryPreparerService.class);
 
+    private final XAPlusProperties properties;
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
     private final XAPlusResources resources;
@@ -38,6 +39,7 @@ class XAPlusRecoveryPreparerService extends Bolt implements
     XAPlusRecoveryPreparerService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
                                   XAPlusResources resources, XAPlusRecoveryPreparerTracker tracker) {
         super(properties.getServerId() + "-recovery-preparer", properties.getQueueSize());
+        this.properties = properties;
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.resources = resources;
@@ -69,11 +71,13 @@ class XAPlusRecoveryPreparerService extends Bolt implements
                     XAPlusRecoveredResource recoveredResource = null;
                     if (wrapper instanceof XAPlusResources.XADataSourceWrapper) {
                         javax.sql.XAConnection connection = ((XAPlusResources.XADataSourceWrapper) wrapper).get();
-                        recoveredResource = new XAPlusRecoveredResource(uniqueName, getInFlightCutoff(), connection);
+                        recoveredResource = new XAPlusRecoveredResource(uniqueName, properties.getServerId(),
+                                getInFlightCutoff(), connection);
                     } else if (wrapper instanceof XAPlusResources.XAConnectionFactoryWrapper) {
                         javax.jms.XAJMSContext context =
                                 ((XAPlusResources.XAConnectionFactoryWrapper) wrapper).get();
-                        recoveredResource = new XAPlusRecoveredResource(uniqueName, getInFlightCutoff(), context);
+                        recoveredResource = new XAPlusRecoveredResource(uniqueName, properties.getServerId(),
+                                getInFlightCutoff(), context);
                     }
                     if (recoveredResource != null) {
                         tracker.track(recoveredResource);

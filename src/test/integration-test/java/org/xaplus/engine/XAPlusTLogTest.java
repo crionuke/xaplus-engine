@@ -6,8 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class XAPlusTLogTest extends XAPlusIntegrationTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTLogTest.class);
@@ -17,7 +15,7 @@ public class XAPlusTLogTest extends XAPlusIntegrationTest {
     @Before
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
-        engine.setTLogDataSource(createTLog());
+        engine.setTLogDataSource(createTLogDataSource());
         tLog = new XAPlusTLog(properties.getServerId(), engine);
     }
 

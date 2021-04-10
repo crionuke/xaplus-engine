@@ -12,8 +12,8 @@ import javax.transaction.xa.Xid;
 import java.sql.SQLException;
 import java.util.Set;
 
-public class XAPlusRecoveredResourceTest extends XAPlusIntegrationTest {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveredResourceTest.class);
+public class XAPlusRecoveredResourceIntegrationTest extends XAPlusIntegrationTest {
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveredResourceIntegrationTest.class);
 
     @Before
     public void beforeTest() {
@@ -25,24 +25,24 @@ public class XAPlusRecoveredResourceTest extends XAPlusIntegrationTest {
         XADataSource xaDataSource = createXADataSource();
         cleanUpXAResource(xaDataSource.getXAConnection().getXAResource());
         // First server
-        OneBranchTransaction transaction1 = new OneBranchTransaction(xaDataSource, XA_PLUS_RESOURCE_1);
+        XAPlusTestTransaction transaction1 = new XAPlusTestTransaction(xaDataSource, XA_PLUS_RESOURCE_1);
         prepareTransaction(transaction1);
         logger.info("{}", transaction1.getXid());
         // Second server
-        OneBranchTransaction transaction21 = new OneBranchTransaction(xaDataSource, XA_PLUS_RESOURCE_2);
+        XAPlusTestTransaction transaction21 = new XAPlusTestTransaction(xaDataSource, XA_PLUS_RESOURCE_2);
         prepareTransaction(transaction21);
         logger.info("{}", transaction21.getXid());
-        OneBranchTransaction transaction22 = new OneBranchTransaction(xaDataSource, XA_PLUS_RESOURCE_2);
+        XAPlusTestTransaction transaction22 = new XAPlusTestTransaction(xaDataSource, XA_PLUS_RESOURCE_2);
         prepareTransaction(transaction22);
         logger.info("{}", transaction22.getXid());
         // Third server
-        OneBranchTransaction transaction31 = new OneBranchTransaction(xaDataSource, XA_PLUS_RESOURCE_3);
+        XAPlusTestTransaction transaction31 = new XAPlusTestTransaction(xaDataSource, XA_PLUS_RESOURCE_3);
         prepareTransaction(transaction31);
         logger.info("{}", transaction31.getXid());
-        OneBranchTransaction transaction32 = new OneBranchTransaction(xaDataSource, XA_PLUS_RESOURCE_3);
+        XAPlusTestTransaction transaction32 = new XAPlusTestTransaction(xaDataSource, XA_PLUS_RESOURCE_3);
         prepareTransaction(transaction32);
         logger.info("{}", transaction32.getXid());
-        OneBranchTransaction transaction33 = new OneBranchTransaction(xaDataSource, XA_PLUS_RESOURCE_3);
+        XAPlusTestTransaction transaction33 = new XAPlusTestTransaction(xaDataSource, XA_PLUS_RESOURCE_3);
         prepareTransaction(transaction33);
         logger.info("{}", transaction33.getXid());
         // Recovery
@@ -54,7 +54,7 @@ public class XAPlusRecoveredResourceTest extends XAPlusIntegrationTest {
                 new XAPlusXid[]{transaction31.getXid(), transaction32.getXid(), transaction33.getXid()});
     }
 
-    private void prepareTransaction(OneBranchTransaction transaction) throws XAException, SQLException {
+    private void prepareTransaction(XAPlusTestTransaction transaction) throws XAException, SQLException {
         transaction.start();
         transaction.insert();
         transaction.end();
@@ -65,8 +65,8 @@ public class XAPlusRecoveredResourceTest extends XAPlusIntegrationTest {
     private void testRecoveryFor(String serverId, XAPlusXid[] expectedXids) throws XAException, SQLException {
         long inFlightCutoff = System.currentTimeMillis();
         XAPlusRecoveredResource xaPlusRecoveredResource =
-                new XAPlusRecoveredResource(XA_RESOURCE_1, inFlightCutoff, createXADataSource().getXAConnection());
-        int xidCount = xaPlusRecoveredResource.recovery(serverId);
+                new XAPlusRecoveredResource(XA_RESOURCE_1, serverId, inFlightCutoff, createXADataSource().getXAConnection());
+        int xidCount = xaPlusRecoveredResource.recovery();
         logger.info("{} xid recovered for {}", xidCount, serverId);
         Set<XAPlusXid> recoveredXids = xaPlusRecoveredResource.getRecoveredXids();
         logger.info("{}", recoveredXids);

@@ -379,9 +379,10 @@ class XAPlusService extends Bolt implements
             logger.trace("Recovering resource, recoveredResource={}", recoveredResource);
         }
         try {
-            int count = recoveredResource.recovery(properties.getServerId());
+            int count = recoveredResource.recovery();
             if (logger.isDebugEnabled()) {
-                logger.debug("{} xid(s) recovered from {}", count, recoveredResource.getUniqueName());
+                logger.debug("{} xid(s) recovered from {} for {}",
+                        count, recoveredResource.getUniqueName(), recoveredResource.getServerId());
             }
             dispatcher.dispatch(new XAPlusResourceRecoveredEvent(recoveredResource));
         } catch (XAException xae) {

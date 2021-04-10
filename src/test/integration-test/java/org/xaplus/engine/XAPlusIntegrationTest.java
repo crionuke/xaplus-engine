@@ -15,7 +15,7 @@ public class XAPlusIntegrationTest extends XAPlusUnitTest {
 
     static private final String INSERT_SQL = "INSERT INTO test (t_value) VALUES (?)";
 
-    protected DataSource createTLog() {
+    protected DataSource createTLogDataSource() {
         DataSource dataSource = new DataSource();
         dataSource.setUrl("jdbc:postgresql://localhost:10000/tlog");
         dataSource.setDriverClassName("org.postgresql.Driver");
@@ -32,30 +32,17 @@ public class XAPlusIntegrationTest extends XAPlusUnitTest {
         return xaDataSource;
     }
 
-    class TestResource implements AutoCloseable {
+    class XAPlusTestTransaction {
 
-        protected final XAConnection xaConnection;
-        protected final XAResource xaResource;
-        protected final Connection connection;
+        private final XAConnection xaConnection;
+        private final XAResource xaResource;
+        private final Connection connection;
+        private final XAPlusXid xid;
 
-        TestResource(XADataSource xaDataSource) throws SQLException {
+        XAPlusTestTransaction(XADataSource xaDataSource, String serverId) throws SQLException {
             xaConnection = xaDataSource.getXAConnection();
             xaResource = xaConnection.getXAResource();
             connection = xaConnection.getConnection();
-        }
-
-        @Override
-        public void close() throws SQLException {
-            xaConnection.close();
-        }
-    }
-
-    class OneBranchTransaction extends TestResource{
-
-        private final XAPlusXid xid;
-
-        OneBranchTransaction(XADataSource xaDataSource, String serverId) throws SQLException {
-            super(xaDataSource);
             xid = new XAPlusXid(XAPlusUid.generate(serverId), XAPlusUid.generate(serverId));
         }
 
@@ -83,6 +70,10 @@ public class XAPlusIntegrationTest extends XAPlusUnitTest {
             int affected = preparedStatement.executeUpdate();
             assertEquals(1, affected);
             preparedStatement.close();
+        }
+
+        void close() throws SQLException {
+            xaConnection.close();
         }
     }
 }

@@ -19,15 +19,17 @@ public class XAPlusRecoveredResource {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveredResource.class);
 
     private final String uniqueName;
+    private final String serverId;
     private final long inFlightCutoff;
     private final javax.sql.XAConnection jdbcConnection;
     private final javax.jms.XAJMSContext jmsContext;
     private final XAResource xaResource;
     private final Set<XAPlusXid> recoveredXids;
 
-    XAPlusRecoveredResource(String uniqueName, long inFlightCutoff, javax.sql.XAConnection jdbcConnection)
+    XAPlusRecoveredResource(String uniqueName, String serverId, long inFlightCutoff, javax.sql.XAConnection jdbcConnection)
             throws SQLException {
         this.uniqueName = uniqueName;
+        this.serverId = serverId;
         this.inFlightCutoff = inFlightCutoff;
         this.jdbcConnection = jdbcConnection;
         this.jmsContext = null;
@@ -35,8 +37,9 @@ public class XAPlusRecoveredResource {
         this.recoveredXids = new HashSet<>();
     }
 
-    XAPlusRecoveredResource(String uniqueName, long inFlightCutoff, javax.jms.XAJMSContext jmsContext) {
+    XAPlusRecoveredResource(String uniqueName, String serverId, long inFlightCutoff, javax.jms.XAJMSContext jmsContext) {
         this.uniqueName = uniqueName;
+        this.serverId = serverId;
         this.inFlightCutoff = inFlightCutoff;
         this.jdbcConnection = null;
         this.jmsContext = jmsContext;
@@ -51,6 +54,10 @@ public class XAPlusRecoveredResource {
 
     String getUniqueName() {
         return uniqueName;
+    }
+
+    String getServerId() {
+        return serverId;
     }
 
     XAResource getXaResource() {
@@ -79,7 +86,7 @@ public class XAPlusRecoveredResource {
         }
     }
 
-    int recovery(String serverId) throws XAException {
+    int recovery() throws XAException {
         Set<XAPlusXid> xids = new HashSet<>();
         int xidCount;
         xidCount = recover(xids, serverId, XAResource.TMSTARTRSCAN);
