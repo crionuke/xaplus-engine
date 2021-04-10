@@ -205,9 +205,9 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
     public void testReportReadyStatusRequestEventSuccessfully() throws InterruptedException, XAPlusException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
-        dispatcher.dispatch(new XAPlusReportReadiedStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
-        Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).readied(transaction.getXid());
-        XAPlusReadiedStatusReportedEvent event = consumerStub.readyStatusReportedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
+        Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).ready(transaction.getXid());
+        XAPlusReadyStatusReportedEvent event = consumerStub.readyStatusReportedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getXid());
     }
@@ -216,9 +216,9 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
     public void testReportReadyStatusRequestEventFailed() throws InterruptedException, XAPlusException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_2);
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
-        Mockito.doThrow(new XAPlusException("ready_exception")).when(xaPlusResourceMock).readied(transaction.getXid());
-        dispatcher.dispatch(new XAPlusReportReadiedStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
-        XAPlusReportReadiedStatusFailedEvent event =
+        Mockito.doThrow(new XAPlusException("ready_exception")).when(xaPlusResourceMock).ready(transaction.getXid());
+        dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(transaction.getXid(), xaPlusResourceMock));
+        XAPlusReportReadyStatusFailedEvent event =
                 consumerStub.reportReadyStatusFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction.getXid(), event.getXid());
@@ -246,8 +246,8 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
             XAPlusRecoveredXidRolledBackEvent.Handler,
             XAPlusRollbackRecoveredXidFailedEvent.Handler,
             XAPlusForgetRecoveredXidRequestEvent.Handler,
-            XAPlusReadiedStatusReportedEvent.Handler,
-            XAPlusReportReadiedStatusFailedEvent.Handler,
+            XAPlusReadyStatusReportedEvent.Handler,
+            XAPlusReportReadyStatusFailedEvent.Handler,
             XAPlusDoneStatusReportedEvent.Handler,
             XAPlusReportDoneStatusFailedEvent.Handler {
 
@@ -256,8 +256,8 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
         BlockingQueue<XAPlusRecoveredXidRolledBackEvent> recoveredXidRolledBackEvents;
         BlockingQueue<XAPlusRollbackRecoveredXidFailedEvent> rollbackRecoveredXidFailedEvents;
         BlockingQueue<XAPlusForgetRecoveredXidRequestEvent> forgetRecoveredXidRequestEvents;
-        BlockingQueue<XAPlusReadiedStatusReportedEvent> readyStatusReportedEvents;
-        BlockingQueue<XAPlusReportReadiedStatusFailedEvent> reportReadyStatusFailedEvents;
+        BlockingQueue<XAPlusReadyStatusReportedEvent> readyStatusReportedEvents;
+        BlockingQueue<XAPlusReportReadyStatusFailedEvent> reportReadyStatusFailedEvents;
         BlockingQueue<XAPlusDoneStatusReportedEvent> doneStatusReportedEvents;
         BlockingQueue<XAPlusReportDoneStatusFailedEvent> reportDoneStatusFailedEvents;
 
@@ -302,12 +302,12 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
         }
 
         @Override
-        public void handleReadiedStatusReported(XAPlusReadiedStatusReportedEvent event) throws InterruptedException {
+        public void handleReadyStatusReported(XAPlusReadyStatusReportedEvent event) throws InterruptedException {
             readyStatusReportedEvents.put(event);
         }
 
         @Override
-        public void handleReportReadiedStatusFailed(XAPlusReportReadiedStatusFailedEvent event)
+        public void handleReportReadyStatusFailed(XAPlusReportReadyStatusFailedEvent event)
                 throws InterruptedException {
             reportReadyStatusFailedEvents.put(event);
         }
@@ -329,8 +329,8 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
             dispatcher.subscribe(this, XAPlusRecoveredXidRolledBackEvent.class);
             dispatcher.subscribe(this, XAPlusRollbackRecoveredXidFailedEvent.class);
             dispatcher.subscribe(this, XAPlusForgetRecoveredXidRequestEvent.class);
-            dispatcher.subscribe(this, XAPlusReadiedStatusReportedEvent.class);
-            dispatcher.subscribe(this, XAPlusReportReadiedStatusFailedEvent.class);
+            dispatcher.subscribe(this, XAPlusReadyStatusReportedEvent.class);
+            dispatcher.subscribe(this, XAPlusReportReadyStatusFailedEvent.class);
             dispatcher.subscribe(this, XAPlusDoneStatusReportedEvent.class);
             dispatcher.subscribe(this, XAPlusReportDoneStatusFailedEvent.class);
         }

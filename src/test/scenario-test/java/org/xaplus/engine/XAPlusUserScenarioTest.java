@@ -60,7 +60,7 @@ public class XAPlusUserScenarioTest extends XAPlusScenarioTest {
     public void testSuperiorCommitTransactionAndReportReadyStatusFromSubordinateToSuperiorFailed()
             throws InterruptedException {
         // Setup scenario
-        requestSuperiorExceptions.readiedException = true;
+        requestSuperiorExceptions.readyException = true;
         long value = startGlobalTransaction(false, false, false);
         // Wait timeout
         Thread.sleep(DEFAULT_TIMEOUT_S * 1000 + POLL_TIMIOUT_MS);

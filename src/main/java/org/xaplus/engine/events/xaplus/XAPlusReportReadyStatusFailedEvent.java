@@ -7,12 +7,12 @@ import org.xaplus.engine.XAPlusXid;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-public final class XAPlusReportReadiedStatusFailedEvent extends Event<XAPlusReportReadiedStatusFailedEvent.Handler> {
+public final class XAPlusReportReadyStatusFailedEvent extends Event<XAPlusReportReadyStatusFailedEvent.Handler> {
 
     private final XAPlusXid xid;
     private final Exception exception;
 
-    public XAPlusReportReadiedStatusFailedEvent(XAPlusXid xid, Exception exception) {
+    public XAPlusReportReadyStatusFailedEvent(XAPlusXid xid, Exception exception) {
         super();
         if (xid == null) {
             throw new NullPointerException("xid is null");
@@ -26,7 +26,7 @@ public final class XAPlusReportReadiedStatusFailedEvent extends Event<XAPlusRepo
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
-        handler.handleReportReadiedStatusFailed(this);
+        handler.handleReportReadyStatusFailed(this);
     }
 
     @Override
@@ -43,6 +43,6 @@ public final class XAPlusReportReadiedStatusFailedEvent extends Event<XAPlusRepo
     }
 
     public interface Handler {
-        void handleReportReadiedStatusFailed(XAPlusReportReadiedStatusFailedEvent event) throws InterruptedException;
+        void handleReportReadyStatusFailed(XAPlusReportReadyStatusFailedEvent event) throws InterruptedException;
     }
 }

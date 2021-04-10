@@ -15,7 +15,7 @@ public interface XAPlusResource extends XAResource {
      * @param xid a transaction branch identifier
      * @throws XAPlusException an error has occurred
      */
-    void readied(Xid xid) throws XAPlusException;
+    void ready(Xid xid) throws XAPlusException;
 
     /**
      * Report to superior that a transaction branch {@code xid} has been failed by subordinate

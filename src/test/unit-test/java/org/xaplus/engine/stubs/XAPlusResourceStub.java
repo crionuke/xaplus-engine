@@ -9,7 +9,7 @@ import javax.transaction.xa.Xid;
 public class XAPlusResourceStub extends XAResourceStub implements XAPlusResource {
 
     @Override
-    public void readied(Xid xid) throws XAPlusException {
+    public void ready(Xid xid) throws XAPlusException {
 
     }
 

@@ -24,7 +24,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
         XAPlusBranchPreparedEvent.Handler,
         XAPlusPrepareBranchFailedEvent.Handler,
         XAPlusTransactionTimedOutEvent.Handler,
-        XAPlusReportReadiedStatusFailedEvent.Handler,
+        XAPlusReportReadyStatusFailedEvent.Handler,
         XAPlusReportFailedStatusFailedEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusSubordinatePreparerService.class);
 
@@ -199,7 +199,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
     }
 
     @Override
-    public void handleReportReadiedStatusFailed(XAPlusReportReadiedStatusFailedEvent event) throws InterruptedException {
+    public void handleReportReadyStatusFailed(XAPlusReportReadyStatusFailedEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -207,7 +207,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
         if (tracker.contains(xid)) {
             XAPlusTransaction transaction = tracker.remove(xid);
             if (logger.isDebugEnabled()) {
-                logger.debug("Transaction removed as report readied status failed, {}", transaction);
+                logger.debug("Transaction removed as report ready status failed, {}", transaction);
             }
             dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction));
         }
@@ -238,7 +238,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
         dispatcher.subscribe(this, XAPlusBranchPreparedEvent.class);
         dispatcher.subscribe(this, XAPlusPrepareBranchFailedEvent.class);
         dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
-        dispatcher.subscribe(this, XAPlusReportReadiedStatusFailedEvent.class);
+        dispatcher.subscribe(this, XAPlusReportReadyStatusFailedEvent.class);
         dispatcher.subscribe(this, XAPlusReportFailedStatusFailedEvent.class);
     }
 
@@ -261,7 +261,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                         dispatcher.dispatch(new XAPlusReportFailedStatusRequestEvent(xid, resource));
                     } else {
                         // All is okay, transaction ready to commit or rollback
-                        dispatcher.dispatch(new XAPlusReportReadiedStatusRequestEvent(xid, resource));
+                        dispatcher.dispatch(new XAPlusReportReadyStatusRequestEvent(xid, resource));
                     }
                 } catch (XAPlusSystemException e) {
                     if (logger.isWarnEnabled()) {

@@ -1,7 +1,7 @@
 package org.xaplus.engine;
 
 class XAPlusScenarioExceptions {
-    volatile boolean readiedException;
+    volatile boolean readyException;
     volatile boolean failedException;
     volatile boolean commitException;
     volatile boolean rollbackException;
@@ -12,7 +12,7 @@ class XAPlusScenarioExceptions {
     }
 
     void reset() {
-        readiedException = false;
+        readyException = false;
         failedException = false;
         commitException = false;
         rollbackException = false;

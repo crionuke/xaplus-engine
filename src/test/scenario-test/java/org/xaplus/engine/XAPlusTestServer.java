@@ -38,16 +38,16 @@ class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
     }
 
     @Override
-    public void readied(Xid xid) throws XAPlusException {
-        if (scenario.readiedException) {
-            throw new XAPlusException("readied request exception");
+    public void ready(Xid xid) throws XAPlusException {
+        if (scenario.readyException) {
+            throw new XAPlusException("ready request exception");
         }
         XAPlusXid xaPlusXid = new XAPlusXid(xid);
         try {
             if (logger.isDebugEnabled()) {
-                logger.debug("Send readied status from subordinate server, xid={}", xid);
+                logger.debug("Send ready status from subordinate server, xid={}", xid);
             }
-            dispatcher.dispatch(new XAPlusRemoteSubordinateReadiedEvent(xaPlusXid));
+            dispatcher.dispatch(new XAPlusRemoteSubordinateReadyEvent(xaPlusXid));
         } catch (InterruptedException e) {
             throw new XAPlusException(e.getMessage());
         }
