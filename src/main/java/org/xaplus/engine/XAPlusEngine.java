@@ -205,6 +205,8 @@ public final class XAPlusEngine {
         return context.getContext();
     }
 
+    // TODO: enlist XA+ xids inside engine
+
     /**
      * Create xid for XA+ resource
      *
