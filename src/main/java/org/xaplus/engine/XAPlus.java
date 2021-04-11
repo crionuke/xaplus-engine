@@ -68,7 +68,7 @@ public class XAPlus {
         superiorCommitterService = new XAPlusSuperiorCommitterService(properties, threadPool, dispatcher,
                 new XAPlusTracker());
         superiorPreparerService = new XAPlusSuperiorPreparerService(properties, threadPool, dispatcher,
-                resources, new XAPlusTracker());
+                new XAPlusTracker());
         superiorRollbackService = new XAPlusSuperiorRollbackService(properties, threadPool, dispatcher,
                 new XAPlusTracker());
         recoveryPreparerService = new XAPlusRecoveryPreparerService(properties, threadPool, dispatcher, resources,

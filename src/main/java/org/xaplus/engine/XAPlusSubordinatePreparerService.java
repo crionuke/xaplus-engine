@@ -121,7 +121,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                 dispatcher.dispatch(new XAPlusRollbackTransactionDecisionEvent(transaction));
             } else {
                 transaction.markAsRollbackOnly();
-                // Send branch cancelled event to superior
+                // Send branch failed event to superior
                 String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
                 try {
                     XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
