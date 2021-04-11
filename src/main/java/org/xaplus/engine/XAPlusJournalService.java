@@ -116,8 +116,14 @@ class XAPlusJournalService extends Bolt implements
             try {
                 XAPlusResource resource = resources.getXAPlusResource(subordinateServerId);
                 if (status) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Retry commit order to {}, xid={}", subordinateServerId, xid);
+                    }
                     dispatcher.dispatch(new XAPlusRetryCommitOrderRequestEvent(xid, resource));
                 } else {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Retry rollback order to {}, xid={}", subordinateServerId, xid);
+                    }
                     dispatcher.dispatch(new XAPlusRetryRollbackOrderRequestEvent(xid, resource));
                 }
             } catch (XAPlusSystemException e) {

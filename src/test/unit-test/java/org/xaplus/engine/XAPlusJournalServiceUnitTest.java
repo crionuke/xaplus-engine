@@ -8,6 +8,10 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.journal.*;
+import org.xaplus.engine.events.xaplus.XAPlusRemoteSubordinateRetryRequestEvent;
+import org.xaplus.engine.events.xaplus.XAPlusRetryCommitOrderRequestEvent;
+import org.xaplus.engine.events.xaplus.XAPlusRetryRollbackOrderRequestEvent;
+import org.xaplus.engine.exceptions.XAPlusSystemException;
 import org.xaplus.engine.stubs.XAConnectionStub;
 import org.xaplus.engine.stubs.XADataSourceStub;
 
@@ -86,12 +90,11 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test
-    public void testFindRecoveredXidStatusRequestEventSuccessfully() throws InterruptedException, SQLException, XAException {
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        XAPlusRecoveredResource recoveredResource =
-                new XAPlusRecoveredResource(XA_RESOURCE_1, properties.getServerId(), System.currentTimeMillis(), new XAConnectionStub());
+    public void testFindRecoveredXidStatusRequestEventSuccessfully() throws InterruptedException, SQLException {
+        XAPlusRecoveredResource recoveredResource = new XAPlusRecoveredResource(XA_RESOURCE_1, properties.getServerId(),
+                System.currentTimeMillis(), new XAConnectionStub());
         // Test 1
-        XAPlusXid bxid1 = createJdbcXid(transaction);
+        XAPlusXid bxid1 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
         Mockito.doReturn(true).when(tlogMock)
                 .findTransactionStatus(bxid1.getGlobalTransactionIdUid());
         dispatcher.dispatch(new XAPlusFindRecoveredXidStatusRequestEvent(bxid1, recoveredResource));
@@ -100,7 +103,7 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
         assertTrue(event1.getStatus());
         assertEquals(recoveredResource.getUniqueName(), event1.getRecoveredResource().getUniqueName());
         // Test 2
-        XAPlusXid bxid2 = createJdbcXid(transaction);
+        XAPlusXid bxid2 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
         Mockito.doReturn(false).when(tlogMock)
                 .findTransactionStatus(bxid2.getGlobalTransactionIdUid());
         dispatcher.dispatch(new XAPlusFindRecoveredXidStatusRequestEvent(bxid2, recoveredResource));
@@ -111,11 +114,10 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test
-    public void testFindRecoveredXidStatusRequestEventFailed() throws InterruptedException, SQLException, XAException {
-        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
+    public void testFindRecoveredXidStatusRequestEventFailed() throws InterruptedException, SQLException {
+        XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
         XAPlusRecoveredResource recoveredResource = new XAPlusRecoveredResource(XA_RESOURCE_1, properties.getServerId(),
                 System.currentTimeMillis(), new XAConnectionStub());
-        XAPlusXid xid = transaction.getXid();
         Mockito.doThrow(new SQLException("find_exception")).when(tlogMock)
                 .findTransactionStatus(xid.getGlobalTransactionIdUid());
         dispatcher.dispatch(new XAPlusFindRecoveredXidStatusRequestEvent(xid, recoveredResource));
@@ -126,13 +128,38 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
         assertEquals(recoveredResource.getUniqueName(), event.getRecoveredResource().getUniqueName());
     }
 
+    @Test
+        public void testRemoteSubordinateRetryRequestEvent()
+            throws InterruptedException, SQLException, XAPlusSystemException {
+        // Test 1
+        XAPlusXid bxid1 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_2));
+        Mockito.doReturn(true).when(tlogMock).findTransactionStatus(bxid1.getGlobalTransactionIdUid());
+        dispatcher.dispatch(new XAPlusRemoteSubordinateRetryRequestEvent(bxid1));
+        XAPlusRetryCommitOrderRequestEvent event1 =
+                consumerStub.retryCommitOrderRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event1);
+        assertEquals(bxid1, event1.getXid());
+        assertEquals(resources.getXAPlusResource(XA_PLUS_RESOURCE_2), event1.getResource());
+        // Test 2
+        XAPlusXid bxid2 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_3));
+        Mockito.doReturn(false).when(tlogMock).findTransactionStatus(bxid2.getGlobalTransactionIdUid());
+        dispatcher.dispatch(new XAPlusRemoteSubordinateRetryRequestEvent(bxid2));
+        XAPlusRetryRollbackOrderRequestEvent event2 =
+                consumerStub.retryRollbackOrderRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event2);
+        assertEquals(bxid2, event2.getXid());
+        assertEquals(resources.getXAPlusResource(XA_PLUS_RESOURCE_3), event2.getResource());
+    }
+
     private class ConsumerStub extends Bolt implements
             XAPlusCommitTransactionDecisionLoggedEvent.Handler,
             XAPlusLogCommitTransactionDecisionFailedEvent.Handler,
             XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
             XAPlusLogRollbackTransactionDecisionFailedEvent.Handler,
             XAPlusRecoveredXidStatusFoundEvent.Handler,
-            XAPlusFindRecoveredXidStatusFailedEvent.Handler {
+            XAPlusFindRecoveredXidStatusFailedEvent.Handler,
+            XAPlusRetryCommitOrderRequestEvent.Handler,
+            XAPlusRetryRollbackOrderRequestEvent.Handler {
 
         BlockingQueue<XAPlusCommitTransactionDecisionLoggedEvent> commitTransactionDecisionLoggedEvents;
         BlockingQueue<XAPlusLogCommitTransactionDecisionFailedEvent> commitTransactionDecisionFailedEvents;
@@ -140,6 +167,8 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
         BlockingQueue<XAPlusLogRollbackTransactionDecisionFailedEvent> rollbackTransactionDecisionFailedEvents;
         BlockingQueue<XAPlusRecoveredXidStatusFoundEvent> recoveredXidStatusFoundEvents;
         BlockingQueue<XAPlusFindRecoveredXidStatusFailedEvent> findRecoveredXidStatusFailedEvents;
+        BlockingQueue<XAPlusRetryCommitOrderRequestEvent> retryCommitOrderRequestEvents;
+        BlockingQueue<XAPlusRetryRollbackOrderRequestEvent> retryRollbackOrderRequestEvents;
 
         ConsumerStub() {
             super("consumer-stub", QUEUE_SIZE);
@@ -149,6 +178,8 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             rollbackTransactionDecisionFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             recoveredXidStatusFoundEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             findRecoveredXidStatusFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            retryCommitOrderRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            retryRollbackOrderRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override
@@ -184,6 +215,16 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             findRecoveredXidStatusFailedEvents.put(event);
         }
 
+        @Override
+        public void handleRetryCommitOrderRequest(XAPlusRetryCommitOrderRequestEvent event) throws InterruptedException {
+            retryCommitOrderRequestEvents.put(event);
+        }
+
+        @Override
+        public void handleRetryRollbackOrderRequest(XAPlusRetryRollbackOrderRequestEvent event) throws InterruptedException {
+            retryRollbackOrderRequestEvents.put(event);
+        }
+
         void postConstruct() {
             threadPool.execute(this);
             dispatcher.subscribe(this, XAPlusCommitTransactionDecisionLoggedEvent.class);
@@ -192,6 +233,8 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
             dispatcher.subscribe(this, XAPlusLogRollbackTransactionDecisionFailedEvent.class);
             dispatcher.subscribe(this, XAPlusRecoveredXidStatusFoundEvent.class);
             dispatcher.subscribe(this, XAPlusFindRecoveredXidStatusFailedEvent.class);
+            dispatcher.subscribe(this, XAPlusRetryCommitOrderRequestEvent.class);
+            dispatcher.subscribe(this, XAPlusRetryRollbackOrderRequestEvent.class);
         }
     }
 }

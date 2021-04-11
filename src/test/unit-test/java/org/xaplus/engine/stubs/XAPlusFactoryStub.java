@@ -6,8 +6,14 @@ import org.xaplus.engine.XAPlusResource;
 
 public class XAPlusFactoryStub implements XAPlusFactory {
 
+    private final XAPlusResource xaPlusResource;
+
+    public XAPlusFactoryStub() {
+        xaPlusResource = new XAPlusResourceStub();
+    }
+
     @Override
     public XAPlusResource createXAPlusResource() throws XAPlusException {
-        return new XAPlusResourceStub();
+        return xaPlusResource;
     }
 }
