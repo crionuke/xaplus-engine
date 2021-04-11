@@ -30,7 +30,7 @@ class XAPlusSubordinateRollbackService extends Bolt implements
 
     XAPlusSubordinateRollbackService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
                                      XAPlusResources resources, XAPlusTracker tracker) {
-        super(properties.getServerId() + "-rollback", properties.getQueueSize());
+        super(properties.getServerId() + "subordinate-rollback", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.resources = resources;
