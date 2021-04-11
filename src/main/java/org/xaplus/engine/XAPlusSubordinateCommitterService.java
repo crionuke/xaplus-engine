@@ -25,7 +25,6 @@ class XAPlusSubordinateCommitterService extends Bolt implements
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final XAPlusResources resources;
     private final XAPlusTracker tracker;
 
     XAPlusSubordinateCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
@@ -34,7 +33,6 @@ class XAPlusSubordinateCommitterService extends Bolt implements
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.tracker = tracker;
-        this.resources = resources;
     }
 
     @Override

@@ -31,7 +31,6 @@ class XAPlusSuperiorPreparerService extends Bolt implements
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final XAPlusResources resources;
     private final XAPlusTracker tracker;
 
     XAPlusSuperiorPreparerService(XAPlusProperties properties, XAPlusThreadPool threadPool,
@@ -40,7 +39,6 @@ class XAPlusSuperiorPreparerService extends Bolt implements
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.tracker = tracker;
-        this.resources = resources;
     }
 
     @Override
