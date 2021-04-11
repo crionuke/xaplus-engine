@@ -129,7 +129,7 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test
-        public void testRemoteSubordinateRetryRequestEvent()
+    public void testRemoteSubordinateRetryRequestEvent()
             throws InterruptedException, SQLException, XAPlusSystemException {
         // Test 1
         XAPlusXid bxid1 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_2));
