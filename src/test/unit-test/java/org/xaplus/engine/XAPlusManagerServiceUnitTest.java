@@ -49,8 +49,8 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
 
     @Test
     public void testUserCommitRequestAndTransactionDone() throws InterruptedException, XAPlusCommitException,
-            XAPlusRollbackException, XAPlusTimeoutException, SQLException, XAException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
+            XAPlusRollbackException, XAPlusTimeoutException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
         XAPlusTransactionClosedEvent event =
@@ -62,8 +62,8 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
 
     @Test
     public void testUserRollbackRequestAndTransactionRolledBack() throws InterruptedException, XAPlusCommitException,
-            XAPlusRollbackException, XAPlusTimeoutException, SQLException, XAException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
+            XAPlusRollbackException, XAPlusTimeoutException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
         dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
         XAPlusTransactionClosedEvent event =
@@ -75,8 +75,8 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
 
     @Test(expected = XAPlusCommitException.class)
     public void testUserCommitRequestAnd2pcFailed() throws InterruptedException, XAPlusCommitException,
-            XAPlusRollbackException, XAPlusTimeoutException, SQLException, XAException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
+            XAPlusRollbackException, XAPlusTimeoutException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction));
         XAPlusTransactionClosedEvent event =
@@ -88,8 +88,8 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
 
     @Test(expected = XAPlusRollbackException.class)
     public void testUserRollbackRequestAndRollbackFailed() throws InterruptedException, XAPlusCommitException,
-            XAPlusRollbackException, XAPlusTimeoutException, SQLException, XAException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
+            XAPlusRollbackException, XAPlusTimeoutException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
         dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
         XAPlusTransactionClosedEvent event =
@@ -101,8 +101,8 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
 
     @Test(expected = XAPlusTimeoutException.class)
     public void testUserCommitRequestAnd2pcTimeout() throws InterruptedException, XAPlusCommitException,
-            XAPlusRollbackException, XAPlusTimeoutException, SQLException, XAException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
+            XAPlusRollbackException, XAPlusTimeoutException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
         dispatcher.dispatch(new XAPlusTransactionTimedOutEvent(transaction));
         XAPlusTransactionClosedEvent event =
@@ -114,8 +114,8 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
 
     @Test(expected = XAPlusTimeoutException.class)
     public void testUserRollbackRequestAndRollbackTimeout() throws InterruptedException, XAPlusCommitException,
-            XAPlusRollbackException, XAPlusTimeoutException, SQLException, XAException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
+            XAPlusRollbackException, XAPlusTimeoutException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
         dispatcher.dispatch(new XAPlusTransactionTimedOutEvent(transaction));
         XAPlusTransactionClosedEvent event =

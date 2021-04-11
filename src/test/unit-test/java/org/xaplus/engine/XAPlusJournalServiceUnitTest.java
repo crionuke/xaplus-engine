@@ -45,8 +45,8 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test
-    public void testLogCommitTransactionDecisionSuccessfully() throws InterruptedException, SQLException, XAException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
+    public void testLogCommitTransactionDecisionSuccessfully() throws InterruptedException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
         XAPlusCommitTransactionDecisionLoggedEvent event =
                 consumerStub.commitTransactionDecisionLoggedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -56,7 +56,7 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
 
     @Test
     public void testLogCommitTransactionDecisionFailed() throws InterruptedException, SQLException, XAException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         Mockito.doThrow(new SQLException("log_exception")).when(tlogMock)
                 .logCommitDecision(transaction.getXid().getGlobalTransactionIdUid());
         dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
@@ -67,9 +67,8 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test
-    public void testLogRollbackTransactionDecisionSuccessfully() throws InterruptedException, SQLException,
-            XAException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
+    public void testLogRollbackTransactionDecisionSuccessfully() throws InterruptedException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
         XAPlusRollbackTransactionDecisionLoggedEvent event =
                 consumerStub.rollbackTransactionDecisionLoggedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -78,8 +77,8 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test
-    public void testLogRollbackTransactionDecisionFailed() throws InterruptedException, SQLException, XAException {
-        XAPlusTransaction transaction = createTestSuperiorTransaction();
+    public void testLogRollbackTransactionDecisionFailed() throws InterruptedException, SQLException {
+        XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         Mockito.doThrow(new SQLException("log_exception")).when(tlogMock)
                 .logRollbackDecision(transaction.getXid().getGlobalTransactionIdUid());
         dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
