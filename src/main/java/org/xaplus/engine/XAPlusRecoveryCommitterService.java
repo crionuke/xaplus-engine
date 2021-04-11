@@ -134,7 +134,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusXid xid = event.getXid();
-        if (tracker.statusNotFound(xid)) {
+        if (tracker.findStatusFailed(xid)) {
             check();
         }
     }

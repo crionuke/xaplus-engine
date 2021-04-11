@@ -53,7 +53,7 @@ class XAPlusRecoveryCommitterTracker {
         return waiting.contains(xid);
     }
 
-    boolean statusNotFound(XAPlusXid xid) {
+    boolean findStatusFailed(XAPlusXid xid) {
         return waiting.remove(xid);
     }
 
