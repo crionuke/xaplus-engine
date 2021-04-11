@@ -2,7 +2,7 @@ package org.xaplus.engine;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.recovery.XAPlusRecoveryRequestEvent;
+import org.xaplus.engine.events.recovery.XAPlusStartRecoveryRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCreateTransactionEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
@@ -338,7 +338,7 @@ public final class XAPlusEngine {
         if (logger.isInfoEnabled()) {
             logger.info("Start recovery");
         }
-        dispatcher.dispatch(new XAPlusRecoveryRequestEvent());
+        dispatcher.dispatch(new XAPlusStartRecoveryRequestEvent());
     }
 
     DataSource getTLogDataSource() {

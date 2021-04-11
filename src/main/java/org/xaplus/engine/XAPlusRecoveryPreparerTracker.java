@@ -41,7 +41,7 @@ class XAPlusRecoveryPreparerTracker {
         waiting.remove(resource);
     }
 
-    boolean isRecoveryFinished() {
+    boolean isRecoveryPrepared() {
         return waiting.isEmpty();
     }
 

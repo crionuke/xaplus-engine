@@ -35,7 +35,7 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
     @Before
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
-        xaPlusManagerService = new XAPlusManagerService(properties, threadPool, dispatcher, resources);
+        xaPlusManagerService = new XAPlusManagerService(properties, threadPool, dispatcher);
         xaPlusManagerService.postConstruct();
         consumerStub = new ConsumerStub();
         consumerStub.postConstruct();
