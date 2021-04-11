@@ -5,8 +5,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.journal.XAPlusLogCommitRecoveredXidDecisionEvent;
-import org.xaplus.engine.events.journal.XAPlusLogRollbackRecoveredXidDecisionEvent;
 import org.xaplus.engine.events.recovery.*;
 import org.xaplus.engine.events.xaplus.XAPlusRetryCommitOrderRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRetryFromSuperiorRequestEvent;
@@ -23,8 +21,6 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
     BlockingQueue<XAPlusRetryCommitOrderRequestEvent> retryCommitOrderRequestEvents;
     BlockingQueue<XAPlusRetryRollbackOrderRequestEvent> retryRollbackOrderRequestEvents;
 
-    BlockingQueue<XAPlusLogCommitRecoveredXidDecisionEvent> logCommitRecoveredXidDecisionEvents;
-    BlockingQueue<XAPlusLogRollbackRecoveredXidDecisionEvent> logRollbackRecoveredXidDecisionEvents;
     BlockingQueue<XAPlusCommitRecoveredXidRequestEvent> commitRecoveredXidRequestEvents;
     BlockingQueue<XAPlusRollbackRecoveredXidRequestEvent> rollbackRecoveredXidRequestEvents;
     BlockingQueue<XAPlusRetryFromSuperiorRequestEvent> retryFromSuperiorRequestEvents;
@@ -41,8 +37,6 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
 
         retryCommitOrderRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         retryRollbackOrderRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        logCommitRecoveredXidDecisionEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-        logRollbackRecoveredXidDecisionEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         commitRecoveredXidRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         rollbackRecoveredXidRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         retryFromSuperiorRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
@@ -161,19 +155,12 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
     private class ConsumerStub extends Bolt implements
             XAPlusRetryCommitOrderRequestEvent.Handler,
             XAPlusRetryRollbackOrderRequestEvent.Handler,
-            XAPlusLogCommitRecoveredXidDecisionEvent.Handler,
-            XAPlusLogRollbackRecoveredXidDecisionEvent.Handler,
             XAPlusCommitRecoveredXidRequestEvent.Handler,
             XAPlusRollbackRecoveredXidRequestEvent.Handler,
             XAPlusRetryFromSuperiorRequestEvent.Handler {
 
         ConsumerStub() {
             super("stub-consumer", QUEUE_SIZE);
-        }
-
-        @Override
-        public void handleLogRollbackRecoveredXidDecision(XAPlusLogRollbackRecoveredXidDecisionEvent event) throws InterruptedException {
-            logRollbackRecoveredXidDecisionEvents.add(event);
         }
 
         @Override
@@ -192,11 +179,6 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
         }
 
         @Override
-        public void handleLogCommitRecoveredXidDecision(XAPlusLogCommitRecoveredXidDecisionEvent event) throws InterruptedException {
-            logCommitRecoveredXidDecisionEvents.add(event);
-        }
-
-        @Override
         public void handleRetryRollbackOrderRequest(XAPlusRetryRollbackOrderRequestEvent event) throws InterruptedException {
             retryRollbackOrderRequestEvents.put(event);
         }
@@ -211,12 +193,9 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
             dispatcher.subscribe(this, XAPlusRetryCommitOrderRequestEvent.class);
             dispatcher.subscribe(this, XAPlusRetryRollbackOrderRequestEvent.class);
             dispatcher.subscribe(this, XAPlusRecoveryResourceRequestEvent.class);
-            dispatcher.subscribe(this, XAPlusLogCommitRecoveredXidDecisionEvent.class);
-            dispatcher.subscribe(this, XAPlusLogRollbackRecoveredXidDecisionEvent.class);
             dispatcher.subscribe(this, XAPlusCommitRecoveredXidRequestEvent.class);
             dispatcher.subscribe(this, XAPlusRollbackRecoveredXidRequestEvent.class);
             dispatcher.subscribe(this, XAPlusRetryFromSuperiorRequestEvent.class);
         }
     }
-
 }
