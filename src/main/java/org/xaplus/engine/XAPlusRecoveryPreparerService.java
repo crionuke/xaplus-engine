@@ -67,6 +67,10 @@ class XAPlusRecoveryPreparerService extends Bolt implements
                     }
                     if (recoveredResource != null) {
                         tracker.track(recoveredResource);
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Request recovery for resource, uniqueName={}",
+                                    recoveredResource.getUniqueName());
+                        }
                         dispatcher.dispatch(new XAPlusRecoveryResourceRequestEvent(recoveredResource));
                     }
                 } catch (SQLException | JMSException e) {
@@ -84,7 +88,11 @@ class XAPlusRecoveryPreparerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         if (tracker.isStarted()) {
-            tracker.resourceRecovered(event.getRecoveredResource());
+            XAPlusRecoveredResource recoveredResource = event.getRecoveredResource();
+            if (logger.isDebugEnabled()) {
+                logger.debug("Resource recovered, uniqueName={}", recoveredResource.getUniqueName());
+            }
+            tracker.resourceRecovered(recoveredResource);
             check();
         } else {
             if (logger.isTraceEnabled()) {
@@ -99,7 +107,11 @@ class XAPlusRecoveryPreparerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         if (tracker.isStarted()) {
-            tracker.resourceFailed(event.getRecoveredResource());
+            XAPlusRecoveredResource recoveredResource = event.getRecoveredResource();
+            if (logger.isDebugEnabled()) {
+                logger.debug("Recovery resource failed, uniqueName={}", recoveredResource.getUniqueName());
+            }
+            tracker.resourceFailed(recoveredResource);
             check();
         } else {
             if (logger.isTraceEnabled()) {
