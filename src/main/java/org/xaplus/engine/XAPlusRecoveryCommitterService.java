@@ -210,7 +210,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
     }
 
     private void check() throws InterruptedException {
-        if (tracker.isFinished()) {
+        if (tracker.isRecoveryCommitted()) {
             reset();
             dispatcher.dispatch(new XAPlusRecoveryFinishedEvent());
         }

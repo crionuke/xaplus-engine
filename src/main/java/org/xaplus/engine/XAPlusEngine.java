@@ -103,7 +103,7 @@ public final class XAPlusEngine {
         }
         XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(properties.getServerId()),
                 XAPlusUid.generate(properties.getServerId()));
-        XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.gettransactionsTimeoutInSeconds(),
+        XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getTransactionsTimeoutInSeconds(),
                 properties.getServerId());
         threadContext.setTransaction(transaction);
         dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
@@ -128,7 +128,7 @@ public final class XAPlusEngine {
         if (threadContext.hasTransaction()) {
             throw new IllegalStateException("Nested transactions not supported");
         }
-        XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.gettransactionsTimeoutInSeconds(),
+        XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getTransactionsTimeoutInSeconds(),
                 properties.getServerId());
         threadContext.setTransaction(transaction);
         dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));

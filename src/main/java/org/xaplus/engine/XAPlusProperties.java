@@ -26,7 +26,7 @@ class XAPlusProperties {
         return queueSize;
     }
 
-    int gettransactionsTimeoutInSeconds() {
+    int getTransactionsTimeoutInSeconds() {
         return transactionsTimeoutInSeconds;
     }
 

@@ -125,7 +125,7 @@ class XAPlusSuperiorCommitterService extends Bolt implements
     }
 
     void check(XAPlusTransaction transaction) throws InterruptedException {
-        if (transaction.isCommitDone()) {
+        if (transaction.isCommitted()) {
             tracker.remove(transaction.getXid());
             if (transaction.hasFailures()) {
                 dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction));

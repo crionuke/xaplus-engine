@@ -192,9 +192,9 @@ class XAPlusManagerService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Transaction closed, {}", transaction);
             }
+            transaction.close();
+            dispatcher.dispatch(new XAPlusTransactionClosedEvent(transaction));
         }
-        transaction.close();
-        dispatcher.dispatch(new XAPlusTransactionClosedEvent(transaction));
     }
 }
 

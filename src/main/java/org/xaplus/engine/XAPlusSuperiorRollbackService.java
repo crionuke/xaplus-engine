@@ -125,7 +125,7 @@ class XAPlusSuperiorRollbackService extends Bolt implements
     }
 
     void check(XAPlusTransaction transaction) throws InterruptedException {
-        if (transaction.isRollbackDone()) {
+        if (transaction.isRolledBack()) {
             tracker.remove(transaction.getXid());
             if (transaction.hasFailures()) {
                 dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));

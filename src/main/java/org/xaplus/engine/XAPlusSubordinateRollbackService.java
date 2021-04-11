@@ -9,8 +9,6 @@ import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.twopc.XAPlusRollbackTransactionDecisionEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchRolledBackEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchFailedEvent;
-import org.xaplus.engine.events.xaplus.XAPlusReportFailedStatusRequestEvent;
-import org.xaplus.engine.exceptions.XAPlusSystemException;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -108,7 +106,7 @@ class XAPlusSubordinateRollbackService extends Bolt implements
     }
 
     void check(XAPlusTransaction transaction) throws InterruptedException {
-        if (transaction.isRollbackDone()) {
+        if (transaction.isRolledBack()) {
             XAPlusXid xid = transaction.getXid();
             tracker.remove(xid);
             if (transaction.hasFailures()) {

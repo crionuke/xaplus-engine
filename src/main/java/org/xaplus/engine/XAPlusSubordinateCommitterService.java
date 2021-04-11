@@ -9,8 +9,6 @@ import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlusCommitTransactionDecisionEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchCommittedEvent;
 import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
-import org.xaplus.engine.events.xaplus.XAPlusReportFailedStatusRequestEvent;
-import org.xaplus.engine.exceptions.XAPlusSystemException;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -109,7 +107,7 @@ class XAPlusSubordinateCommitterService extends Bolt implements
     }
 
     void check(XAPlusTransaction transaction) throws InterruptedException {
-        if (transaction.isCommitDone()) {
+        if (transaction.isCommitted()) {
             XAPlusXid xid = transaction.getXid();
             tracker.remove(xid);
             if (transaction.hasFailures()) {

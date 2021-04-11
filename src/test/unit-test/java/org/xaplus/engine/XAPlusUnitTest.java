@@ -54,7 +54,7 @@ public class XAPlusUnitTest extends Assert {
 
     protected XAPlusTransaction createTransaction(String gtridServerId, String bqualServerId) {
         XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(gtridServerId), XAPlusUid.generate(bqualServerId));
-        XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.gettransactionsTimeoutInSeconds(),
+        XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getTransactionsTimeoutInSeconds(),
                 properties.getServerId());
         return transaction;
     }

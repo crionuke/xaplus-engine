@@ -61,7 +61,7 @@ class XAPlusRecoveryCommitterTracker {
         return waiting.remove(xid);
     }
 
-    boolean isFinished() {
+    boolean isRecoveryCommitted() {
         return waiting.isEmpty();
     }
 

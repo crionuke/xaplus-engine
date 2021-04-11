@@ -185,7 +185,7 @@ class XAPlusSuperiorPreparerService extends Bolt implements
     }
 
     void check(XAPlusTransaction transaction) throws InterruptedException {
-        if (transaction.isPrepareDone()) {
+        if (transaction.isPrepared()) {
             tracker.remove(transaction.getXid());
             if (transaction.hasFailures()) {
                 dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));

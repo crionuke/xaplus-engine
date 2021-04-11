@@ -144,7 +144,7 @@ public class XAPlusTransaction {
         return superiorServerId.equals(serverId);
     }
 
-    boolean isPrepareDone() {
+    boolean isPrepared() {
         for (Branch xaBranch : xaBranches.values()) {
             if (!xaBranch.isPrepared()) {
                 return false;
@@ -158,7 +158,7 @@ public class XAPlusTransaction {
         return true;
     }
 
-    boolean isCommitDone() {
+    boolean isCommitted() {
         for (Branch xaBranch : xaBranches.values()) {
             if (!xaBranch.isCommitted()) {
                 return false;
@@ -172,7 +172,7 @@ public class XAPlusTransaction {
         return true;
     }
 
-    boolean isRollbackDone() {
+    boolean isRolledBack() {
         for (Branch xaBranch : xaBranches.values()) {
             if (!xaBranch.isRolledBack()) {
                 return false;
