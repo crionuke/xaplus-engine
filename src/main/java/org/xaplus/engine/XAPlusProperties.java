@@ -8,12 +8,14 @@ class XAPlusProperties {
 
     private final String serverId;
     private final int queueSize;
-    private final int defaultTimeoutInSeconds;
+    private final int transactionsTimeoutInSeconds;
+    private final int recoveryTimeoutInSeconds;
 
-    XAPlusProperties(String serverId, int queueSize, int defaultTimeoutInSeconds) {
+    XAPlusProperties(String serverId, int queueSize, int transactionsTimeoutInSeconds, int recoveryTimeoutInSeconds) {
         this.serverId = serverId;
         this.queueSize = queueSize;
-        this.defaultTimeoutInSeconds = defaultTimeoutInSeconds;
+        this.transactionsTimeoutInSeconds = transactionsTimeoutInSeconds;
+        this.recoveryTimeoutInSeconds = recoveryTimeoutInSeconds;
     }
 
     String getServerId() {
@@ -24,7 +26,11 @@ class XAPlusProperties {
         return queueSize;
     }
 
-    int getDefaultTimeoutInSeconds() {
-        return defaultTimeoutInSeconds;
+    int gettransactionsTimeoutInSeconds() {
+        return transactionsTimeoutInSeconds;
+    }
+
+    int getRecoveryTimeoutInSeconds() {
+        return recoveryTimeoutInSeconds;
     }
 }

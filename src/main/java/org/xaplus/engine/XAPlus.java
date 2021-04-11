@@ -33,7 +33,7 @@ public class XAPlus {
 
     private boolean constructed;
 
-    public XAPlus(String serverId, int defaultTimeoutInSeconds) {
+    public XAPlus(String serverId, int transactionsTimeoutInSeconds, int recoveryTimeoutInSeconds) {
         if (serverId == null) {
             throw new NullPointerException("serverId is null");
         }
@@ -41,17 +41,22 @@ public class XAPlus {
             throw new IllegalArgumentException("too long serverId, limited by " + MAX_SERVER_ID_LENGTH + " bytes, " +
                     "serverId=" + serverId);
         }
-        if (defaultTimeoutInSeconds <= 0) {
-            throw new IllegalArgumentException("default timeout must be greater zero, " +
-                    "defaultTimeoutInSeconds=" + defaultTimeoutInSeconds);
+        if (transactionsTimeoutInSeconds <= 0) {
+            throw new IllegalArgumentException("transaction timeout must be greater zero, " +
+                    "transactionsTimeoutInSeconds=" + transactionsTimeoutInSeconds);
         }
-        properties = new XAPlusProperties(serverId, 128, defaultTimeoutInSeconds);
+        if (recoveryTimeoutInSeconds <= 0) {
+            throw new IllegalArgumentException("recovery timeout must be greater zero, " +
+                    "recoveryTimeoutInSeconds=" + recoveryTimeoutInSeconds);
+        }
+        properties = new XAPlusProperties(serverId, 128, transactionsTimeoutInSeconds, recoveryTimeoutInSeconds);
         threadPool = new XAPlusThreadPool();
         dispatcher = new XAPlusDispatcher();
         resources = new XAPlusResources();
         engine = new XAPlusEngine(properties, dispatcher, resources, new XAPlusThreadOfControl());
         tickService = new XAPlusTickService(properties, threadPool, dispatcher);
-        timerService = new XAPlusTimerService(properties, threadPool, dispatcher, new XAPlusTimerState());
+        timerService = new XAPlusTimerService(properties, threadPool, dispatcher,
+                new XAPlusTimerTracker(properties.getRecoveryTimeoutInSeconds()));
         managerService = new XAPlusManagerService(properties, threadPool, dispatcher);
 
         subordinateCommitterService = new XAPlusSubordinateCommitterService(properties, threadPool, dispatcher,

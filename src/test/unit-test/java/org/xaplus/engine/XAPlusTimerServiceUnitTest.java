@@ -29,7 +29,8 @@ public class XAPlusTimerServiceUnitTest extends XAPlusUnitTest {
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
 
-        xaPlusTimerService = new XAPlusTimerService(properties, threadPool, dispatcher, new XAPlusTimerState());
+        xaPlusTimerService = new XAPlusTimerService(properties, threadPool, dispatcher,
+                new XAPlusTimerTracker(properties.getRecoveryTimeoutInSeconds()));
         xaPlusTimerService.postConstruct();
 
         consumerStub = new ConsumerStub();
@@ -46,7 +47,7 @@ public class XAPlusTimerServiceUnitTest extends XAPlusUnitTest {
     public void test2pcTimeout() throws InterruptedException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
-        Thread.sleep(properties.getDefaultTimeoutInSeconds() * 1000);
+        Thread.sleep(properties.gettransactionsTimeoutInSeconds() * 1000);
         dispatcher.dispatch(new XAPlusTickEvent(1));
         XAPlusTransactionTimedOutEvent timeoutEvent =
                 consumerStub.timeoutEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -59,7 +60,7 @@ public class XAPlusTimerServiceUnitTest extends XAPlusUnitTest {
     public void testRollbackTimeout() throws InterruptedException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
-        Thread.sleep(properties.getDefaultTimeoutInSeconds() * 1000);
+        Thread.sleep(properties.gettransactionsTimeoutInSeconds() * 1000);
         dispatcher.dispatch(new XAPlusTickEvent(1));
         XAPlusTransactionTimedOutEvent timeoutEvent =
                 consumerStub.timeoutEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);

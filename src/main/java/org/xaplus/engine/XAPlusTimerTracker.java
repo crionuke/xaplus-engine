@@ -6,11 +6,16 @@ import java.util.*;
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
  */
-class XAPlusTimerState {
-    private final Map<XAPlusXid, XAPlusTransaction> transactions;
+class XAPlusTimerTracker {
 
-    XAPlusTimerState() {
-        transactions = new HashMap<>();
+    private int recoveryTimeoutInSeconds;
+    private long recoveryStartTime;
+    private Map<XAPlusXid, XAPlusTransaction> transactions;
+
+    XAPlusTimerTracker(int recoveryTimeoutInSeconds) {
+        this.recoveryTimeoutInSeconds = recoveryTimeoutInSeconds;
+        this.recoveryStartTime = 0;
+        this.transactions = new HashMap<>();
     }
 
     boolean track(XAPlusTransaction transaction) {
@@ -34,5 +39,22 @@ class XAPlusTimerState {
             }
         }
         return expired;
+    }
+
+    void recoveryStarted() {
+        recoveryStartTime = System.currentTimeMillis();
+    }
+
+    boolean isRecoveryTimedOut() {
+        if (recoveryStartTime > 0) {
+            if (System.currentTimeMillis() - recoveryStartTime > recoveryTimeoutInSeconds * 1000) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void resetRecoveryTracker() {
+        recoveryStartTime = 0;
     }
 }

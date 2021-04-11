@@ -34,11 +34,11 @@ public class XAPlusUnitTest extends Assert {
     protected XAPlusDispatcher dispatcher;
 
     protected void createXAPlusComponents(String serverId) {
-        createXAPlusComponents(serverId, DEFAULT_TIMEOUT_S);
+        createXAPlusComponents(serverId, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S);
     }
 
-    protected void createXAPlusComponents(String serverId, int defaultTimeoutInSeconds) {
-        properties = new XAPlusProperties(serverId, QUEUE_SIZE, defaultTimeoutInSeconds);
+    protected void createXAPlusComponents(String serverId, int transactionsTimeoutInSeconds, int recoveryTimeoutInSeconds) {
+        properties = new XAPlusProperties(serverId, QUEUE_SIZE, transactionsTimeoutInSeconds, recoveryTimeoutInSeconds);
         resources = new XAPlusResources();
         resources.register(new XADataSourceStub(), XA_RESOURCE_1);
         resources.register(new XADataSourceStub(), XA_RESOURCE_2);
@@ -54,7 +54,7 @@ public class XAPlusUnitTest extends Assert {
 
     protected XAPlusTransaction createTransaction(String gtridServerId, String bqualServerId) {
         XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(gtridServerId), XAPlusUid.generate(bqualServerId));
-        XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getDefaultTimeoutInSeconds(),
+        XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.gettransactionsTimeoutInSeconds(),
                 properties.getServerId());
         return transaction;
     }

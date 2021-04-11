@@ -66,10 +66,10 @@ public class XAPlusScenarioTest extends Assert {
         database2 = createDatabase2();
 
         // XAPlus components to bolts
-        localXAPlus = new XAPlus(XA_PLUS_LOCAL, DEFAULT_TIMEOUT_S);
-        distributedXAPlus = new XAPlus(XA_PLUS_DISTRIBUTED, DEFAULT_TIMEOUT_S);
-        superiorXAPlus = new XAPlus(XA_PLUS_SUPERIOR, DEFAULT_TIMEOUT_S);
-        subordinateXAPLus = new XAPlus(XA_PLUS_SUBORDINATE, DEFAULT_TIMEOUT_S);
+        localXAPlus = new XAPlus(XA_PLUS_LOCAL, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S);
+        distributedXAPlus = new XAPlus(XA_PLUS_DISTRIBUTED, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S);
+        superiorXAPlus = new XAPlus(XA_PLUS_SUPERIOR, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S);
+        subordinateXAPLus = new XAPlus(XA_PLUS_SUBORDINATE, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S);
 
         requestSuperiorExceptions = new XAPlusScenarioExceptions();
         requestSubordinateExceptions = new XAPlusScenarioExceptions();

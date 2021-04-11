@@ -27,7 +27,8 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         XAPlusRecoveredXidCommittedEvent.Handler,
         XAPlusCommitRecoveredXidFailedEvent.Handler,
         XAPlusRecoveredXidRolledBackEvent.Handler,
-        XAPlusRollbackRecoveredXidFailedEvent.Handler {
+        XAPlusRollbackRecoveredXidFailedEvent.Handler,
+        XAPlusRecoveryTimedOutEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryCommitterService.class);
 
     private final XAPlusProperties properties;
@@ -84,7 +85,6 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     }
                 }
             }
-            // TODO: handle timeout for recovery process
         }
     }
 
@@ -184,6 +184,17 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         }
     }
 
+    @Override
+    public void handleRecoveryTimedOut(XAPlusRecoveryTimedOutEvent event) throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
+        if (logger.isDebugEnabled()) {
+            logger.debug("Recovery timed out, {}", System.currentTimeMillis());
+        }
+        reset();
+    }
+
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusRecoveryPreparedEvent.class);
@@ -195,16 +206,21 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         dispatcher.subscribe(this, XAPlusCommitRecoveredXidFailedEvent.class);
         dispatcher.subscribe(this, XAPlusRecoveredXidRolledBackEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackRecoveredXidFailedEvent.class);
+        dispatcher.subscribe(this, XAPlusRecoveryTimedOutEvent.class);
     }
 
     private void check() throws InterruptedException {
         if (tracker.isFinished()) {
-            Set<XAPlusRecoveredResource> recoveredResources = tracker.getRecoveredResources();
-            // Close all connections opened to recovery
-            for (XAPlusRecoveredResource recoveredResource : recoveredResources) {
-                recoveredResource.close();
-            }
-            tracker.reset();
+            reset();
+            dispatcher.dispatch(new XAPlusRecoveryFinishedEvent());
         }
+    }
+
+    void reset() {
+        // Close all connections opened to recovery
+        for (XAPlusRecoveredResource recoveredResource : tracker.getRecoveredResources()) {
+            recoveredResource.close();
+        }
+        tracker.reset();
     }
 }
