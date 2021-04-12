@@ -58,23 +58,29 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                 logger.debug("Recovery already started");
             }
         } else {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Commit recovery, {}", System.currentTimeMillis());
-            }
             Set<XAPlusRecoveredResource> recoveredResources = event.getRecoveredResources();
+            if (logger.isDebugEnabled()) {
+                logger.debug("Commit recovery for {} resource/s, {}",
+                        recoveredResources.size(), System.currentTimeMillis());
+            }
             tracker.start(recoveredResources);
             for (XAPlusRecoveredResource recoveredResource : recoveredResources) {
                 for (XAPlusXid recoveredXid : recoveredResource.getRecoveredXids()) {
                     String superiorServerId = recoveredXid.getGlobalTransactionIdUid().extractServerId();
+                    tracker.track(recoveredResource, recoveredXid);
                     if (superiorServerId.equals(properties.getServerId())) {
-                        tracker.track(recoveredResource, recoveredXid);
-                        // Recovery transaction status from tlog
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Recovered transaction status from tlog, xid={}", recoveredXid);
+                        }
                         dispatcher.dispatch(
                                 new XAPlusFindRecoveredXidStatusRequestEvent(recoveredXid, recoveredResource));
                     } else {
                         try {
                             XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
-                            // Request transaction status from superior
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("Request transaction status from superior, superiorServerId={}, xid={}",
+                                        superiorServerId, recoveredXid);
+                            }
                             dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(recoveredXid, resource));
                         } catch (XAPlusSystemException e) {
                             if (logger.isWarnEnabled()) {
@@ -97,8 +103,14 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         if (tracker.statusFound(xid)) {
             XAPlusRecoveredResource recoveredResource = event.getRecoveredResource();
             if (event.getStatus()) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Status found, commit recovered xid, xid={}", xid);
+                }
                 dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, recoveredResource));
             } else {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Status found, rollback recovered xid, xid={}", xid);
+                }
                 dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, recoveredResource));
             }
         }
@@ -113,6 +125,9 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         XAPlusXid xid = event.getXid();
         if (tracker.statusFound(xid)) {
             XAPlusRecoveredResource recoveredResource = tracker.getRecoveredResourceFor(xid);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Order to commit, commit recovered xid, xid={}", xid);
+            }
             dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, recoveredResource));
         }
     }
@@ -120,9 +135,15 @@ class XAPlusRecoveryCommitterService extends Bolt implements
     @Override
     public void handleRemoteSuperiorOrderToRollback(XAPlusRemoteSuperiorOrderToRollbackEvent event)
             throws InterruptedException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Handle {}", event);
+        }
         XAPlusXid xid = event.getXid();
         if (tracker.statusFound(xid)) {
             XAPlusRecoveredResource recoveredResource = tracker.getRecoveredResourceFor(xid);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Order to rollback, rollback recovered xid, xid={}", xid);
+            }
             dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, recoveredResource));
         }
     }
@@ -135,6 +156,9 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         if (tracker.findStatusFailed(xid)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Find status failed, xid={}", xid);
+            }
             check();
         }
     }
@@ -146,6 +170,9 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         if (tracker.xidRecovered(xid)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Recovered xid committed, xid={}", xid);
+            }
             check();
         }
     }
@@ -157,6 +184,9 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         if (tracker.xidRecovered(xid)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Commit recovered xid failed, xid={}", xid);
+            }
             check();
         }
     }
@@ -168,6 +198,9 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         if (tracker.xidRecovered(xid)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Recovered xid rolled back, xid={}", xid);
+            }
             check();
         }
     }
@@ -180,6 +213,9 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         if (tracker.xidRecovered(xid)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Rollback recovered xid failed, xid={}", xid);
+            }
             check();
         }
     }

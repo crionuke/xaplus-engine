@@ -4,14 +4,25 @@ import javax.sql.ConnectionEventListener;
 import javax.sql.StatementEventListener;
 import javax.sql.XAConnection;
 import javax.transaction.xa.XAResource;
+import javax.transaction.xa.Xid;
 import java.sql.Connection;
 import java.sql.SQLException;
 
 public class XAConnectionStub implements XAConnection {
 
+    private final Xid[] recoverResponse;
+
+    public XAConnectionStub() {
+        this.recoverResponse = new Xid[0];
+    }
+
+    public XAConnectionStub(Xid[] recoverResponse) {
+        this.recoverResponse = recoverResponse;
+    }
+
     @Override
     public XAResource getXAResource() throws SQLException {
-        return new XAResourceStub();
+        return new XAResourceStub(recoverResponse);
     }
 
     @Override

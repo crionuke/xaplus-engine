@@ -11,18 +11,13 @@ import org.xaplus.engine.XAPlusXid;
 public final class XAPlusRollbackRecoveredXidFailedEvent extends Event<XAPlusRollbackRecoveredXidFailedEvent.Handler> {
 
     private final XAPlusXid xid;
-    private final XAPlusRecoveredResource resource;
 
-    public XAPlusRollbackRecoveredXidFailedEvent(XAPlusXid xid, XAPlusRecoveredResource resource) {
+    public XAPlusRollbackRecoveredXidFailedEvent(XAPlusXid xid) {
         super();
         if (xid == null) {
             throw new NullPointerException("xid is null");
         }
-        if (resource == null) {
-            throw new NullPointerException("resource is null");
-        }
         this.xid = xid;
-        this.resource = resource;
     }
 
     @Override
@@ -32,15 +27,11 @@ public final class XAPlusRollbackRecoveredXidFailedEvent extends Event<XAPlusRol
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "=(xid=" + xid + ", resource=" + resource + ")";
+        return getClass().getSimpleName() + "=(xid=" + xid + ")";
     }
 
     public XAPlusXid getXid() {
         return xid;
-    }
-
-    public XAPlusRecoveredResource getResource() {
-        return resource;
     }
 
     public interface Handler {

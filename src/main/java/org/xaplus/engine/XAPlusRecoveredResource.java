@@ -116,28 +116,28 @@ public class XAPlusRecoveredResource {
         Set<XAPlusXid> freshly = new HashSet<>();
         for (Xid xid : recovered) {
             if (xid.getFormatId() != XAPlusXid.FORMAT_ID) {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Skipping xid={} with format={}", xid, xid.getFormatId());
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Skipping xid={} with format={}", xid, xid.getFormatId());
                 }
                 continue;
             }
             XAPlusXid xaPlusXid = new XAPlusXid(xid);
             if (xids.contains(xaPlusXid)) {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Already recovered xid={}, skipping it", xaPlusXid);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Already recovered xid={}, skipping it", xaPlusXid);
                 }
                 continue;
             }
-            String extractedServerId = xaPlusXid.getGlobalTransactionIdUid().extractServerId();
+            String extractedServerId = xaPlusXid.getBranchQualifierUid().extractServerId();
             if (extractedServerId == null) {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Skipping xid={} as its serverId is null", xaPlusXid);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Skipping xid={} as its serverId is null", xaPlusXid);
                 }
                 continue;
             }
             if (!extractedServerId.equals(serverId)) {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Skipping xid={} as its serverId={} does not match this serverId={}",
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Skipping xid={} as its serverId={} does not match this serverId={}",
                             xaPlusXid, extractedServerId, serverId);
                 }
                 continue;

@@ -212,9 +212,9 @@ class XAPlusService extends Bolt implements
             }
         }
         if (success) {
-            dispatcher.dispatch(new XAPlusRecoveredXidCommittedEvent(xid, recoveredResource));
+            dispatcher.dispatch(new XAPlusRecoveredXidCommittedEvent(xid));
         } else {
-            dispatcher.dispatch(new XAPlusCommitRecoveredXidFailedEvent(xid, recoveredResource));
+            dispatcher.dispatch(new XAPlusCommitRecoveredXidFailedEvent(xid));
         }
     }
 
@@ -262,9 +262,9 @@ class XAPlusService extends Bolt implements
             }
         }
         if (success) {
-            dispatcher.dispatch(new XAPlusRecoveredXidRolledBackEvent(xid, recoveredResource));
+            dispatcher.dispatch(new XAPlusRecoveredXidRolledBackEvent(xid));
         } else {
-            dispatcher.dispatch(new XAPlusRollbackRecoveredXidFailedEvent(xid, recoveredResource));
+            dispatcher.dispatch(new XAPlusRollbackRecoveredXidFailedEvent(xid));
         }
     }
 

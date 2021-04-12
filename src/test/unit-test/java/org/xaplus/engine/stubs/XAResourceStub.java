@@ -6,6 +6,16 @@ import javax.transaction.xa.Xid;
 
 public class XAResourceStub implements XAResource {
 
+    private final Xid[] recoverResponse;
+
+    public XAResourceStub() {
+        this.recoverResponse = new Xid[0];
+    }
+
+    public XAResourceStub(Xid[] recoverResponse) {
+        this.recoverResponse = recoverResponse;
+    }
+
     @Override
     public void commit(Xid xid, boolean onePhase) throws XAException {
 
@@ -38,7 +48,7 @@ public class XAResourceStub implements XAResource {
 
     @Override
     public Xid[] recover(int flag) throws XAException {
-        return new Xid[0];
+        return recoverResponse;
     }
 
     @Override
