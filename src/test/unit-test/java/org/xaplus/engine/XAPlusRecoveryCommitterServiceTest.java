@@ -52,6 +52,7 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
         XAPlusXid xid1 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
         XAPlusXid xid2 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
         XAPlusXid xid3 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
+        // xid4 and xid5 started by remote superiors XA_PLUS_RESOURCE_2 and XA_PLUS_RESOURCE_3
         XAPlusXid xid4 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_2), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
         XAPlusXid xid5 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_3), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
         logger.debug("xid1={}", xid1);
@@ -59,6 +60,7 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
         logger.debug("xid3={}", xid3);
         logger.debug("xid4={}", xid4);
         logger.debug("xid5={}", xid5);
+
         // Start recovery
         Thread.sleep(1);
         long inFlightCutoff = System.currentTimeMillis();

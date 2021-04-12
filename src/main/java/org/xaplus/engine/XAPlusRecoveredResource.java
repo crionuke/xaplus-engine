@@ -128,6 +128,7 @@ public class XAPlusRecoveredResource {
                 }
                 continue;
             }
+            // Used bqual to determine who is responsible for branch local server or not
             String extractedServerId = xaPlusXid.getBranchQualifierUid().extractServerId();
             if (extractedServerId == null) {
                 if (logger.isDebugEnabled()) {
