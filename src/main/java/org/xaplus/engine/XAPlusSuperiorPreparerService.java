@@ -34,11 +34,11 @@ class XAPlusSuperiorPreparerService extends Bolt implements
     private final XAPlusTracker tracker;
 
     XAPlusSuperiorPreparerService(XAPlusProperties properties, XAPlusThreadPool threadPool,
-                                  XAPlusDispatcher dispatcher, XAPlusTracker tracker) {
+                                  XAPlusDispatcher dispatcher) {
         super(properties.getServerId() + "-superior-preparer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        this.tracker = tracker;
+        this.tracker = new XAPlusTracker();
     }
 
     @Override

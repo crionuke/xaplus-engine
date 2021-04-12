@@ -25,12 +25,12 @@ class XAPlusSubordinateRollbackService extends Bolt implements
     private final XAPlusDispatcher dispatcher;
     private final XAPlusTracker tracker;
 
-    XAPlusSubordinateRollbackService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
-                                     XAPlusResources resources, XAPlusTracker tracker) {
+    XAPlusSubordinateRollbackService(XAPlusProperties properties, XAPlusThreadPool threadPool,
+                                     XAPlusDispatcher dispatcher) {
         super(properties.getServerId() + "subordinate-rollback", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        this.tracker = tracker;
+        this.tracker = new XAPlusTracker();
     }
 
     @Override

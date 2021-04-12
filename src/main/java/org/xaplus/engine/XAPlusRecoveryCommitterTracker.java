@@ -15,13 +15,19 @@ import java.util.Set;
 class XAPlusRecoveryCommitterTracker {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryCommitterTracker.class);
 
+    private final long recoveryTimeoutInSeconds;
+
     private boolean started;
+    private long expireTimeInMillis;
     private Set<XAPlusRecoveredResource> recoveredResources;
     private Map<XAPlusXid, XAPlusRecoveredResource> resourceByXid;
     private Set<XAPlusXid> waiting;
 
-    XAPlusRecoveryCommitterTracker() {
+    XAPlusRecoveryCommitterTracker(long recoveryTimeoutInSeconds) {
+        this.recoveryTimeoutInSeconds = recoveryTimeoutInSeconds;
+
         started = false;
+        expireTimeInMillis = 0;
         recoveredResources = new HashSet<>();
         resourceByXid = new HashMap<>();
         waiting = new HashSet<>();
@@ -34,10 +40,15 @@ class XAPlusRecoveryCommitterTracker {
     void start(Set<XAPlusRecoveredResource> resources) {
         recoveredResources.addAll(resources);
         started = true;
+        expireTimeInMillis = System.currentTimeMillis() + recoveryTimeoutInSeconds * 1000;
     }
 
     boolean isStarted() {
         return started;
+    }
+
+    boolean isExpired() {
+        return started && System.currentTimeMillis() > expireTimeInMillis;
     }
 
     void track(XAPlusRecoveredResource recoveredResource, XAPlusXid xid) {

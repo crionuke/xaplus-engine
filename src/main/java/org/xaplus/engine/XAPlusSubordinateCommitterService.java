@@ -26,11 +26,11 @@ class XAPlusSubordinateCommitterService extends Bolt implements
     private final XAPlusTracker tracker;
 
     XAPlusSubordinateCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
-                                      XAPlusDispatcher dispatcher, XAPlusResources resources, XAPlusTracker tracker) {
+                                      XAPlusDispatcher dispatcher) {
         super(properties.getServerId() + "-subordinate-committer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        this.tracker = tracker;
+        this.tracker = new XAPlusTracker();
     }
 
     @Override

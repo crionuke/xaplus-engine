@@ -21,8 +21,7 @@ public class XAPlusSuperiorPreparerServiceTest extends XAPlusUnitTest {
     @Before
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
-        xaPlusSuperiorPreparerService = new XAPlusSuperiorPreparerService(properties, threadPool, dispatcher,
-                new XAPlusTracker());
+        xaPlusSuperiorPreparerService = new XAPlusSuperiorPreparerService(properties, threadPool, dispatcher);
         xaPlusSuperiorPreparerService.postConstruct();
         consumerStub = new ConsumerStub();
         consumerStub.postConstruct();

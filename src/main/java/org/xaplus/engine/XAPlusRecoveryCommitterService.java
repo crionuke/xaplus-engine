@@ -3,6 +3,7 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xaplus.engine.events.XAPlusTickEvent;
 import org.xaplus.engine.events.journal.XAPlusFindRecoveredXidStatusFailedEvent;
 import org.xaplus.engine.events.journal.XAPlusFindRecoveredXidStatusRequestEvent;
 import org.xaplus.engine.events.journal.XAPlusRecoveredXidStatusFoundEvent;
@@ -28,7 +29,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         XAPlusCommitRecoveredXidFailedEvent.Handler,
         XAPlusRecoveredXidRolledBackEvent.Handler,
         XAPlusRollbackRecoveredXidFailedEvent.Handler,
-        XAPlusRecoveryTimedOutEvent.Handler {
+        XAPlusTickEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusRecoveryCommitterService.class);
 
     private final XAPlusProperties properties;
@@ -38,14 +39,13 @@ class XAPlusRecoveryCommitterService extends Bolt implements
     private final XAPlusRecoveryCommitterTracker tracker;
 
     XAPlusRecoveryCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
-                                   XAPlusDispatcher dispatcher, XAPlusResources resources,
-                                   XAPlusRecoveryCommitterTracker tracker) {
+                                   XAPlusDispatcher dispatcher, XAPlusResources resources) {
         super(properties.getServerId() + "-recovery-committer", properties.getQueueSize());
         this.properties = properties;
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.resources = resources;
-        this.tracker = tracker;
+        this.tracker = new XAPlusRecoveryCommitterTracker(properties.getRecoveryTimeoutInSeconds());
     }
 
     @Override
@@ -185,14 +185,13 @@ class XAPlusRecoveryCommitterService extends Bolt implements
     }
 
     @Override
-    public void handleRecoveryTimedOut(XAPlusRecoveryTimedOutEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
+    public void handleTick(XAPlusTickEvent event) throws InterruptedException {
+        if (tracker.isExpired()) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Recovery timed out, {}", System.currentTimeMillis());
+                reset();
+            }
         }
-        if (logger.isDebugEnabled()) {
-            logger.debug("Recovery timed out, {}", System.currentTimeMillis());
-        }
-        reset();
     }
 
     void postConstruct() {
@@ -206,7 +205,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         dispatcher.subscribe(this, XAPlusCommitRecoveredXidFailedEvent.class);
         dispatcher.subscribe(this, XAPlusRecoveredXidRolledBackEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackRecoveredXidFailedEvent.class);
-        dispatcher.subscribe(this, XAPlusRecoveryTimedOutEvent.class);
+        dispatcher.subscribe(this, XAPlusTickEvent.class);
     }
 
     private void check() throws InterruptedException {

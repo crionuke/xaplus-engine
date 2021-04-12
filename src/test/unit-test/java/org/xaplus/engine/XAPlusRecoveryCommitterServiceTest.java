@@ -31,8 +31,8 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
 
-        xaPlusRecoveryCommitterService = new XAPlusRecoveryCommitterService(properties, threadPool, dispatcher,
-                resources, new XAPlusRecoveryCommitterTracker());
+        xaPlusRecoveryCommitterService =
+                new XAPlusRecoveryCommitterService(properties, threadPool, dispatcher, resources);
         xaPlusRecoveryCommitterService.postConstruct();
 
         retryCommitOrderRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);

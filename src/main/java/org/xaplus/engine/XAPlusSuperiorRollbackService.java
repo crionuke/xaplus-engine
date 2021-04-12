@@ -27,12 +27,11 @@ class XAPlusSuperiorRollbackService extends Bolt implements
     private final XAPlusDispatcher dispatcher;
     private final XAPlusTracker tracker;
 
-    XAPlusSuperiorRollbackService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
-                                  XAPlusTracker tracker) {
+    XAPlusSuperiorRollbackService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
         super(properties.getServerId() + "-superior-rollback", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        this.tracker = tracker;
+        this.tracker = new XAPlusTracker();
     }
 
     @Override

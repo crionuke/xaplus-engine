@@ -26,8 +26,8 @@ public class XAPlusRecoveryPreparerServiceTest extends XAPlusUnitTest {
     @Before
     public void beforeTest() {
         createXAPlusComponents(XA_PLUS_RESOURCE_1);
-        xaPlusRecoveryPreparerService = new XAPlusRecoveryPreparerService(properties, threadPool, dispatcher, resources,
-                        new XAPlusRecoveryPreparerTracker());
+        xaPlusRecoveryPreparerService =
+                new XAPlusRecoveryPreparerService(properties, threadPool, dispatcher, resources);
         xaPlusRecoveryPreparerService.postConstruct();
         consumerStub = new ConsumerStub();
         consumerStub.postConstruct();

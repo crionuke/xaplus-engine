@@ -15,7 +15,6 @@ public class XAPlus {
     final XAPlusEngine engine;
 
     final XAPlusTickService tickService;
-    final XAPlusTimerService timerService;
     final XAPlusManagerService managerService;
 
     final XAPlusSubordinateCommitterService subordinateCommitterService;
@@ -49,32 +48,24 @@ public class XAPlus {
             throw new IllegalArgumentException("recovery timeout must be greater zero, " +
                     "recoveryTimeoutInSeconds=" + recoveryTimeoutInSeconds);
         }
-        properties = new XAPlusProperties(serverId, 128, transactionsTimeoutInSeconds, recoveryTimeoutInSeconds);
+        properties = new XAPlusProperties(serverId, 128,
+                transactionsTimeoutInSeconds, recoveryTimeoutInSeconds);
         threadPool = new XAPlusThreadPool();
         dispatcher = new XAPlusDispatcher();
         resources = new XAPlusResources();
         engine = new XAPlusEngine(properties, dispatcher, resources, new XAPlusThreadOfControl());
         tickService = new XAPlusTickService(properties, threadPool, dispatcher);
-        timerService = new XAPlusTimerService(properties, threadPool, dispatcher,
-                new XAPlusTimerTracker(properties.getRecoveryTimeoutInSeconds()));
         managerService = new XAPlusManagerService(properties, threadPool, dispatcher);
 
-        subordinateCommitterService = new XAPlusSubordinateCommitterService(properties, threadPool, dispatcher,
-                resources, new XAPlusTracker());
-        subordinatePreparerService = new XAPlusSubordinatePreparerService(properties, threadPool, dispatcher,
-                resources, new XAPlusTracker());
-        subordinateRollbackService = new XAPlusSubordinateRollbackService(properties, threadPool, dispatcher,
-                resources, new XAPlusTracker());
-        superiorCommitterService = new XAPlusSuperiorCommitterService(properties, threadPool, dispatcher,
-                new XAPlusTracker());
-        superiorPreparerService = new XAPlusSuperiorPreparerService(properties, threadPool, dispatcher,
-                new XAPlusTracker());
-        superiorRollbackService = new XAPlusSuperiorRollbackService(properties, threadPool, dispatcher,
-                new XAPlusTracker());
-        recoveryPreparerService = new XAPlusRecoveryPreparerService(properties, threadPool, dispatcher, resources,
-                new XAPlusRecoveryPreparerTracker());
-        recoveryCommitterService = new XAPlusRecoveryCommitterService(properties, threadPool, dispatcher, resources,
-                new XAPlusRecoveryCommitterTracker());
+        subordinateCommitterService = new XAPlusSubordinateCommitterService(properties, threadPool, dispatcher);
+        subordinatePreparerService =
+                new XAPlusSubordinatePreparerService(properties, threadPool, dispatcher, resources);
+        subordinateRollbackService = new XAPlusSubordinateRollbackService(properties, threadPool, dispatcher);
+        superiorCommitterService = new XAPlusSuperiorCommitterService(properties, threadPool, dispatcher);
+        superiorPreparerService = new XAPlusSuperiorPreparerService(properties, threadPool, dispatcher);
+        superiorRollbackService = new XAPlusSuperiorRollbackService(properties, threadPool, dispatcher);
+        recoveryPreparerService = new XAPlusRecoveryPreparerService(properties, threadPool, dispatcher, resources);
+        recoveryCommitterService = new XAPlusRecoveryCommitterService(properties, threadPool, dispatcher, resources);
         journalService = new XAPlusJournalService(properties, threadPool, dispatcher, resources,
                 new XAPlusTLog(serverId, engine));
         xaPlusService = new XAPlusService(properties, threadPool, dispatcher);
@@ -89,7 +80,6 @@ public class XAPlus {
             constructed = true;
         }
         tickService.postConstruct();
-        timerService.postConstruct();
         managerService.postConstruct();
         subordinateCommitterService.postConstruct();
         subordinatePreparerService.postConstruct();

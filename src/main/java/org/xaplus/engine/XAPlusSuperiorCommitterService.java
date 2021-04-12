@@ -28,11 +28,11 @@ class XAPlusSuperiorCommitterService extends Bolt implements
     private final XAPlusTracker tracker;
 
     XAPlusSuperiorCommitterService(XAPlusProperties properties, XAPlusThreadPool threadPool,
-                                   XAPlusDispatcher dispatcher, XAPlusTracker tracker) {
+                                   XAPlusDispatcher dispatcher) {
         super(properties.getServerId() + "-superior-committer", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        this.tracker = tracker;
+        this.tracker = new XAPlusTracker();
     }
 
     @Override

@@ -3,6 +3,7 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xaplus.engine.events.XAPlusTickEvent;
 import org.xaplus.engine.events.recovery.XAPlusPrepareRecoveryRequestEvent;
 import org.xaplus.engine.events.recovery.XAPlusStartRecoveryRequestEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
@@ -17,9 +18,7 @@ import org.xaplus.engine.exceptions.XAPlusCommitException;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
 import org.xaplus.engine.exceptions.XAPlusTimeoutException;
 
-import java.util.Comparator;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -32,13 +31,12 @@ class XAPlusManagerService extends Bolt implements
         XAPlus2pcFailedEvent.Handler,
         XAPlusRollbackDoneEvent.Handler,
         XAPlusRollbackFailedEvent.Handler,
-        XAPlusTransactionTimedOutEvent.Handler,
-        XAPlusStartRecoveryRequestEvent.Handler {
+        XAPlusStartRecoveryRequestEvent.Handler,
+        XAPlusTickEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusManagerService.class);
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final XAPlusTracker tracker;
     private final long startTime;
     private final SortedSet<XAPlusTransaction> inFlightTransactions;
 
@@ -46,7 +44,6 @@ class XAPlusManagerService extends Bolt implements
         super(properties.getServerId() + "-manager", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        tracker = new XAPlusTracker();
         startTime = System.currentTimeMillis();
         inFlightTransactions = new TreeSet<>(Comparator
                 .comparingLong((transaction) -> transaction.getCreationTimeInMillis()));
@@ -58,8 +55,7 @@ class XAPlusManagerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        if (tracker.track(transaction)) {
-            inFlightTransactions.add(transaction);
+        if (inFlightTransactions.add(transaction)) {
             if (logger.isInfoEnabled()) {
                 logger.info("User start 2pc protocol, {}", transaction);
             }
@@ -72,8 +68,7 @@ class XAPlusManagerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        if (tracker.track(transaction)) {
-            inFlightTransactions.add(transaction);
+        if (inFlightTransactions.add(transaction)) {
             if (logger.isInfoEnabled()) {
                 logger.info("User start rollback protocol, {}", transaction);
             }
@@ -85,9 +80,8 @@ class XAPlusManagerService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getTransaction().getXid();
-        if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.remove(xid);
+        XAPlusTransaction transaction = event.getTransaction();
+        if (inFlightTransactions.remove(transaction)) {
             if (logger.isInfoEnabled()) {
                 logger.info("Transaction done, {}", transaction);
             }
@@ -101,9 +95,8 @@ class XAPlusManagerService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getTransaction().getXid();
-        if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.remove(xid);
+        XAPlusTransaction transaction = event.getTransaction();
+        if (inFlightTransactions.remove(transaction)) {
             if (logger.isInfoEnabled()) {
                 logger.info("Transaction 2pc failed, {}", transaction);
             }
@@ -117,9 +110,8 @@ class XAPlusManagerService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getTransaction().getXid();
-        if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.remove(xid);
+        XAPlusTransaction transaction = event.getTransaction();
+        if (inFlightTransactions.remove(transaction)) {
             if (logger.isInfoEnabled()) {
                 logger.info("Transaction rolled back, {}", transaction);
             }
@@ -133,30 +125,13 @@ class XAPlusManagerService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        XAPlusXid xid = event.getTransaction().getXid();
-        if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.remove(xid);
+        XAPlusTransaction transaction = event.getTransaction();
+        if (inFlightTransactions.remove(transaction)) {
             if (logger.isInfoEnabled()) {
                 logger.info("Transaction rollback failed, {}", transaction);
             }
             close(transaction);
             transaction.getFuture().put(new XAPlusResult(new XAPlusRollbackException("rollback exception")));
-        }
-    }
-
-    @Override
-    public void handleTransactionTimedOut(XAPlusTransactionTimedOutEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusXid xid = event.getTransaction().getXid();
-        if (tracker.contains(xid)) {
-            XAPlusTransaction transaction = tracker.remove(xid);
-            if (logger.isInfoEnabled()) {
-                logger.info("Transaction timed out, {}", transaction);
-            }
-            close(transaction);
-            transaction.getFuture().put(new XAPlusResult(new XAPlusTimeoutException("timeout exception")));
         }
     }
 
@@ -175,6 +150,28 @@ class XAPlusManagerService extends Bolt implements
         dispatcher.dispatch(new XAPlusPrepareRecoveryRequestEvent(inFlightCutoff));
     }
 
+    @Override
+    public void handleTick(XAPlusTickEvent event) throws InterruptedException {
+        long time = System.currentTimeMillis();
+        Set<XAPlusTransaction> expiredTransactions = new HashSet<>();
+        for (XAPlusTransaction transaction : inFlightTransactions) {
+            if (time > transaction.getExpireTimeInMillis()) {
+                expiredTransactions.add(transaction);
+            }
+        }
+        if (expiredTransactions.size() > 0) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Found {} expired transactions", expiredTransactions.size());
+            }
+            for (XAPlusTransaction transaction : expiredTransactions) {
+                dispatcher.dispatch(new XAPlusTransactionTimedOutEvent(transaction));
+                transaction.getFuture().put(new XAPlusResult(new XAPlusTimeoutException("timeout exception")));
+                inFlightTransactions.remove(transaction);
+                close(transaction);
+            }
+        }
+    }
+
     void postConstruct() {
         threadPool.execute(this);
         dispatcher.subscribe(this, XAPlusUserCommitRequestEvent.class);
@@ -183,18 +180,16 @@ class XAPlusManagerService extends Bolt implements
         dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackDoneEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackFailedEvent.class);
-        dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
         dispatcher.subscribe(this, XAPlusStartRecoveryRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusTickEvent.class);
     }
 
     private void close(XAPlusTransaction transaction) throws InterruptedException {
-        if (inFlightTransactions.remove(transaction)) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Transaction closed, {}", transaction);
-            }
-            transaction.close();
-            dispatcher.dispatch(new XAPlusTransactionClosedEvent(transaction));
+        if (logger.isDebugEnabled()) {
+            logger.debug("Transaction closed, {}", transaction);
         }
+        transaction.close();
+        dispatcher.dispatch(new XAPlusTransactionClosedEvent(transaction));
     }
 }
 

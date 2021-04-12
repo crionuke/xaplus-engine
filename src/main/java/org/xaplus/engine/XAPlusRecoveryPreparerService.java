@@ -26,13 +26,13 @@ class XAPlusRecoveryPreparerService extends Bolt implements
     private final XAPlusRecoveryPreparerTracker tracker;
 
     XAPlusRecoveryPreparerService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher,
-                                  XAPlusResources resources, XAPlusRecoveryPreparerTracker tracker) {
+                                  XAPlusResources resources) {
         super(properties.getServerId() + "-recovery-preparer", properties.getQueueSize());
         this.properties = properties;
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.resources = resources;
-        this.tracker = tracker;
+        this.tracker = new XAPlusRecoveryPreparerTracker();
     }
 
     @Override
