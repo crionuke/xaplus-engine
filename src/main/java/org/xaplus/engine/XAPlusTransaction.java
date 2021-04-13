@@ -30,6 +30,7 @@ public class XAPlusTransaction {
     private final Map<XAPlusXid, Branch> xaBranches;
     private final Map<XAPlusXid, Branch> xaPlusBranches;
     private final XAPlusFuture future;
+    private volatile boolean decided;
     private volatile boolean rollbackOnly;
 
     XAPlusTransaction(XAPlusXid xid, int timeoutInSeconds, String serverId) {
@@ -43,6 +44,7 @@ public class XAPlusTransaction {
         xaBranches = new ConcurrentHashMap<>();
         xaPlusBranches = new ConcurrentHashMap<>();
         future = new XAPlusFuture();
+        decided = false;
         rollbackOnly = false;
     }
 
@@ -184,6 +186,14 @@ public class XAPlusTransaction {
             }
         }
         return true;
+    }
+
+    boolean isDecided() {
+        return decided;
+    }
+
+    void markAsDecided() {
+        decided = true;
     }
 
     boolean isRollbackOnly() {

@@ -117,9 +117,12 @@ class XAPlusSuperiorPreparerService extends Bolt implements
         if (tracker.contains(xid)) {
             XAPlusTransaction transaction = tracker.getTransaction(xid);
             if (logger.isDebugEnabled()) {
-                logger.debug("Prepare transaction, {}", transaction);
+                logger.debug("User decide to commit, prepare transaction, {}", transaction);
             }
+            transaction.markAsDecided();
             transaction.prepare(dispatcher);
+            // If no XA resources need check here
+            check(transaction);
         }
     }
 
@@ -185,7 +188,7 @@ class XAPlusSuperiorPreparerService extends Bolt implements
     }
 
     void check(XAPlusTransaction transaction) throws InterruptedException {
-        if (transaction.isPrepared()) {
+        if (transaction.isDecided() && transaction.isPrepared()) {
             tracker.remove(transaction.getXid());
             if (transaction.hasFailures()) {
                 dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
