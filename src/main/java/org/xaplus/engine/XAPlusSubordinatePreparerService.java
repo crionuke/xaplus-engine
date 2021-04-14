@@ -69,7 +69,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
         if (tracker.contains(xid)) {
             XAPlusTransaction transaction = tracker.getTransaction(xid);
             // Or preparation finished, or transaction already marked as rollback only by user rollback request
-            if (transaction.isPrepared() || transaction.isRollbackOnly()) {
+            if (transaction.isPrepared() || transaction.isDecided() && transaction.isRollbackOnly()) {
                 tracker.remove(xid);
                 if (logger.isDebugEnabled()) {
                     logger.debug("Rollback decision, {}", transaction);
@@ -120,6 +120,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                 }
                 dispatcher.dispatch(new XAPlusRollbackTransactionDecisionEvent(transaction));
             } else {
+                transaction.markAsDecided();
                 transaction.markAsRollbackOnly();
                 // Send branch failed event to superior
                 String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
@@ -149,6 +150,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
             if (logger.isDebugEnabled()) {
                 logger.debug("Prepare transaction, {}", transaction);
             }
+            transaction.markAsDecided();
             transaction.prepare(dispatcher);
         }
     }
@@ -247,7 +249,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
     }
 
     void check(XAPlusTransaction transaction) throws InterruptedException {
-        if (transaction.isPrepared()) {
+        if (transaction.isDecided() && transaction.isPrepared()) {
             XAPlusXid xid = transaction.getXid();
             // If rollback request received from superior
             if (transaction.isRollbackOnly()) {
