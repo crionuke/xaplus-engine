@@ -305,7 +305,6 @@ public class XAPlusScenarioTest extends Assert {
             }
             long value = event.getValue();
             XAPlusFuture future;
-            List<XAPlusXid> usedXids = new ArrayList<>();
             try {
                 engine.begin();
                 // Enlist and change XA xaResource
@@ -315,24 +314,23 @@ public class XAPlusScenarioTest extends Assert {
                     statement.executeUpdate();
                 }
                 // Enlist and call subordinate
-                XAPlusXid branchXid = engine.createXAPlusXid(XA_PLUS_SUBORDINATE);
+                XAPlusXid branchXid = engine.enlistXAPlus(XA_PLUS_SUBORDINATE);
                 if (event.isSuperiorBeforeRequestException()) {
                     throw new Exception("before request exception");
                 }
                 testDispatcher.dispatch(new XAPlusTestSubordinateRequestEvent(branchXid, value,
                         event.isSubordinateBeforeCommitException()));
-                usedXids.add(branchXid);
                 if (event.isSuperiorBeforeCommitException()) {
                     throw new Exception("before commit exception");
                 }
                 // Commit transaction
-                future = engine.commit(usedXids);
+                future = engine.commit();
             } catch (Exception e) {
                 if (logger.isWarnEnabled()) {
                     logger.warn("Transaction failed as {}", e.getMessage());
                 }
                 // Rollback transaction
-                future = engine.rollback(usedXids);
+                future = engine.rollback();
             }
             // Wait result
             try {

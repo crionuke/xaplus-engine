@@ -205,16 +205,14 @@ public final class XAPlusEngine {
         return context.getContext();
     }
 
-    // TODO: enlist XA+ xids inside engine
-
     /**
-     * Create xid for XA+ resource
+     * Enlist XA+ resource
      *
-     * @param serverId name of resource
-     * @return {@link XAPlusXid} in string representation
+     * @param serverId name of XA+ resource
+     * @return {@link XAPlusXid} transaction xid
      * @throws XAException access resource failed or start XA resource failed
      */
-    public XAPlusXid createXAPlusXid(String serverId) throws XAException {
+    public XAPlusXid enlistXAPlus(String serverId) throws XAException {
         if (serverId == null) {
             throw new NullPointerException("serverId is null");
         }
@@ -224,7 +222,7 @@ public final class XAPlusEngine {
         }
         XAPlusTransaction transaction = threadContext.getTransaction();
         if (!transaction.isSuperior()) {
-            throw new IllegalStateException("Only superior has the right to enlist XA+ resources");
+            throw new IllegalStateException("Only superior has the right to enlistXAPlus XA+ resources");
         }
         if (logger.isTraceEnabled()) {
             logger.trace("Enlisting XA+ resource, serverId={}, xid={}", serverId, transaction.getXid());
@@ -244,7 +242,7 @@ public final class XAPlusEngine {
     }
 
     /**
-     * Commit XA transaction
+     * Commit transaction
      *
      * @return future to get result
      * @throws InterruptedException commit operation was interrupted
@@ -255,27 +253,6 @@ public final class XAPlusEngine {
             throw new IllegalStateException("No transaction on this thread");
         }
         XAPlusTransaction transaction = threadContext.getTransaction();
-        if (transaction.hasXAPlusBranches()) {
-            throw new IllegalStateException("Transaction has XA+ branches, specify xids to commit");
-        } else {
-            return commit(new ArrayList<>());
-        }
-    }
-
-    /**
-     * Start 2pc protocol
-     *
-     * @param xids XA+ xids to commit
-     * @return future to get result
-     * @throws InterruptedException commit operation was interrupted
-     */
-    public XAPlusFuture commit(List<XAPlusXid> xids) throws InterruptedException {
-        XAPlusThreadContext threadContext = threadOfControl.getThreadContext();
-        if (!threadContext.hasTransaction()) {
-            throw new IllegalStateException("No transaction on this thread");
-        }
-        XAPlusTransaction transaction = threadContext.getTransaction();
-        transaction.clear(xids);
         threadContext.removeTransaction();
         if (logger.isInfoEnabled()) {
             logger.info("User commit transaction, {}", transaction);
@@ -286,7 +263,7 @@ public final class XAPlusEngine {
     }
 
     /**
-     * Rollback XA transaction
+     * Rollback transaction
      *
      * @return future to get result
      * @throws InterruptedException rollback operation was interrupted
@@ -297,27 +274,6 @@ public final class XAPlusEngine {
             throw new IllegalStateException("No transaction on this thread");
         }
         XAPlusTransaction transaction = threadContext.getTransaction();
-        if (transaction.hasXAPlusBranches()) {
-            throw new IllegalStateException("Transaction has XA+ branches, specify xids to rollback");
-        } else {
-            return rollback(new ArrayList<>());
-        }
-    }
-
-    /**
-     * Start rollback protocol
-     *
-     * @param xids XA+ xids to rollback or nothing if no XA+ branches
-     * @return future to get result
-     * @throws InterruptedException rollback operation was interrupted
-     */
-    public XAPlusFuture rollback(List<XAPlusXid> xids) throws InterruptedException {
-        XAPlusThreadContext threadContext = threadOfControl.getThreadContext();
-        if (!threadContext.hasTransaction()) {
-            throw new IllegalStateException("No transaction on this thread");
-        }
-        XAPlusTransaction transaction = threadContext.getTransaction();
-        transaction.clear(xids);
         threadContext.removeTransaction();
         dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
         if (logger.isInfoEnabled()) {

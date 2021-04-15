@@ -119,21 +119,6 @@ public class XAPlusTransaction {
         xaPlusBranches.put(branchXid, new Branch(xid, branchXid, resource, serverId));
     }
 
-    void clear(List<XAPlusXid> xids) {
-        Iterator<Map.Entry<XAPlusXid, Branch>> iterator = xaPlusBranches.entrySet().iterator();
-        while (iterator.hasNext()) {
-            XAPlusXid xid = iterator.next().getKey();
-            if (xids.contains(xid)) {
-                continue;
-            } else {
-                if (logger.isInfoEnabled()) {
-                    logger.info("XA+ branch removed as not required, xid={}", xid);
-                }
-                iterator.remove();
-            }
-        }
-    }
-
     boolean contains(XAPlusXid branchXid) {
         return xaBranches.containsKey(branchXid) || xaPlusBranches.containsKey(branchXid);
     }
