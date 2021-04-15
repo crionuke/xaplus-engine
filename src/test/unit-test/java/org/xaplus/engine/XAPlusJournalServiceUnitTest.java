@@ -13,7 +13,6 @@ import org.xaplus.engine.events.xaplus.XAPlusRetryCommitOrderRequestEvent;
 import org.xaplus.engine.events.xaplus.XAPlusRetryRollbackOrderRequestEvent;
 import org.xaplus.engine.exceptions.XAPlusSystemException;
 import org.xaplus.engine.stubs.XAConnectionStub;
-import org.xaplus.engine.stubs.XADataSourceStub;
 
 import javax.transaction.xa.XAException;
 import java.sql.SQLException;

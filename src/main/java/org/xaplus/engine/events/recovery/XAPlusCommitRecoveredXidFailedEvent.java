@@ -1,7 +1,6 @@
 package org.xaplus.engine.events.recovery;
 
 import com.crionuke.bolts.Event;
-import org.xaplus.engine.XAPlusRecoveredResource;
 import org.xaplus.engine.XAPlusXid;
 
 /**

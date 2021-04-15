@@ -2,11 +2,7 @@ package org.xaplus.engine.events.recovery;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusRecoveredResource;
-import org.xaplus.engine.XAPlusUid;
-import org.xaplus.engine.XAPlusXid;
 
-import javax.transaction.xa.XAResource;
-import java.util.Map;
 import java.util.Set;
 
 /**

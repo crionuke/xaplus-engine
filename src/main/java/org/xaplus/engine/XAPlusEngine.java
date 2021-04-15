@@ -17,8 +17,6 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -39,16 +37,6 @@ public final class XAPlusEngine {
         this.dispatcher = dispatcher;
         this.resources = resources;
         this.threadOfControl = threadOfControl;
-    }
-
-    public void setTLogDataSource(DataSource dataSource) {
-        if (dataSource == null) {
-            throw new NullPointerException("dataSource is null");
-        }
-        this.tLogDataSource = dataSource;
-        if (logger.isTraceEnabled()) {
-            logger.trace("Set journal dataSource={}", dataSource);
-        }
     }
 
     /**
@@ -301,6 +289,16 @@ public final class XAPlusEngine {
 
     DataSource getTLogDataSource() {
         return tLogDataSource;
+    }
+
+    public void setTLogDataSource(DataSource dataSource) {
+        if (dataSource == null) {
+            throw new NullPointerException("dataSource is null");
+        }
+        this.tLogDataSource = dataSource;
+        if (logger.isTraceEnabled()) {
+            logger.trace("Set journal dataSource={}", dataSource);
+        }
     }
 
     private XAPlusXid createAndStartBranch(String uniqueName, javax.sql.XAConnection connection)

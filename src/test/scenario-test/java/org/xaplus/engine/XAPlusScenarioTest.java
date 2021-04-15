@@ -14,16 +14,12 @@ import org.xaplus.engine.exceptions.XAPlusTimeoutException;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class XAPlusScenarioTest extends Assert {
-    static private final Logger logger = LoggerFactory.getLogger(XAPlusScenarioTest.class);
-
     static protected final int QUEUE_SIZE = 128;
     static protected final int DEFAULT_TIMEOUT_S = 4;
     static protected final int POLL_TIMIOUT_MS = 2000;
@@ -34,7 +30,7 @@ public class XAPlusScenarioTest extends Assert {
     static protected final String XA_PLUS_DISTRIBUTED = "distributed";
     static protected final String XA_PLUS_SUPERIOR = "superior";
     static protected final String XA_PLUS_SUBORDINATE = "subordinate";
-
+    static private final Logger logger = LoggerFactory.getLogger(XAPlusScenarioTest.class);
     protected DataSource tlog;
     protected PGXADataSource database1;
     protected PGXADataSource database2;
@@ -153,7 +149,7 @@ public class XAPlusScenarioTest extends Assert {
 
     // Simple local transaction implementation for test
     class LocalTransactionBolt extends Bolt
-        implements XAPlusLocalTransactionInitialRequestEvent.Handler {
+            implements XAPlusLocalTransactionInitialRequestEvent.Handler {
 
         XAPlus xaPlus;
         XAPlusEngine engine;

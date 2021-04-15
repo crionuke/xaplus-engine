@@ -5,8 +5,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.*;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -51,7 +49,7 @@ class XAPlusTLog {
     }
 
     void logCommitDecision(XAPlusUid gtrid) throws SQLException {
-        log(gtrid,true);
+        log(gtrid, true);
     }
 
     void logRollbackDecision(XAPlusUid gtrid) throws SQLException {

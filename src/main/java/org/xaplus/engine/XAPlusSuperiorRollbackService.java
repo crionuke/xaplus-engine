@@ -7,7 +7,7 @@ import org.xaplus.engine.events.journal.XAPlusLogRollbackTransactionDecisionFail
 import org.xaplus.engine.events.journal.XAPlusRollbackTransactionDecisionLoggedEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
-import org.xaplus.engine.events.timer.XAPlusTransactionTimedOutEvent;
+import org.xaplus.engine.events.tm.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchRolledBackEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchFailedEvent;
 

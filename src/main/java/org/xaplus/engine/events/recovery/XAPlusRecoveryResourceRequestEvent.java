@@ -3,8 +3,6 @@ package org.xaplus.engine.events.recovery;
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusRecoveredResource;
 
-import javax.transaction.xa.XAResource;
-
 /**
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0

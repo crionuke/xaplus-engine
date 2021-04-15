@@ -25,6 +25,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class XAPlusUid {
 
     static private final AtomicInteger sequenceGenerator = new AtomicInteger();
+    private final byte[] array;
+    private final int hashCodeValue;
+    private final String toStringValue;
+
+    XAPlusUid(byte[] array) {
+        this.array = new byte[array.length];
+        System.arraycopy(array, 0, this.array, 0, array.length);
+        this.hashCodeValue = XAPlusArraysEncoderDecoder.arrayHashCode(array);
+        this.toStringValue = XAPlusArraysEncoderDecoder.arrayToHex(array);
+    }
 
     /**
      * Generate UID based on serverId
@@ -45,17 +55,6 @@ public final class XAPlusUid {
         System.arraycopy(sequence, 0, uidArray, serverIdBytes.length + timestamp.length, sequence.length);
 
         return new XAPlusUid(uidArray);
-    }
-
-    private final byte[] array;
-    private final int hashCodeValue;
-    private final String toStringValue;
-
-    XAPlusUid(byte[] array) {
-        this.array = new byte[array.length];
-        System.arraycopy(array, 0, this.array, 0, array.length);
-        this.hashCodeValue = XAPlusArraysEncoderDecoder.arrayHashCode(array);
-        this.toStringValue = XAPlusArraysEncoderDecoder.arrayToHex(array);
     }
 
     @Override

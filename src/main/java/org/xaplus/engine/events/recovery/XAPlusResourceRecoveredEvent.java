@@ -2,10 +2,6 @@ package org.xaplus.engine.events.recovery;
 
 import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusRecoveredResource;
-import org.xaplus.engine.XAPlusXid;
-
-import java.util.Collections;
-import java.util.Set;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)

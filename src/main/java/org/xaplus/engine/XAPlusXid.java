@@ -25,38 +25,6 @@ public final class XAPlusXid implements javax.transaction.xa.Xid {
      * int-encoded "Btnx" string. This is used as the globally unique ID to discriminate BTM XIDs.
      */
     static final int FORMAT_ID = 0x42746e78;
-
-    /**
-     * Decode XID from string representation
-     *
-     * @param xidString string to decode
-     * @return {@link XAPlusXid}
-     */
-    static public XAPlusXid fromString(String xidString) {
-        if (xidString == null) {
-            throw new NullPointerException("xid is null");
-        }
-        String[] gtridBqual = xidString.split(":");
-        if (gtridBqual.length == 2) {
-            XAPlusUid globalTransactionId = new XAPlusUid(XAPlusArraysEncoderDecoder.hexToArray(gtridBqual[0]));
-            XAPlusUid branchQualifier = new XAPlusUid(XAPlusArraysEncoderDecoder.hexToArray(gtridBqual[1]));
-            return new XAPlusXid(globalTransactionId, branchQualifier);
-        } else {
-            throw new IllegalArgumentException("Wrong xid=" + xidString + " to decoder");
-        }
-    }
-
-    /**
-     * Generate a new XID based on gtrid and new bqual for serverId.
-     *
-     * @param gtrid    the GTRID to use to generate the xid
-     * @param serverId who will execute branch, used for bqual generation
-     * @return the generated xid.
-     */
-    static XAPlusXid generate(XAPlusUid gtrid, String serverId) {
-        return new XAPlusXid(gtrid, XAPlusUid.generate(serverId));
-    }
-
     private final XAPlusUid globalTransactionId;
     private final XAPlusUid branchQualifier;
     private final int hashCodeValue;
@@ -89,6 +57,37 @@ public final class XAPlusXid implements javax.transaction.xa.Xid {
         this.branchQualifier = new XAPlusUid(xid.getBranchQualifier());
         this.toStringValue = precalculateToString();
         this.hashCodeValue = precalculateHashCode();
+    }
+
+    /**
+     * Decode XID from string representation
+     *
+     * @param xidString string to decode
+     * @return {@link XAPlusXid}
+     */
+    static public XAPlusXid fromString(String xidString) {
+        if (xidString == null) {
+            throw new NullPointerException("xid is null");
+        }
+        String[] gtridBqual = xidString.split(":");
+        if (gtridBqual.length == 2) {
+            XAPlusUid globalTransactionId = new XAPlusUid(XAPlusArraysEncoderDecoder.hexToArray(gtridBqual[0]));
+            XAPlusUid branchQualifier = new XAPlusUid(XAPlusArraysEncoderDecoder.hexToArray(gtridBqual[1]));
+            return new XAPlusXid(globalTransactionId, branchQualifier);
+        } else {
+            throw new IllegalArgumentException("Wrong xid=" + xidString + " to decoder");
+        }
+    }
+
+    /**
+     * Generate a new XID based on gtrid and new bqual for serverId.
+     *
+     * @param gtrid    the GTRID to use to generate the xid
+     * @param serverId who will execute branch, used for bqual generation
+     * @return the generated xid.
+     */
+    static XAPlusXid generate(XAPlusUid gtrid, String serverId) {
+        return new XAPlusXid(gtrid, XAPlusUid.generate(serverId));
     }
 
     /**

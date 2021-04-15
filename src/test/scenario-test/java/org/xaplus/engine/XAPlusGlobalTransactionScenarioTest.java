@@ -4,7 +4,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.XAPlusTestSubordinateFailedEvent;
+import org.xaplus.engine.events.XAPlusTestSubordinateFinishedEvent;
+import org.xaplus.engine.events.XAPlusTestSuperiorFailedEvent;
+import org.xaplus.engine.events.XAPlusTestSuperiorFinishedEvent;
 
 import java.util.concurrent.TimeUnit;
 

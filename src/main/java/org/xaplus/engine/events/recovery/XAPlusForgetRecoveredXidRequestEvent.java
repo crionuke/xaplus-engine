@@ -4,8 +4,6 @@ import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusRecoveredResource;
 import org.xaplus.engine.XAPlusXid;
 
-import javax.transaction.xa.XAResource;
-
 /**
  * @author Kirill Byvshev (k@byv.sh)
  * @since 1.0.0
