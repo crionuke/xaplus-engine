@@ -11,6 +11,7 @@ import org.xaplus.engine.events.recovery.*;
 import org.xaplus.engine.events.xaplus.XAPlusReadyStatusReportedEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportReadyStatusFailedEvent;
 import org.xaplus.engine.events.xaplus.XAPlusReportReadyStatusRequestEvent;
+import org.xaplus.engine.events.xaplus.XAPlusRetryFromSuperiorRequestEvent;
 import org.xaplus.engine.stubs.XAPlusResourceStub;
 
 import javax.transaction.xa.XAException;
@@ -228,18 +229,20 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
 
     @Test
     public void testRetryFromSuperiorRequestSuccessfully() throws InterruptedException, XAPlusException {
-//        XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
-//        dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(XA_PLUS_RESOURCE_1, xaPlusResourceMock));
-//        Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).retry(properties.getServerId());
+        XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_2), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
+        XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
+        dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(xid, xaPlusResourceMock));
+        Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).retry(xid);
     }
 
     @Test
     public void testRetryFromSuperiorRequestFailed() throws InterruptedException, XAPlusException {
-//        XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
-//        Mockito.doThrow(new XAPlusException("retry_exception"))
-//                .when(xaPlusResourceMock).retry(properties.getServerId());
-//        dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(XA_PLUS_RESOURCE_1, xaPlusResourceMock));
-//        Thread.sleep(1000);
+        XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_2), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
+        XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
+        Mockito.doThrow(new XAPlusException("retry_exception"))
+                .when(xaPlusResourceMock).retry(xid);
+        dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(xid, xaPlusResourceMock));
+        Thread.sleep(1000);
     }
 
     private class ConsumerStub extends Bolt implements
