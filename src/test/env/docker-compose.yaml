@@ -6,7 +6,7 @@ services:
     container_name: tlog
     restart: always
     volumes:
-      - ./tlog.sql:/docker-entrypoint-initdb.d/tlog.sql
+      - ../../main/resources/tlog.sql:/docker-entrypoint-initdb.d/tlog.sql
       - ./tlog:/var/lib/postgresql/data
     ports:
       - "10000:5432"
