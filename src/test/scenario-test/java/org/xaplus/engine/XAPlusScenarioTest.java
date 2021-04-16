@@ -253,7 +253,7 @@ public class XAPlusScenarioTest extends Assert {
                 future = engine.commit();
             } catch (Exception e) {
                 if (logger.isWarnEnabled()) {
-                    logger.warn("DistributedTransactionBolt transaction failed as {}", e.getMessage());
+                    logger.warn("Distributed transaction failed as {}", e.getMessage());
                 }
                 // Rollback distributed transaction
                 future = engine.rollback();
@@ -261,16 +261,16 @@ public class XAPlusScenarioTest extends Assert {
             // Wait result
             try {
                 boolean status = future.get();
-                logger.info("DistributedTransactionBolt transaction finished, status={}", status);
+                logger.info("Distributed transaction finished, status={}", status);
                 testDispatcher.dispatch(new XAPlusDistributedTransactionFinishedEvent(status, value));
             } catch (XAPlusCommitException commitException) {
-                logger.info("DistributedTransactionBolt transaction commit exception, {}", commitException.getMessage());
+                logger.info("Distributed transaction commit exception, {}", commitException.getMessage());
                 testDispatcher.dispatch(new XAPlusDistributedTransactionFailedEvent(value, commitException));
             } catch (XAPlusRollbackException rollbackException) {
-                logger.info("DistributedTransactionBolt transaction rollback exception, {}", rollbackException.getMessage());
+                logger.info("Distributed transaction rollback exception, {}", rollbackException.getMessage());
                 testDispatcher.dispatch(new XAPlusDistributedTransactionFailedEvent(value, rollbackException));
             } catch (XAPlusTimeoutException timeoutException) {
-                logger.info("DistributedTransactionBolt transaction timeout exception, {}", timeoutException.getMessage());
+                logger.info("Distributed transaction timeout exception, {}", timeoutException.getMessage());
                 testDispatcher.dispatch(new XAPlusDistributedTransactionFailedEvent(value, timeoutException));
             }
         }
@@ -315,12 +315,12 @@ public class XAPlusScenarioTest extends Assert {
                 // Enlist and call subordinate
                 XAPlusXid branchXid = engine.enlistXAPlus(XA_PLUS_SUBORDINATE);
                 if (event.isSuperiorBeforeRequestException()) {
-                    throw new Exception("before request exception");
+                    throw new Exception("before_request_exception");
                 }
                 testDispatcher.dispatch(new XAPlusTestSubordinateRequestEvent(branchXid, value,
                         event.isSubordinateBeforeCommitException()));
                 if (event.isSuperiorBeforeCommitException()) {
-                    throw new Exception("before commit exception");
+                    throw new Exception("before_commit_exception");
                 }
                 // Commit transaction
                 future = engine.commit();
@@ -386,7 +386,7 @@ public class XAPlusScenarioTest extends Assert {
                     statement.executeUpdate();
                 }
                 if (event.isBeforeCommitException()) {
-                    throw new Exception("before commit exception");
+                    throw new Exception("before_commit_exception");
                 }
                 // Commit transaction
                 future = engine.commit();
