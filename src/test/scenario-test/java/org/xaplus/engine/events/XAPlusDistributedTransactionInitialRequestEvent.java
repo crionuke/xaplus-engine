@@ -9,10 +9,12 @@ import com.crionuke.bolts.Event;
 public final class XAPlusDistributedTransactionInitialRequestEvent extends Event<XAPlusDistributedTransactionInitialRequestEvent.Handler> {
 
     private final long value;
+    private final boolean beforeCommitException;
 
-    public XAPlusDistributedTransactionInitialRequestEvent(long value) {
+    public XAPlusDistributedTransactionInitialRequestEvent(long value, boolean beforeCommitException) {
         super();
         this.value = value;
+        this.beforeCommitException = beforeCommitException;
     }
 
     @Override
@@ -22,6 +24,10 @@ public final class XAPlusDistributedTransactionInitialRequestEvent extends Event
 
     public long getValue() {
         return value;
+    }
+
+    public boolean isBeforeCommitException() {
+        return beforeCommitException;
     }
 
     public interface Handler {

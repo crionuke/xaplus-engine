@@ -104,9 +104,9 @@ public class XAPlusScenarioTest extends Assert {
     }
 
     // Start XA transaction
-    long startDistributedTransaction() throws InterruptedException {
+    long startDistributedTransaction(boolean beforeCommitException) throws InterruptedException {
         long value = Math.round(100000 + Math.random() * 899999);
-        testDispatcher.dispatch(new XAPlusDistributedTransactionInitialRequestEvent(value));
+        testDispatcher.dispatch(new XAPlusDistributedTransactionInitialRequestEvent(value, beforeCommitException));
         return value;
     }
 
@@ -248,6 +248,9 @@ public class XAPlusScenarioTest extends Assert {
                 try (PreparedStatement statement = connection2.prepareStatement(INSERT_VALUE)) {
                     statement.setLong(1, value);
                     statement.executeUpdate();
+                }
+                if (event.isBeforeCommitException()) {
+                    throw new Exception("before_commit_exception");
                 }
                 // Commit distributed transaction
                 future = engine.commit();
