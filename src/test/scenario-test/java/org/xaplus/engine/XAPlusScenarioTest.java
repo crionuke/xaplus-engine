@@ -97,9 +97,9 @@ public class XAPlusScenarioTest extends Assert {
         subordinateXAPLus.construct();
     }
 
-    long startLocalTransaction() throws InterruptedException {
+    long startLocalTransaction(boolean beforeCommitException) throws InterruptedException {
         long value = Math.round(100000 + Math.random() * 899999);
-        testDispatcher.dispatch(new XAPlusLocalTransactionInitialRequestEvent(value));
+        testDispatcher.dispatch(new XAPlusLocalTransactionInitialRequestEvent(value, beforeCommitException));
         return value;
     }
 
@@ -177,11 +177,14 @@ public class XAPlusScenarioTest extends Assert {
                     statement.setLong(1, value);
                     statement.executeUpdate();
                 }
+                if (event.isBeforeCommitException()) {
+                    throw new Exception("before_commit_exception");
+                }
                 // Commit local transaction
                 future = engine.commit();
             } catch (Exception e) {
                 if (logger.isWarnEnabled()) {
-                    logger.warn("LocalTransactionBolt transaction failed as {}", e.getMessage());
+                    logger.warn("Local transaction failed as {}", e.getMessage());
                 }
                 // Rollback local transaction
                 future = engine.rollback();
@@ -189,16 +192,16 @@ public class XAPlusScenarioTest extends Assert {
             // Wait result
             try {
                 boolean status = future.get();
-                logger.info("LocalTransactionBolt transaction finished, status={}", status);
+                logger.info("Local transaction finished, status={}", status);
                 testDispatcher.dispatch(new XAPlusLocalTransactionFinishedEvent(status, value));
             } catch (XAPlusCommitException commitException) {
-                logger.info("LocalTransactionBolt transaction commit exception, {}", commitException.getMessage());
+                logger.info("Local transaction commit exception, {}", commitException.getMessage());
                 testDispatcher.dispatch(new XAPlusLocalTransactionFailedEvent(value, commitException));
             } catch (XAPlusRollbackException rollbackException) {
-                logger.info("LocalTransactionBolt transaction rollback exception, {}", rollbackException.getMessage());
+                logger.info("Local transaction rollback exception, {}", rollbackException.getMessage());
                 testDispatcher.dispatch(new XAPlusLocalTransactionFailedEvent(value, rollbackException));
             } catch (XAPlusTimeoutException timeoutException) {
-                logger.info("LocalTransactionBolt transaction timeout exception, {}", timeoutException.getMessage());
+                logger.info("Local transaction timeout exception, {}", timeoutException.getMessage());
                 testDispatcher.dispatch(new XAPlusLocalTransactionFailedEvent(value, timeoutException));
             }
         }
