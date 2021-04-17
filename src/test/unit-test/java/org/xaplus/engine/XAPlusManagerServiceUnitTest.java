@@ -16,6 +16,7 @@ import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
+import org.xaplus.engine.events.user.XAPlusUserCreateTransactionEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
 import org.xaplus.engine.exceptions.XAPlusCommitException;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
@@ -47,10 +48,10 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test
-    public void testUserCommitRequestAndTransactionDone() throws InterruptedException, XAPlusCommitException,
+    public void testTransactionDone() throws InterruptedException, XAPlusCommitException,
             XAPlusRollbackException, XAPlusTimeoutException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
+        dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
         dispatcher.dispatch(new XAPlus2pcDoneEvent(transaction));
         XAPlusTransactionClosedEvent event =
                 consumerStub.transactionClosedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -60,10 +61,10 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test
-    public void testUserRollbackRequestAndTransactionRolledBack() throws InterruptedException, XAPlusCommitException,
+    public void testTransactionRolledBack() throws InterruptedException, XAPlusCommitException,
             XAPlusRollbackException, XAPlusTimeoutException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
+        dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
         dispatcher.dispatch(new XAPlusRollbackDoneEvent(transaction));
         XAPlusTransactionClosedEvent event =
                 consumerStub.transactionClosedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -73,10 +74,10 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test(expected = XAPlusCommitException.class)
-    public void testUserCommitRequestAnd2pcFailed() throws InterruptedException, XAPlusCommitException,
+    public void test2pcFailed() throws InterruptedException, XAPlusCommitException,
             XAPlusRollbackException, XAPlusTimeoutException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
+        dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
         dispatcher.dispatch(new XAPlus2pcFailedEvent(transaction));
         XAPlusTransactionClosedEvent event =
                 consumerStub.transactionClosedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -86,10 +87,10 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test(expected = XAPlusRollbackException.class)
-    public void testUserRollbackRequestAndRollbackFailed() throws InterruptedException, XAPlusCommitException,
+    public void testRollbackFailed() throws InterruptedException, XAPlusCommitException,
             XAPlusRollbackException, XAPlusTimeoutException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
+        dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
         dispatcher.dispatch(new XAPlusRollbackFailedEvent(transaction));
         XAPlusTransactionClosedEvent event =
                 consumerStub.transactionClosedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -99,10 +100,10 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test(expected = XAPlusTimeoutException.class)
-    public void testUserCommitRequestAnd2pcTimeout() throws InterruptedException, XAPlusCommitException,
+    public void test2pcTimeout() throws InterruptedException, XAPlusCommitException,
             XAPlusRollbackException, XAPlusTimeoutException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusUserCommitRequestEvent(transaction));
+        dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
         // Wait timeout
         Thread.sleep(properties.getTransactionsTimeoutInSeconds() * 1000 + POLL_TIMIOUT_MS);
         dispatcher.dispatch(new XAPlusTickEvent(1));
@@ -118,10 +119,10 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
     }
 
     @Test(expected = XAPlusTimeoutException.class)
-    public void testUserRollbackRequestAndRollbackTimeout() throws InterruptedException, XAPlusCommitException,
+    public void testRollbackTimeout() throws InterruptedException, XAPlusCommitException,
             XAPlusRollbackException, XAPlusTimeoutException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
-        dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
+        dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
         // Wait timeout
         Thread.sleep(properties.getTransactionsTimeoutInSeconds() * 1000 + POLL_TIMIOUT_MS);
         dispatcher.dispatch(new XAPlusTickEvent(1));

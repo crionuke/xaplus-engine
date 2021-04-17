@@ -12,8 +12,7 @@ import org.xaplus.engine.events.tm.XAPlusTransactionClosedEvent;
 import org.xaplus.engine.events.tm.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
-import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
-import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
+import org.xaplus.engine.events.user.XAPlusUserCreateTransactionEvent;
 import org.xaplus.engine.exceptions.XAPlusCommitException;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
 import org.xaplus.engine.exceptions.XAPlusTimeoutException;
@@ -25,8 +24,7 @@ import java.util.*;
  * @since 1.0.0
  */
 class XAPlusManagerService extends Bolt implements
-        XAPlusUserCommitRequestEvent.Handler,
-        XAPlusUserRollbackRequestEvent.Handler,
+        XAPlusUserCreateTransactionEvent.Handler,
         XAPlus2pcDoneEvent.Handler,
         XAPlus2pcFailedEvent.Handler,
         XAPlusRollbackDoneEvent.Handler,
@@ -37,42 +35,25 @@ class XAPlusManagerService extends Bolt implements
 
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
-    private final long startTime;
     private final SortedSet<XAPlusTransaction> inFlightTransactions;
+    private long lastCutoff;
 
     XAPlusManagerService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
         super(properties.getServerId() + "-manager", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        startTime = System.currentTimeMillis();
+        lastCutoff = System.currentTimeMillis();
         inFlightTransactions = new TreeSet<>(Comparator
                 .comparingLong((transaction) -> transaction.getCreationTimeInMillis()));
     }
 
     @Override
-    public void handleUserCommitRequest(XAPlusUserCommitRequestEvent event) throws InterruptedException {
+    public void handleUserCreateTransaction(XAPlusUserCreateTransactionEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        if (inFlightTransactions.add(transaction)) {
-            if (logger.isInfoEnabled()) {
-                logger.info("User start 2pc protocol, {}", transaction);
-            }
-        }
-    }
-
-    @Override
-    public void handleUserRollbackRequest(XAPlusUserRollbackRequestEvent event) throws InterruptedException {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Handle {}", event);
-        }
-        XAPlusTransaction transaction = event.getTransaction();
-        if (inFlightTransactions.add(transaction)) {
-            if (logger.isInfoEnabled()) {
-                logger.info("User start rollback protocol, {}", transaction);
-            }
-        }
+        inFlightTransactions.add(transaction);
     }
 
     @Override
@@ -82,6 +63,7 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (inFlightTransactions.remove(transaction)) {
+            updateCutoff();
             if (logger.isInfoEnabled()) {
                 logger.info("Transaction done, {}", transaction);
             }
@@ -97,6 +79,7 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (inFlightTransactions.remove(transaction)) {
+            updateCutoff();
             if (logger.isInfoEnabled()) {
                 logger.info("Transaction 2pc failed, {}", transaction);
             }
@@ -112,6 +95,7 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (inFlightTransactions.remove(transaction)) {
+            updateCutoff();
             if (logger.isInfoEnabled()) {
                 logger.info("Transaction rolled back, {}", transaction);
             }
@@ -127,6 +111,7 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (inFlightTransactions.remove(transaction)) {
+            updateCutoff();
             if (logger.isInfoEnabled()) {
                 logger.info("Transaction rollback failed, {}", transaction);
             }
@@ -140,14 +125,7 @@ class XAPlusManagerService extends Bolt implements
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        long inFlightCutoff;
-        if (inFlightTransactions.isEmpty()) {
-            // If no transaction yet use app start time
-            inFlightCutoff = startTime;
-        } else {
-            inFlightCutoff = inFlightTransactions.first().getCreationTimeInMillis();
-        }
-        dispatcher.dispatch(new XAPlusPrepareRecoveryRequestEvent(inFlightCutoff));
+        dispatcher.dispatch(new XAPlusPrepareRecoveryRequestEvent(lastCutoff));
     }
 
     @Override
@@ -169,13 +147,13 @@ class XAPlusManagerService extends Bolt implements
                 inFlightTransactions.remove(transaction);
                 close(transaction);
             }
+            updateCutoff();
         }
     }
 
     void postConstruct() {
         threadPool.execute(this);
-        dispatcher.subscribe(this, XAPlusUserCommitRequestEvent.class);
-        dispatcher.subscribe(this, XAPlusUserRollbackRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusUserCreateTransactionEvent.class);
         dispatcher.subscribe(this, XAPlus2pcDoneEvent.class);
         dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackDoneEvent.class);
@@ -190,6 +168,14 @@ class XAPlusManagerService extends Bolt implements
         }
         transaction.close();
         dispatcher.dispatch(new XAPlusTransactionClosedEvent(transaction));
+    }
+
+    private void updateCutoff() {
+        if (inFlightTransactions.isEmpty()) {
+            lastCutoff = System.currentTimeMillis();
+        } else {
+            lastCutoff = inFlightTransactions.first().getCreationTimeInMillis();
+        }
     }
 }
 
