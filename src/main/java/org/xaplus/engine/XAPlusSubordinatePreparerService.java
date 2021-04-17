@@ -204,6 +204,8 @@ class XAPlusSubordinatePreparerService extends Bolt implements
         }
     }
 
+    // TODO: if report failed - rollback changes
+
     @Override
     public void handleReportReadyStatusFailed(XAPlusReportReadyStatusFailedEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
