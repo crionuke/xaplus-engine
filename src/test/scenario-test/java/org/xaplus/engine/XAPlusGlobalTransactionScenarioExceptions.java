@@ -1,13 +1,13 @@
 package org.xaplus.engine;
 
-class XAPlusScenarioExceptions {
+class XAPlusGlobalTransactionScenarioExceptions {
     volatile boolean readyException;
     volatile boolean failedException;
     volatile boolean commitException;
     volatile boolean rollbackException;
     volatile boolean retryException;
 
-    XAPlusScenarioExceptions() {
+    XAPlusGlobalTransactionScenarioExceptions() {
         reset();
     }
 

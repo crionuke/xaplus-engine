@@ -11,10 +11,10 @@ import javax.transaction.xa.Xid;
 class XAPlusTestServer implements XAPlusFactory, XAPlusResource {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusTestServer.class);
 
-    private final XAPlusScenarioExceptions scenario;
+    private final XAPlusGlobalTransactionScenarioExceptions scenario;
     private final XAPlusDispatcher dispatcher;
 
-    XAPlusTestServer(XAPlusScenarioExceptions scenario, XAPlusDispatcher dispatcher) {
+    XAPlusTestServer(XAPlusGlobalTransactionScenarioExceptions scenario, XAPlusDispatcher dispatcher) {
         this.scenario = scenario;
         this.dispatcher = dispatcher;
     }
