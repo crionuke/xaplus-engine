@@ -8,6 +8,8 @@ import com.crionuke.bolts.Event;
  */
 public final class XAPlusRecoveryFinishedEvent extends Event<XAPlusRecoveryFinishedEvent.Handler> {
 
+    // TODO: fire finished xids after recovery
+
     public XAPlusRecoveryFinishedEvent() {
         super();
     }

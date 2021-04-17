@@ -8,6 +8,7 @@ import org.postgresql.xa.PGXADataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.*;
+import org.xaplus.engine.events.recovery.XAPlusRecoveryFinishedEvent;
 import org.xaplus.engine.exceptions.XAPlusCommitException;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
 import org.xaplus.engine.exceptions.XAPlusTimeoutException;
@@ -54,6 +55,8 @@ public class XAPlusScenarioTest extends Assert {
     protected GlobalTransactionSuperiorBolt globalTransactionSuperiorBolt;
     protected GlobalTransactionSubordinateBolt globalTransactionSubordinateBolt;
     protected ConsumerBolt consumerBolt;
+    protected SuperiorInterceptorBolt superiorInterceptorBolt;
+    protected SubordinateInterceptorBolt subordinateInterceptorBolt;
 
     void createComponents() {
         // Datasources to tests
@@ -87,6 +90,10 @@ public class XAPlusScenarioTest extends Assert {
         globalTransactionSubordinateBolt.postConstruct();
         consumerBolt = new ConsumerBolt();
         consumerBolt.postConstruct();
+        superiorInterceptorBolt = new SuperiorInterceptorBolt();
+        superiorInterceptorBolt.postConstruct();
+        subordinateInterceptorBolt = new SubordinateInterceptorBolt();
+        subordinateInterceptorBolt.postConstruct();
     }
 
     void construct() {
@@ -506,6 +513,50 @@ public class XAPlusScenarioTest extends Assert {
             testDispatcher.subscribe(this, XAPlusTestSuperiorFailedEvent.class);
             testDispatcher.subscribe(this, XAPlusTestSubordinateFinishedEvent.class);
             testDispatcher.subscribe(this, XAPlusTestSubordinateFailedEvent.class);
+        }
+    }
+
+    class SuperiorInterceptorBolt extends Bolt implements
+            XAPlusRecoveryFinishedEvent.Handler {
+
+        BlockingQueue<XAPlusRecoveryFinishedEvent> recoveryFinishedEvents;
+
+        SuperiorInterceptorBolt() {
+            super("superior-interceptor-bolt", QUEUE_SIZE);
+            // Container for events
+            recoveryFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        }
+
+        @Override
+        public void handleRecoveryFinished(XAPlusRecoveryFinishedEvent event) throws InterruptedException {
+            recoveryFinishedEvents.put(event);
+        }
+
+        void postConstruct() {
+            testThreadPool.execute(this);
+            superiorXAPlus.dispatcher.subscribe(this, XAPlusRecoveryFinishedEvent.class);
+        }
+    }
+
+    class SubordinateInterceptorBolt extends Bolt implements
+            XAPlusRecoveryFinishedEvent.Handler {
+
+        BlockingQueue<XAPlusRecoveryFinishedEvent> recoveryFinishedEvents;
+
+        SubordinateInterceptorBolt() {
+            super("subordinate-interceptor-bolt", QUEUE_SIZE);
+            // Container for events
+            recoveryFinishedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+        }
+
+        @Override
+        public void handleRecoveryFinished(XAPlusRecoveryFinishedEvent event) throws InterruptedException {
+            recoveryFinishedEvents.put(event);
+        }
+
+        void postConstruct() {
+            testThreadPool.execute(this);
+            subordinateXAPLus.dispatcher.subscribe(this, XAPlusRecoveryFinishedEvent.class);
         }
     }
 }

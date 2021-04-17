@@ -8,6 +8,7 @@ import org.xaplus.engine.events.XAPlusTestSubordinateFailedEvent;
 import org.xaplus.engine.events.XAPlusTestSubordinateFinishedEvent;
 import org.xaplus.engine.events.XAPlusTestSuperiorFailedEvent;
 import org.xaplus.engine.events.XAPlusTestSuperiorFinishedEvent;
+import org.xaplus.engine.events.recovery.XAPlusRecoveryFinishedEvent;
 
 import java.util.concurrent.TimeUnit;
 
@@ -55,6 +56,16 @@ public class XAPlusGlobalTransactionScenarioTest extends XAPlusScenarioTest {
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(value, event2.getValue());
+        // Recovery
+        superiorXAPlus.engine.startRecovery();
+        subordinateXAPLus.engine.startRecovery();
+        Thread.sleep(DEFAULT_TIMEOUT_S * 1000);
+        XAPlusRecoveryFinishedEvent event3 = superiorInterceptorBolt.recoveryFinishedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event3);
+        XAPlusRecoveryFinishedEvent event4 = subordinateInterceptorBolt.recoveryFinishedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event4);
     }
 
     @Test
