@@ -38,7 +38,7 @@ public class XAPlusTransaction {
     XAPlusTransaction(XAPlusXid xid, int timeoutInSeconds, String serverId) {
         this.xid = xid;
         this.serverId = serverId;
-        superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
+        superiorServerId = xid.getGtrid().getServerId();
         creationTimeInMillis = System.currentTimeMillis();
         expireTimeInMillis = creationTimeInMillis + timeoutInSeconds * 1000;
         connections = new CopyOnWriteArrayList<>();

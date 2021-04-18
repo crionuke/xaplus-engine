@@ -123,7 +123,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                 transaction.markAsDecided();
                 transaction.markAsRollbackOnly();
                 // Send branch failed event to superior
-                String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
+                String superiorServerId = xid.getGtrid().getServerId();
                 try {
                     XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
                     if (logger.isDebugEnabled()) {
@@ -261,7 +261,7 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                 }
                 dispatcher.dispatch(new XAPlusRollbackTransactionDecisionEvent(transaction));
             } else {
-                String superiorServerId = xid.getGlobalTransactionIdUid().extractServerId();
+                String superiorServerId = xid.getGtrid().getServerId();
                 try {
                     XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
                     if (transaction.hasFailures()) {

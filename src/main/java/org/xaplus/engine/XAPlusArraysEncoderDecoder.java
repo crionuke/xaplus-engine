@@ -23,35 +23,6 @@ class XAPlusArraysEncoderDecoder {
 
     private static final char[] HEX = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
-    static int arrayHashCode(byte[] uid) {
-        int hash = 0;
-        // Common fast but good hash with wide dispersion
-        for (int i = uid.length - 1; i > 0; i--) {
-            // rotate left and xor
-            // (very fast in assembler, a bit clumsy in Java)
-            hash <<= 1;
-
-            if (hash < 0) {
-                hash |= 1;
-            }
-
-            hash ^= uid[i];
-        }
-        return hash;
-    }
-
-    static String arrayToHex(byte[] uid) {
-        char[] hexChars = new char[uid.length * 2];
-        int c = 0;
-        int v;
-        for (int i = 0; i < uid.length; i++) {
-            v = uid[i] & 0xFF;
-            hexChars[c++] = HEX[v >> 4];
-            hexChars[c++] = HEX[v & 0xF];
-        }
-        return new String(hexChars);
-    }
-
     static byte[] hexToArray(String uid) {
         int len = uid.length();
         byte[] bytes = new byte[len / 2];

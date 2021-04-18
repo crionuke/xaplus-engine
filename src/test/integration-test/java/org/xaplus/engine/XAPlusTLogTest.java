@@ -21,12 +21,12 @@ public class XAPlusTLogTest extends XAPlusIntegrationTest {
 
     @Test
     public void testFindTransactionStatus() throws SQLException {
-        XAPlusUid gtrid11 = XAPlusUid.generate(XA_PLUS_RESOURCE_1);
-        XAPlusUid gtrid12 = XAPlusUid.generate(XA_PLUS_RESOURCE_1);
-        XAPlusUid gtrid21 = XAPlusUid.generate(XA_PLUS_RESOURCE_2);
-        XAPlusUid gtrid22 = XAPlusUid.generate(XA_PLUS_RESOURCE_2);
-        XAPlusUid gtrid31 = XAPlusUid.generate(XA_PLUS_RESOURCE_3);
-        XAPlusUid gtrid32 = XAPlusUid.generate(XA_PLUS_RESOURCE_3);
+        XAPlusUid gtrid11 = new XAPlusUid(XA_PLUS_RESOURCE_1);
+        XAPlusUid gtrid12 = new XAPlusUid(XA_PLUS_RESOURCE_1);
+        XAPlusUid gtrid21 = new XAPlusUid(XA_PLUS_RESOURCE_2);
+        XAPlusUid gtrid22 = new XAPlusUid(XA_PLUS_RESOURCE_2);
+        XAPlusUid gtrid31 = new XAPlusUid(XA_PLUS_RESOURCE_3);
+        XAPlusUid gtrid32 = new XAPlusUid(XA_PLUS_RESOURCE_3);
         tLog.logCommitDecision(gtrid11);
         tLog.logCommitDecision(gtrid12);
         tLog.logRollbackDecision(gtrid21);

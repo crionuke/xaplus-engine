@@ -49,12 +49,12 @@ public class XAPlusRecoveryCommitterServiceTest extends XAPlusUnitTest {
 
     @Test
     public void testRecoveryCommitter() throws InterruptedException, SQLException, XAException, XAPlusSystemException {
-        XAPlusXid xid1 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
-        XAPlusXid xid2 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
-        XAPlusXid xid3 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
+        XAPlusXid xid1 = new XAPlusXid(new XAPlusUid(XA_PLUS_RESOURCE_1), new XAPlusUid(XA_PLUS_RESOURCE_1));
+        XAPlusXid xid2 = new XAPlusXid(new XAPlusUid(XA_PLUS_RESOURCE_1), new XAPlusUid(XA_PLUS_RESOURCE_1));
+        XAPlusXid xid3 = new XAPlusXid(new XAPlusUid(XA_PLUS_RESOURCE_1), new XAPlusUid(XA_PLUS_RESOURCE_1));
         // xid4 and xid5 started by remote superiors XA_PLUS_RESOURCE_2 and XA_PLUS_RESOURCE_3
-        XAPlusXid xid4 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_2), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
-        XAPlusXid xid5 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_3), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
+        XAPlusXid xid4 = new XAPlusXid(new XAPlusUid(XA_PLUS_RESOURCE_2), new XAPlusUid(XA_PLUS_RESOURCE_1));
+        XAPlusXid xid5 = new XAPlusXid(new XAPlusUid(XA_PLUS_RESOURCE_3), new XAPlusUid(XA_PLUS_RESOURCE_1));
         logger.debug("xid1={}", xid1);
         logger.debug("xid2={}", xid2);
         logger.debug("xid3={}", xid3);

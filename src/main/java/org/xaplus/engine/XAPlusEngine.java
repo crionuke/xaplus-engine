@@ -89,8 +89,7 @@ public final class XAPlusEngine {
         if (threadContext.hasTransaction()) {
             throw new IllegalStateException("Nested transactions not supported");
         }
-        XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(properties.getServerId()),
-                XAPlusUid.generate(properties.getServerId()));
+        XAPlusXid xid = new XAPlusXid(new XAPlusUid(properties.getServerId()), new XAPlusUid(properties.getServerId()));
         XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getTransactionsTimeoutInSeconds(),
                 properties.getServerId());
         threadContext.setTransaction(transaction);
@@ -304,8 +303,7 @@ public final class XAPlusEngine {
     private XAPlusXid createAndStartBranch(String uniqueName, javax.sql.XAConnection connection)
             throws SQLException, XAException {
         XAPlusTransaction transaction = threadOfControl.getThreadContext().getTransaction();
-        XAPlusXid branchXid = XAPlusXid.generate(transaction.getXid().getGlobalTransactionIdUid(),
-                properties.getServerId());
+        XAPlusXid branchXid = new XAPlusXid(transaction.getXid().getGtrid(), properties.getServerId());
         transaction.enlist(branchXid, uniqueName, connection);
         return branchXid;
     }
@@ -313,15 +311,14 @@ public final class XAPlusEngine {
     private XAPlusXid createAndStartBranch(String uniqueName, javax.jms.XAJMSContext jmsContext)
             throws XAException {
         XAPlusTransaction transaction = threadOfControl.getThreadContext().getTransaction();
-        XAPlusXid branchXid = XAPlusXid.generate(transaction.getXid().getGlobalTransactionIdUid(),
-                properties.getServerId());
+        XAPlusXid branchXid = new XAPlusXid(transaction.getXid().getGtrid(), properties.getServerId());
         transaction.enlist(branchXid, uniqueName, jmsContext);
         return branchXid;
     }
 
     private XAPlusXid createAndStartBranch(String serverId, XAPlusResource resource) throws XAException {
         XAPlusTransaction transaction = threadOfControl.getThreadContext().getTransaction();
-        XAPlusXid branchXid = XAPlusXid.generate(transaction.getXid().getGlobalTransactionIdUid(), serverId);
+        XAPlusXid branchXid = new XAPlusXid(transaction.getXid().getGtrid(), serverId);
         transaction.enlist(branchXid, serverId, resource);
         if (logger.isTraceEnabled()) {
             logger.trace("Starting branch, branchXid={}, resource={}", branchXid, resource);

@@ -53,18 +53,18 @@ public class XAPlusUnitTest extends Assert {
     }
 
     protected XAPlusTransaction createTransaction(String gtridServerId, String bqualServerId) {
-        XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(gtridServerId), XAPlusUid.generate(bqualServerId));
+        XAPlusXid xid = new XAPlusXid(new XAPlusUid(gtridServerId), new XAPlusUid(bqualServerId));
         XAPlusTransaction transaction = new XAPlusTransaction(xid, properties.getTransactionsTimeoutInSeconds(),
                 properties.getServerId());
         return transaction;
     }
 
     protected XAPlusXid createJdbcXid(XAPlusTransaction transaction) {
-        return XAPlusXid.generate(transaction.getXid().getGlobalTransactionIdUid(), properties.getServerId());
+        return new XAPlusXid(transaction.getXid().getGtrid(), properties.getServerId());
     }
 
     protected XAPlusXid createXAPlusXid(XAPlusTransaction transaction, String serverId) {
-        return XAPlusXid.generate(transaction.getXid().getGlobalTransactionIdUid(), serverId);
+        return new XAPlusXid(transaction.getXid().getGtrid(), serverId);
     }
 
     protected XAPlusTransaction createTestSuperiorTransaction() throws SQLException, XAException {

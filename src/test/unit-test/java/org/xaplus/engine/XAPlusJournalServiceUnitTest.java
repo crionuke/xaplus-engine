@@ -57,7 +57,7 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
     public void testLogCommitTransactionDecisionFailed() throws InterruptedException, SQLException, XAException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         Mockito.doThrow(new SQLException("log_exception")).when(tlogMock)
-                .logCommitDecision(transaction.getXid().getGlobalTransactionIdUid());
+                .logCommitDecision(transaction.getXid().getGtrid());
         dispatcher.dispatch(new XAPlusLogCommitTransactionDecisionEvent(transaction));
         XAPlusLogCommitTransactionDecisionFailedEvent event =
                 consumerStub.commitTransactionDecisionFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -79,7 +79,7 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
     public void testLogRollbackTransactionDecisionFailed() throws InterruptedException, SQLException {
         XAPlusTransaction transaction = createTransaction(XA_PLUS_RESOURCE_1, XA_PLUS_RESOURCE_1);
         Mockito.doThrow(new SQLException("log_exception")).when(tlogMock)
-                .logRollbackDecision(transaction.getXid().getGlobalTransactionIdUid());
+                .logRollbackDecision(transaction.getXid().getGtrid());
         dispatcher.dispatch(new XAPlusLogRollbackTransactionDecisionEvent(transaction));
         XAPlusLogRollbackTransactionDecisionFailedEvent event =
                 consumerStub.rollbackTransactionDecisionFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -92,18 +92,18 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
         XAPlusRecoveredResource recoveredResource = new XAPlusRecoveredResource(XA_RESOURCE_1, properties.getServerId(),
                 System.currentTimeMillis(), new XAConnectionStub());
         // Test 1
-        XAPlusXid bxid1 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
+        XAPlusXid bxid1 = new XAPlusXid(new XAPlusUid(XA_PLUS_RESOURCE_1), new XAPlusUid(XA_PLUS_RESOURCE_1));
         Mockito.doReturn(true).when(tlogMock)
-                .findTransactionStatus(bxid1.getGlobalTransactionIdUid());
+                .findTransactionStatus(bxid1.getGtrid());
         dispatcher.dispatch(new XAPlusFindRecoveredXidStatusRequestEvent(bxid1, recoveredResource));
         XAPlusRecoveredXidStatusFoundEvent event1 =
                 consumerStub.recoveredXidStatusFoundEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertTrue(event1.getStatus());
         assertEquals(recoveredResource.getUniqueName(), event1.getRecoveredResource().getUniqueName());
         // Test 2
-        XAPlusXid bxid2 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
+        XAPlusXid bxid2 = new XAPlusXid(new XAPlusUid(XA_PLUS_RESOURCE_1), new XAPlusUid(XA_PLUS_RESOURCE_1));
         Mockito.doReturn(false).when(tlogMock)
-                .findTransactionStatus(bxid2.getGlobalTransactionIdUid());
+                .findTransactionStatus(bxid2.getGtrid());
         dispatcher.dispatch(new XAPlusFindRecoveredXidStatusRequestEvent(bxid2, recoveredResource));
         XAPlusRecoveredXidStatusFoundEvent event2 =
                 consumerStub.recoveredXidStatusFoundEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -113,11 +113,11 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
 
     @Test
     public void testFindRecoveredXidStatusRequestEventFailed() throws InterruptedException, SQLException {
-        XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
+        XAPlusXid xid = new XAPlusXid(new XAPlusUid(XA_PLUS_RESOURCE_1), new XAPlusUid(XA_PLUS_RESOURCE_1));
         XAPlusRecoveredResource recoveredResource = new XAPlusRecoveredResource(XA_RESOURCE_1, properties.getServerId(),
                 System.currentTimeMillis(), new XAConnectionStub());
         Mockito.doThrow(new SQLException("find_exception")).when(tlogMock)
-                .findTransactionStatus(xid.getGlobalTransactionIdUid());
+                .findTransactionStatus(xid.getGtrid());
         dispatcher.dispatch(new XAPlusFindRecoveredXidStatusRequestEvent(xid, recoveredResource));
         XAPlusFindRecoveredXidStatusFailedEvent event =
                 consumerStub.findRecoveredXidStatusFailedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -130,8 +130,8 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
     public void testRemoteSubordinateRetryRequestEvent()
             throws InterruptedException, SQLException, XAPlusSystemException {
         // Test 1
-        XAPlusXid bxid1 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_2));
-        Mockito.doReturn(true).when(tlogMock).findTransactionStatus(bxid1.getGlobalTransactionIdUid());
+        XAPlusXid bxid1 = new XAPlusXid(new XAPlusUid(XA_PLUS_RESOURCE_1), new XAPlusUid(XA_PLUS_RESOURCE_2));
+        Mockito.doReturn(true).when(tlogMock).findTransactionStatus(bxid1.getGtrid());
         dispatcher.dispatch(new XAPlusRemoteSubordinateRetryRequestEvent(bxid1));
         XAPlusRetryCommitOrderRequestEvent event1 =
                 consumerStub.retryCommitOrderRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
@@ -139,8 +139,8 @@ public class XAPlusJournalServiceUnitTest extends XAPlusUnitTest {
         assertEquals(bxid1, event1.getXid());
         assertEquals(resources.getXAPlusResource(XA_PLUS_RESOURCE_2), event1.getResource());
         // Test 2
-        XAPlusXid bxid2 = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_1), XAPlusUid.generate(XA_PLUS_RESOURCE_3));
-        Mockito.doReturn(false).when(tlogMock).findTransactionStatus(bxid2.getGlobalTransactionIdUid());
+        XAPlusXid bxid2 = new XAPlusXid(new XAPlusUid(XA_PLUS_RESOURCE_1), new XAPlusUid(XA_PLUS_RESOURCE_3));
+        Mockito.doReturn(false).when(tlogMock).findTransactionStatus(bxid2.getGtrid());
         dispatcher.dispatch(new XAPlusRemoteSubordinateRetryRequestEvent(bxid2));
         XAPlusRetryRollbackOrderRequestEvent event2 =
                 consumerStub.retryRollbackOrderRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);

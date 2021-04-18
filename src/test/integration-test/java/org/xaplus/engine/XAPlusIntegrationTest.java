@@ -44,8 +44,8 @@ public class XAPlusIntegrationTest extends XAPlusUnitTest {
             this.xaConnection = xaDataSource.getXAConnection();
             this.xaResource = xaConnection.getXAResource();
             this.connection = xaConnection.getConnection();
-            this.xid = new XAPlusXid(XAPlusUid.generate(serverId), XAPlusUid.generate(serverId));
-            this.branchXid = XAPlusXid.generate(xid.getGlobalTransactionIdUid(), serverId);
+            this.xid = new XAPlusXid(new XAPlusUid(serverId), new XAPlusUid(serverId));
+            this.branchXid = new XAPlusXid(xid.getGtrid(), serverId);
         }
 
         XAResource getXaResource() {

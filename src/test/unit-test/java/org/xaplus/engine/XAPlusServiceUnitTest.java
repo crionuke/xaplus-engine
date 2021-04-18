@@ -229,7 +229,7 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
 
     @Test
     public void testRetryFromSuperiorRequestSuccessfully() throws InterruptedException, XAPlusException {
-        XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_2), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
+        XAPlusXid xid = new XAPlusXid(new XAPlusUid(XA_PLUS_RESOURCE_2), new XAPlusUid(XA_PLUS_RESOURCE_1));
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(xid, xaPlusResourceMock));
         Mockito.verify(xaPlusResourceMock, Mockito.timeout(VERIFY_MS)).retry(xid);
@@ -237,7 +237,7 @@ public class XAPlusServiceUnitTest extends XAPlusUnitTest {
 
     @Test
     public void testRetryFromSuperiorRequestFailed() throws InterruptedException, XAPlusException {
-        XAPlusXid xid = new XAPlusXid(XAPlusUid.generate(XA_PLUS_RESOURCE_2), XAPlusUid.generate(XA_PLUS_RESOURCE_1));
+        XAPlusXid xid = new XAPlusXid(new XAPlusUid(XA_PLUS_RESOURCE_2), new XAPlusUid(XA_PLUS_RESOURCE_1));
         XAPlusResource xaPlusResourceMock = Mockito.mock(XAPlusResourceStub.class);
         Mockito.doThrow(new XAPlusException("retry_exception"))
                 .when(xaPlusResourceMock).retry(xid);

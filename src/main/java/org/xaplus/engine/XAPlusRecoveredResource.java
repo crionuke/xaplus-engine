@@ -99,7 +99,7 @@ public class XAPlusRecoveredResource {
         logger.debug("Recover {} xids with TMENDRSCAN", xidCount);
         // Only use transactions created before inFlightCutoff to recovery
         Set<XAPlusXid> filteredXids = xids.stream()
-                .filter(xid -> xid.getBranchQualifierUid().extractTimestamp() < inFlightCutoff)
+                .filter(xid -> xid.getBqual().getTimestamp() < inFlightCutoff)
                 .collect(Collectors.toSet());
         recoveredXids.addAll(filteredXids);
         return filteredXids.size();
@@ -129,7 +129,7 @@ public class XAPlusRecoveredResource {
                 continue;
             }
             // Used bqual to determine who is responsible for branch local server or not
-            String extractedServerId = xaPlusXid.getBranchQualifierUid().extractServerId();
+            String extractedServerId = xaPlusXid.getBqual().getServerId();
             if (extractedServerId == null) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Skipping xid={} as its serverId is null", xaPlusXid);

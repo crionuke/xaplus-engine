@@ -79,7 +79,7 @@ class XAPlusSuperiorPreparerService extends Bolt implements
         if (transactionXid != null && tracker.contains(transactionXid)) {
             XAPlusTransaction transaction = tracker.getTransaction(transactionXid);
             if (logger.isDebugEnabled()) {
-                String subordinateServerId = branchXid.getBranchQualifierUid().extractServerId();
+                String subordinateServerId = branchXid.getBqual().getServerId();
                 logger.debug("Remote branch ready, subordinateServerId={}, {}",
                         subordinateServerId, transaction);
             }
@@ -98,7 +98,7 @@ class XAPlusSuperiorPreparerService extends Bolt implements
         if (transactionXid != null && tracker.contains(transactionXid)) {
             XAPlusTransaction transaction = tracker.getTransaction(transactionXid);
             if (logger.isDebugEnabled()) {
-                String subordinateServerId = branchXid.getBranchQualifierUid().extractServerId();
+                String subordinateServerId = branchXid.getBqual().getServerId();
                 logger.debug("Remote branch failed, subordinateServerId={}, {}",
                         subordinateServerId, transaction);
             }

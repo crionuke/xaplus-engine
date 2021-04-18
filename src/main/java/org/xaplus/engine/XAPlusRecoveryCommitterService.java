@@ -66,7 +66,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
             tracker.start(recoveredResources);
             for (XAPlusRecoveredResource recoveredResource : recoveredResources) {
                 for (XAPlusXid recoveredXid : recoveredResource.getRecoveredXids()) {
-                    String superiorServerId = recoveredXid.getGlobalTransactionIdUid().extractServerId();
+                    String superiorServerId = recoveredXid.getGtrid().getServerId();
                     tracker.track(recoveredResource, recoveredXid);
                     if (superiorServerId.equals(properties.getServerId())) {
                         if (logger.isDebugEnabled()) {

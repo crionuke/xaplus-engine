@@ -45,7 +45,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         XAPlusXid xid = transaction.getXid();
         try {
-            tlog.logCommitDecision(xid.getGlobalTransactionIdUid());
+            tlog.logCommitDecision(xid.getGtrid());
             if (logger.isDebugEnabled()) {
                 logger.debug("Commit decision logged, xid={}, branches={}", xid, transaction.getBranches());
             }
@@ -68,7 +68,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusTransaction transaction = event.getTransaction();
         XAPlusXid xid = transaction.getXid();
         try {
-            tlog.logRollbackDecision(xid.getGlobalTransactionIdUid());
+            tlog.logRollbackDecision(xid.getGtrid());
             if (logger.isDebugEnabled()) {
                 logger.debug("Rollback decision logged, xid={}, branches={}", xid, transaction.getBranches());
             }
@@ -90,7 +90,7 @@ class XAPlusJournalService extends Bolt implements
         XAPlusXid xid = event.getXid();
         XAPlusRecoveredResource recoveredResource = event.getRecoveredResource();
         try {
-            boolean status = tlog.findTransactionStatus(xid.getGlobalTransactionIdUid());
+            boolean status = tlog.findTransactionStatus(xid.getGtrid());
             if (logger.isDebugEnabled()) {
                 logger.debug("Status for recovered xid found, status={}, xid={}", status, xid);
             }
@@ -111,8 +111,8 @@ class XAPlusJournalService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         try {
-            boolean status = tlog.findTransactionStatus(xid.getGlobalTransactionIdUid());
-            String subordinateServerId = xid.getBranchQualifierUid().extractServerId();
+            boolean status = tlog.findTransactionStatus(xid.getGtrid());
+            String subordinateServerId = xid.getBqual().getServerId();
             try {
                 XAPlusResource resource = resources.getXAPlusResource(subordinateServerId);
                 if (status) {
