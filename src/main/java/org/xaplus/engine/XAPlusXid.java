@@ -15,12 +15,22 @@ public final class XAPlusXid implements javax.transaction.xa.Xid {
         }
         String[] gtridBqual = xidString.split(":");
         if (gtridBqual.length == 2) {
-            XAPlusUid globalTransactionId = new XAPlusUid(XAPlusArraysEncoderDecoder.hexToArray(gtridBqual[0]));
-            XAPlusUid branchQualifier = new XAPlusUid(XAPlusArraysEncoderDecoder.hexToArray(gtridBqual[1]));
+            XAPlusUid globalTransactionId = new XAPlusUid(hexToArray(gtridBqual[0]));
+            XAPlusUid branchQualifier = new XAPlusUid(hexToArray(gtridBqual[1]));
             return new XAPlusXid(globalTransactionId, branchQualifier);
         } else {
             throw new IllegalArgumentException("Wrong xid=" + xidString + " to decoder");
         }
+    }
+
+    static private byte[] hexToArray(String uid) {
+        int len = uid.length();
+        byte[] bytes = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            bytes[i / 2] = (byte) ((Character.digit(uid.charAt(i), 16) << 4)
+                    + Character.digit(uid.charAt(i + 1), 16));
+        }
+        return bytes;
     }
 
     private final XAPlusUid gtrid;
