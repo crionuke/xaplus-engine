@@ -11,8 +11,4 @@ public class XAPlusException extends XAException {
     public XAPlusException(String s) {
         super(s);
     }
-
-    public XAPlusException(int errcode) {
-        super(errcode);
-    }
 }

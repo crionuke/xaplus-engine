@@ -3,10 +3,10 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xaplus.engine.events.journal.XAPlusCommitTransactionDecisionLoggedEvent;
+import org.xaplus.engine.events.journal.XAPlusRollbackTransactionDecisionLoggedEvent;
 import org.xaplus.engine.events.tm.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
-import org.xaplus.engine.events.twopc.XAPlusCommitTransactionDecisionEvent;
-import org.xaplus.engine.events.twopc.XAPlusRollbackTransactionDecisionEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCreateTransactionEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
@@ -74,7 +74,8 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                 if (logger.isDebugEnabled()) {
                     logger.debug("Rollback decision, {}", transaction);
                 }
-                dispatcher.dispatch(new XAPlusRollbackTransactionDecisionEvent(transaction));
+                // Start rollback on subordinate side without logging
+                dispatcher.dispatch(new XAPlusRollbackTransactionDecisionLoggedEvent(transaction));
             } else {
                 // Just mark as rollback only, wait when preparation finished
                 transaction.markAsRollbackOnly();
@@ -95,7 +96,8 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                 if (logger.isDebugEnabled()) {
                     logger.debug("Commit decision, {}", transaction);
                 }
-                dispatcher.dispatch(new XAPlusCommitTransactionDecisionEvent(transaction));
+                // Start commit on subordinate side without logging
+                dispatcher.dispatch(new XAPlusCommitTransactionDecisionLoggedEvent(transaction));
             } else {
                 if (logger.isWarnEnabled()) {
                     logger.warn("Remote superior order to commit, but transaction not prepared yet, xid={}", xid);
@@ -118,7 +120,8 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                 if (logger.isDebugEnabled()) {
                     logger.debug("Rollback decision, {}", transaction);
                 }
-                dispatcher.dispatch(new XAPlusRollbackTransactionDecisionEvent(transaction));
+                // Skip logging on subordinate side
+                dispatcher.dispatch(new XAPlusRollbackTransactionDecisionLoggedEvent(transaction));
             } else {
                 transaction.markAsDecided();
                 transaction.markAsRollbackOnly();
@@ -259,7 +262,8 @@ class XAPlusSubordinatePreparerService extends Bolt implements
                 if (logger.isDebugEnabled()) {
                     logger.debug("Rollback decision, {}", transaction);
                 }
-                dispatcher.dispatch(new XAPlusRollbackTransactionDecisionEvent(transaction));
+                // Skip logging on subordinate side
+                dispatcher.dispatch(new XAPlusRollbackTransactionDecisionLoggedEvent(transaction));
             } else {
                 String superiorServerId = xid.getGtrid().getServerId();
                 try {

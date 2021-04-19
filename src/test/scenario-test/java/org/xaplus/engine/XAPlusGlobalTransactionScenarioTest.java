@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
 public class XAPlusGlobalTransactionScenarioTest extends XAPlusScenarioTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusGlobalTransactionScenarioTest.class);
 
-    static private final String XA_PLUS_SUPERIOR = "superior";
-    static private final String XA_PLUS_SUBORDINATE = "subordinate";
+    static private final String XA_PLUS_SUPERIOR = "server-1";
+    static private final String XA_PLUS_SUBORDINATE = "server-2";
 
     private XAPlus superiorXAPlus;
     private XAPlus subordinateXAPLus;

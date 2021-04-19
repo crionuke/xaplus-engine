@@ -9,12 +9,10 @@ import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.XAPlusTickEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
-import org.xaplus.engine.events.rollback.XAPlusRollbackRequestEvent;
 import org.xaplus.engine.events.tm.XAPlusTransactionClosedEvent;
 import org.xaplus.engine.events.tm.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
-import org.xaplus.engine.events.twopc.XAPlus2pcRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCreateTransactionEvent;
 import org.xaplus.engine.exceptions.XAPlusCommitException;
 import org.xaplus.engine.exceptions.XAPlusRollbackException;
@@ -137,21 +135,15 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
 
     private class ConsumerStub extends Bolt implements
             XAPlusTransactionClosedEvent.Handler,
-            XAPlusTransactionTimedOutEvent.Handler,
-            XAPlus2pcRequestEvent.Handler,
-            XAPlusRollbackRequestEvent.Handler {
+            XAPlusTransactionTimedOutEvent.Handler {
 
         BlockingQueue<XAPlusTransactionClosedEvent> transactionClosedEvents;
         BlockingQueue<XAPlusTransactionTimedOutEvent> transactionTimedOutEvents;
-        BlockingQueue<XAPlus2pcRequestEvent> twoPcRequestEvents;
-        BlockingQueue<XAPlusRollbackRequestEvent> rollbackRequestEvents;
 
         ConsumerStub() {
             super("stub-consumer", QUEUE_SIZE);
             transactionClosedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             transactionTimedOutEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-            twoPcRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-            rollbackRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override
@@ -164,22 +156,10 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
             transactionTimedOutEvents.put(event);
         }
 
-        @Override
-        public void handle2pcRequest(XAPlus2pcRequestEvent event) throws InterruptedException {
-            twoPcRequestEvents.put(event);
-        }
-
-        @Override
-        public void handleRollbackRequest(XAPlusRollbackRequestEvent event) throws InterruptedException {
-            rollbackRequestEvents.put(event);
-        }
-
         void postConstruct() {
             threadPool.execute(this);
             dispatcher.subscribe(this, XAPlusTransactionClosedEvent.class);
             dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
-            dispatcher.subscribe(this, XAPlus2pcRequestEvent.class);
-            dispatcher.subscribe(this, XAPlusRollbackRequestEvent.class);
         }
     }
 }

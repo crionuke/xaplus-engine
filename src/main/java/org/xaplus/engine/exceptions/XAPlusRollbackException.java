@@ -6,10 +6,6 @@ package org.xaplus.engine.exceptions;
  */
 public class XAPlusRollbackException extends Exception {
 
-    public XAPlusRollbackException() {
-        super();
-    }
-
     public XAPlusRollbackException(String message) {
         super(message);
     }

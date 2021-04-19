@@ -18,13 +18,13 @@ public class XAPlusUnitTest extends Assert {
     protected final int POLL_TIMIOUT_MS = 2000;
     protected final int VERIFY_MS = 1000;
 
-    protected final String XA_RESOURCE_1 = "db1-stub";
-    protected final String XA_RESOURCE_2 = "db2-stub";
-    protected final String XA_RESOURCE_3 = "db3-stub";
+    protected final String XA_RESOURCE_1 = "db-1-stub";
+    protected final String XA_RESOURCE_2 = "db-2-stub";
+    protected final String XA_RESOURCE_3 = "db-3-stub";
 
-    protected final String XA_PLUS_RESOURCE_1 = "server1-stub";
-    protected final String XA_PLUS_RESOURCE_2 = "server2-stub";
-    protected final String XA_PLUS_RESOURCE_3 = "server3-stub";
+    protected final String XA_PLUS_RESOURCE_1 = "server-1-stub";
+    protected final String XA_PLUS_RESOURCE_2 = "server-2-stub";
+    protected final String XA_PLUS_RESOURCE_3 = "server-3-stub";
 
     protected XAPlusProperties properties;
     protected XAPlusResources resources;

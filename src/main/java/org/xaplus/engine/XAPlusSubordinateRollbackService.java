@@ -3,10 +3,10 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xaplus.engine.events.journal.XAPlusRollbackTransactionDecisionLoggedEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
 import org.xaplus.engine.events.tm.XAPlusTransactionTimedOutEvent;
-import org.xaplus.engine.events.twopc.XAPlusRollbackTransactionDecisionEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchRolledBackEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchFailedEvent;
 
@@ -15,7 +15,7 @@ import org.xaplus.engine.events.xa.XAPlusRollbackBranchFailedEvent;
  * @since 1.0.0
  */
 class XAPlusSubordinateRollbackService extends Bolt implements
-        XAPlusRollbackTransactionDecisionEvent.Handler,
+        XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
         XAPlusBranchRolledBackEvent.Handler,
         XAPlusRollbackBranchFailedEvent.Handler,
         XAPlusTransactionTimedOutEvent.Handler {
@@ -27,14 +27,14 @@ class XAPlusSubordinateRollbackService extends Bolt implements
 
     XAPlusSubordinateRollbackService(XAPlusProperties properties, XAPlusThreadPool threadPool,
                                      XAPlusDispatcher dispatcher) {
-        super(properties.getServerId() + "subordinate-rollback", properties.getQueueSize());
+        super(properties.getServerId() + "-subordinate-rollback", properties.getQueueSize());
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
         this.tracker = new XAPlusTracker();
     }
 
     @Override
-    public void handleRollbackTransactionDecision(XAPlusRollbackTransactionDecisionEvent event) throws InterruptedException {
+    public void handleRollbackTransactionDecisionLogged(XAPlusRollbackTransactionDecisionLoggedEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
@@ -99,7 +99,7 @@ class XAPlusSubordinateRollbackService extends Bolt implements
 
     void postConstruct() {
         threadPool.execute(this);
-        dispatcher.subscribe(this, XAPlusRollbackTransactionDecisionEvent.class);
+        dispatcher.subscribe(this, XAPlusRollbackTransactionDecisionLoggedEvent.class);
         dispatcher.subscribe(this, XAPlusBranchRolledBackEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackBranchFailedEvent.class);
         dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);

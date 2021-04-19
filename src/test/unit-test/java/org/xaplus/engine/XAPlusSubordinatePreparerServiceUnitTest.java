@@ -6,9 +6,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xaplus.engine.events.journal.XAPlusCommitTransactionDecisionLoggedEvent;
+import org.xaplus.engine.events.journal.XAPlusRollbackTransactionDecisionLoggedEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
-import org.xaplus.engine.events.twopc.XAPlusCommitTransactionDecisionEvent;
-import org.xaplus.engine.events.twopc.XAPlusRollbackTransactionDecisionEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCreateTransactionEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
@@ -77,7 +77,7 @@ public class XAPlusSubordinatePreparerServiceUnitTest extends XAPlusUnitTest {
         assertEquals(transaction.getXid(), event3.getXid());
         // Commit order from superior and wait commit decision
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToCommitEvent(event3.getXid()));
-        XAPlusCommitTransactionDecisionEvent event4 = consumerStub.commitTransactionDecisionEvents
+        XAPlusCommitTransactionDecisionLoggedEvent event4 = consumerStub.commitTransactionDecisionLoggedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event4);
         assertEquals(transaction, event4.getTransaction());
@@ -115,7 +115,7 @@ public class XAPlusSubordinatePreparerServiceUnitTest extends XAPlusUnitTest {
         assertEquals(transaction.getXid(), event3.getXid());
         // Rollback order from superior and wait rollback decision
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(event3.getXid()));
-        XAPlusRollbackTransactionDecisionEvent event4 = consumerStub.rollbackTransactionDecisionEvents
+        XAPlusRollbackTransactionDecisionLoggedEvent event4 = consumerStub.rollbackTransactionDecisionLoggedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event4);
         assertEquals(transaction, event4.getTransaction());
@@ -153,7 +153,7 @@ public class XAPlusSubordinatePreparerServiceUnitTest extends XAPlusUnitTest {
         assertEquals(transaction.getXid(), event3.getXid());
         // Rollback order from superior and wait rollback decision
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(event3.getXid()));
-        XAPlusRollbackTransactionDecisionEvent event4 = consumerStub.rollbackTransactionDecisionEvents
+        XAPlusRollbackTransactionDecisionLoggedEvent event4 = consumerStub.rollbackTransactionDecisionLoggedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event4);
         assertEquals(transaction, event4.getTransaction());
@@ -179,7 +179,7 @@ public class XAPlusSubordinatePreparerServiceUnitTest extends XAPlusUnitTest {
         assertEquals(transaction.getXid(), event1.getXid());
         // Rollback order from superior and wait rollback decision
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(event1.getXid()));
-        XAPlusRollbackTransactionDecisionEvent event2 = consumerStub.rollbackTransactionDecisionEvents
+        XAPlusRollbackTransactionDecisionLoggedEvent event2 = consumerStub.rollbackTransactionDecisionLoggedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(transaction, event2.getTransaction());
@@ -200,7 +200,7 @@ public class XAPlusSubordinatePreparerServiceUnitTest extends XAPlusUnitTest {
         dispatcher.dispatch(new XAPlusRemoteSuperiorOrderToRollbackEvent(transaction.getXid()));
         // User rollback and wait rollback decision
         dispatcher.dispatch(new XAPlusUserRollbackRequestEvent(transaction));
-        XAPlusRollbackTransactionDecisionEvent event1 = consumerStub.rollbackTransactionDecisionEvents
+        XAPlusRollbackTransactionDecisionLoggedEvent event1 = consumerStub.rollbackTransactionDecisionLoggedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event1);
         assertEquals(transaction, event1.getTransaction());
@@ -233,7 +233,7 @@ public class XAPlusSubordinatePreparerServiceUnitTest extends XAPlusUnitTest {
         assertEquals(transaction.getXid(), event2.getXid());
         dispatcher.dispatch(new XAPlusBranchPreparedEvent(event2.getXid(), event2.getBranchXid()));
         // Wait rollback decision
-        XAPlusRollbackTransactionDecisionEvent event3 = consumerStub.rollbackTransactionDecisionEvents
+        XAPlusRollbackTransactionDecisionLoggedEvent event3 = consumerStub.rollbackTransactionDecisionLoggedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event3);
         assertEquals(transaction, event3.getTransaction());
@@ -273,15 +273,15 @@ public class XAPlusSubordinatePreparerServiceUnitTest extends XAPlusUnitTest {
             XAPlusPrepareBranchRequestEvent.Handler,
             XAPlusReportReadyStatusRequestEvent.Handler,
             XAPlusReportFailedStatusRequestEvent.Handler,
-            XAPlusCommitTransactionDecisionEvent.Handler,
-            XAPlusRollbackTransactionDecisionEvent.Handler,
+            XAPlusCommitTransactionDecisionLoggedEvent.Handler,
+            XAPlusRollbackTransactionDecisionLoggedEvent.Handler,
             XAPlus2pcFailedEvent.Handler {
 
         BlockingQueue<XAPlusPrepareBranchRequestEvent> prepareBranchRequestEvents;
         BlockingQueue<XAPlusReportReadyStatusRequestEvent> reportReadyStatusRequestEvents;
         BlockingQueue<XAPlusReportFailedStatusRequestEvent> reportFailedStatusRequestEvents;
-        BlockingQueue<XAPlusCommitTransactionDecisionEvent> commitTransactionDecisionEvents;
-        BlockingQueue<XAPlusRollbackTransactionDecisionEvent> rollbackTransactionDecisionEvents;
+        BlockingQueue<XAPlusCommitTransactionDecisionLoggedEvent> commitTransactionDecisionLoggedEvents;
+        BlockingQueue<XAPlusRollbackTransactionDecisionLoggedEvent> rollbackTransactionDecisionLoggedEvents;
         BlockingQueue<XAPlus2pcFailedEvent> twoPcFailedEvents;
 
         ConsumerStub() {
@@ -289,8 +289,8 @@ public class XAPlusSubordinatePreparerServiceUnitTest extends XAPlusUnitTest {
             prepareBranchRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             reportReadyStatusRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             reportFailedStatusRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-            commitTransactionDecisionEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
-            rollbackTransactionDecisionEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            commitTransactionDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            rollbackTransactionDecisionLoggedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             twoPcFailedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
@@ -312,15 +312,13 @@ public class XAPlusSubordinatePreparerServiceUnitTest extends XAPlusUnitTest {
         }
 
         @Override
-        public void handleCommitTransactionDecision(XAPlusCommitTransactionDecisionEvent event)
-                throws InterruptedException {
-            commitTransactionDecisionEvents.put(event);
+        public void handleCommitTransactionDecisionLogged(XAPlusCommitTransactionDecisionLoggedEvent event) throws InterruptedException {
+            commitTransactionDecisionLoggedEvents.put(event);
         }
 
         @Override
-        public void handleRollbackTransactionDecision(XAPlusRollbackTransactionDecisionEvent event)
-                throws InterruptedException {
-            rollbackTransactionDecisionEvents.put(event);
+        public void handleRollbackTransactionDecisionLogged(XAPlusRollbackTransactionDecisionLoggedEvent event) throws InterruptedException {
+            rollbackTransactionDecisionLoggedEvents.put(event);
         }
 
         @Override
@@ -333,8 +331,8 @@ public class XAPlusSubordinatePreparerServiceUnitTest extends XAPlusUnitTest {
             dispatcher.subscribe(this, XAPlusPrepareBranchRequestEvent.class);
             dispatcher.subscribe(this, XAPlusReportReadyStatusRequestEvent.class);
             dispatcher.subscribe(this, XAPlusReportFailedStatusRequestEvent.class);
-            dispatcher.subscribe(this, XAPlusCommitTransactionDecisionEvent.class);
-            dispatcher.subscribe(this, XAPlusRollbackTransactionDecisionEvent.class);
+            dispatcher.subscribe(this, XAPlusCommitTransactionDecisionLoggedEvent.class);
+            dispatcher.subscribe(this, XAPlusRollbackTransactionDecisionLoggedEvent.class);
             dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);
         }
     }

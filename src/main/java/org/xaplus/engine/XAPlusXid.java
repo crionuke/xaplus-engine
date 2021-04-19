@@ -4,7 +4,6 @@ package org.xaplus.engine;
  * Based on code by Ludovic Orban
  * https://github.com/bitronix/btm/blob/master/btm/src/main/java/bitronix/tm/BitronixXid.java
  *
- *
  * @since 1.0.0
  */
 public final class XAPlusXid implements javax.transaction.xa.Xid {

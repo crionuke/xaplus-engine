@@ -3,10 +3,10 @@ package org.xaplus.engine;
 import com.crionuke.bolts.Bolt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xaplus.engine.events.journal.XAPlusCommitTransactionDecisionLoggedEvent;
 import org.xaplus.engine.events.tm.XAPlusTransactionTimedOutEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcDoneEvent;
 import org.xaplus.engine.events.twopc.XAPlus2pcFailedEvent;
-import org.xaplus.engine.events.twopc.XAPlusCommitTransactionDecisionEvent;
 import org.xaplus.engine.events.xa.XAPlusBranchCommittedEvent;
 import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
 
@@ -15,7 +15,7 @@ import org.xaplus.engine.events.xa.XAPlusCommitBranchFailedEvent;
  * @since 1.0.0
  */
 class XAPlusSubordinateCommitterService extends Bolt implements
-        XAPlusCommitTransactionDecisionEvent.Handler,
+        XAPlusCommitTransactionDecisionLoggedEvent.Handler,
         XAPlusBranchCommittedEvent.Handler,
         XAPlusCommitBranchFailedEvent.Handler,
         XAPlusTransactionTimedOutEvent.Handler {
@@ -34,7 +34,7 @@ class XAPlusSubordinateCommitterService extends Bolt implements
     }
 
     @Override
-    public void handleCommitTransactionDecision(XAPlusCommitTransactionDecisionEvent event)
+    public void handleCommitTransactionDecisionLogged(XAPlusCommitTransactionDecisionLoggedEvent event)
             throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
@@ -100,7 +100,7 @@ class XAPlusSubordinateCommitterService extends Bolt implements
 
     void postConstruct() {
         threadPool.execute(this);
-        dispatcher.subscribe(this, XAPlusCommitTransactionDecisionEvent.class);
+        dispatcher.subscribe(this, XAPlusCommitTransactionDecisionLoggedEvent.class);
         dispatcher.subscribe(this, XAPlusBranchCommittedEvent.class);
         dispatcher.subscribe(this, XAPlusCommitBranchFailedEvent.class);
         dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);

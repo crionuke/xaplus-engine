@@ -13,8 +13,8 @@ public class XAPlusScenarioTest extends Assert {
     static protected final int DEFAULT_TIMEOUT_S = 4;
     static protected final int POLL_TIMIOUT_MS = 2000;
     static protected final String INSERT_VALUE = "INSERT INTO test (t_value) VALUES(?)";
-    static protected final String XA_RESOURCE_DATABASE_1 = "database1";
-    static protected final String XA_RESOURCE_DATABASE_2 = "database2";
+    static protected final String XA_RESOURCE_DATABASE_1 = "database-1";
+    static protected final String XA_RESOURCE_DATABASE_2 = "database-2";
 
     protected DataSource tlog;
     protected PGXADataSource database1;

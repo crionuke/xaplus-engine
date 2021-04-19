@@ -6,10 +6,6 @@ package org.xaplus.engine.exceptions;
  */
 public class XAPlusCommitException extends Exception {
 
-    public XAPlusCommitException() {
-        super();
-    }
-
     public XAPlusCommitException(String message) {
         super(message);
     }
