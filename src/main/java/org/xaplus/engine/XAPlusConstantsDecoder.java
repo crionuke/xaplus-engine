@@ -15,19 +15,20 @@
  */
 package org.xaplus.engine;
 
-import javax.transaction.Status;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 
 /**
- * @author Ludovic Orban
+ * Based on code by Ludovic Orban
+ * https://github.com/bitronix/btm/blob/master/btm/src/main/java/bitronix/tm/utils/Decoder.java
+ *
  * @since 1.0.0
  */
 class XAPlusConstantsDecoder {
 
     static String decodeXAExceptionErrorCode(XAException ex) {
         switch (ex.errorCode) {
-            // rollback errorsww
+            // rollback errors
             case XAException.XA_RBROLLBACK:
                 return "XA_RBROLLBACK";
             case XAException.XA_RBCOMMFAIL:
@@ -75,58 +76,6 @@ class XAPlusConstantsDecoder {
 
             default:
                 return "!invalid error code (" + ex.errorCode + ")!";
-        }
-    }
-
-    static String decodeStatus(int status) {
-        switch (status) {
-            case Status.STATUS_ACTIVE:
-                return "ACTIVE";
-            case Status.STATUS_COMMITTED:
-                return "COMMITTED";
-            case Status.STATUS_COMMITTING:
-                return "COMMITTING";
-            case Status.STATUS_MARKED_ROLLBACK:
-                return "MARKED_ROLLBACK";
-            case Status.STATUS_NO_TRANSACTION:
-                return "NO_TRANSACTION";
-            case Status.STATUS_PREPARED:
-                return "PREPARED";
-            case Status.STATUS_PREPARING:
-                return "PREPARING";
-            case Status.STATUS_ROLLEDBACK:
-                return "ROLLEDBACK";
-            case Status.STATUS_ROLLING_BACK:
-                return "ROLLING_BACK";
-            case Status.STATUS_UNKNOWN:
-                return "UNKNOWN";
-            default:
-                return "!incorrect status (" + status + ")!";
-        }
-    }
-
-    static String decodeXAResourceFlag(int flag) {
-        switch (flag) {
-            case XAResource.TMENDRSCAN:
-                return "ENDRSCAN";
-            case XAResource.TMFAIL:
-                return "FAIL";
-            case XAResource.TMJOIN:
-                return "JOIN";
-            case XAResource.TMNOFLAGS:
-                return "NOFLAGS";
-            case XAResource.TMONEPHASE:
-                return "ONEPHASE";
-            case XAResource.TMRESUME:
-                return "RESUME";
-            case XAResource.TMSTARTRSCAN:
-                return "STARTRSCAN";
-            case XAResource.TMSUCCESS:
-                return "SUCCESS";
-            case XAResource.TMSUSPEND:
-                return "SUSPEND";
-            default:
-                return "!invalid flag (" + flag + ")!";
         }
     }
 

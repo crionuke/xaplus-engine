@@ -5,8 +5,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * @author Ludovic Orban
- * @author Byvshev Kirill
+ * Based on code by Ludovic Orban
+ * https://github.com/bitronix/btm/blob/master/btm/src/main/java/bitronix/tm/utils/Uid.java
+ *
  * @since 1.0.0
  */
 public final class XAPlusUid {
