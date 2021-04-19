@@ -140,6 +140,16 @@ public class XAPlusGlobalTransactionScenarioTest extends XAPlusScenarioTest {
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(value, event2.getValue());
+        // Reset scenario, start subordinate side recovery
+        requestSubordinateExceptions.commitException = false;
+        subordinateXAPLus.engine.startRecovery();
+        Thread.sleep(DEFAULT_TIMEOUT_S * 1000);
+        XAPlusRecoveryFinishedEvent event3 = subordinateInterceptorBolt.recoveryFinishedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event3);
+        assertTrue(event3.getFinishedXids().stream()
+                .map(xid -> xid.getGtrid())
+                .anyMatch(gtrid -> gtrid.equals(event2.getXid().getGtrid())));
     }
 
     @Test
@@ -162,6 +172,12 @@ public class XAPlusGlobalTransactionScenarioTest extends XAPlusScenarioTest {
         assertNotNull(event1);
         assertEquals(value, event1.getValue());
         assertFalse(event1.getStatus());
+        // Check subordinate
+        XAPlusTestSubordinateFinishedEvent event2 = consumerBolt.testSubordinateFinishedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event2);
+        assertEquals(value, event2.getValue());
+        assertFalse(event2.getStatus());
     }
 
     @Test
@@ -201,6 +217,12 @@ public class XAPlusGlobalTransactionScenarioTest extends XAPlusScenarioTest {
         // Superior recovery
         superiorXAPlus.engine.startRecovery();
         Thread.sleep(DEFAULT_TIMEOUT_S * 1000);
+        XAPlusRecoveryFinishedEvent event3 = superiorInterceptorBolt.recoveryFinishedEvents
+                .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event3);
+        assertTrue(event3.getFinishedXids().stream()
+                .map(xid -> xid.getGtrid())
+                .anyMatch(gtrid -> gtrid.equals(event1.getXid().getGtrid())));
     }
 
     // Start XA+ transaction
