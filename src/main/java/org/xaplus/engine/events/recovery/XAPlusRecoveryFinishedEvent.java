@@ -1,6 +1,10 @@
 package org.xaplus.engine.events.recovery;
 
 import com.crionuke.bolts.Event;
+import org.xaplus.engine.XAPlusXid;
+
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -8,15 +12,21 @@ import com.crionuke.bolts.Event;
  */
 public final class XAPlusRecoveryFinishedEvent extends Event<XAPlusRecoveryFinishedEvent.Handler> {
 
-    // TODO: fire finished xids after recovery
+    private final Set<XAPlusXid> finishedXids;
 
-    public XAPlusRecoveryFinishedEvent() {
+    public XAPlusRecoveryFinishedEvent(Set<XAPlusXid> finishedXids) {
         super();
+        this.finishedXids = ConcurrentHashMap.newKeySet();
+        this.finishedXids.addAll(finishedXids);
     }
 
     @Override
     public void handle(Handler handler) throws InterruptedException {
         handler.handleRecoveryFinished(this);
+    }
+
+    public Set<XAPlusXid> getFinishedXids() {
+        return finishedXids;
     }
 
     public interface Handler {

@@ -45,7 +45,7 @@ public class XAPlusTransaction {
         contexts = new CopyOnWriteArrayList<>();
         xaBranches = new ConcurrentHashMap<>();
         xaPlusBranches = new ConcurrentHashMap<>();
-        future = new XAPlusFuture();
+        future = new XAPlusFuture(xid);
         decided = false;
         rollbackOnly = false;
     }

@@ -119,7 +119,7 @@ public class XAPlusDistributedTransactionScenarioTest extends XAPlusScenarioTest
             }
             // Wait result
             try {
-                boolean status = future.get();
+                boolean status = future.getResult();
                 logger.info("Distributed transaction finished, status={}", status);
                 testDispatcher.dispatch(new XAPlusDistributedTransactionFinishedEvent(status, value));
             } catch (XAPlusCommitException commitException) {

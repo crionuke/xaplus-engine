@@ -1,6 +1,7 @@
 package org.xaplus.engine.events;
 
 import com.crionuke.bolts.Event;
+import org.xaplus.engine.XAPlusXid;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -9,11 +10,13 @@ import com.crionuke.bolts.Event;
 public final class XAPlusTestSubordinateFinishedEvent extends
         Event<XAPlusTestSubordinateFinishedEvent.Handler> {
 
+    private final XAPlusXid xid;
     private final boolean status;
     private final long value;
 
-    public XAPlusTestSubordinateFinishedEvent(boolean status, long value) {
+    public XAPlusTestSubordinateFinishedEvent(XAPlusXid xid, boolean status, long value) {
         super();
+        this.xid = xid;
         this.status = status;
         this.value = value;
     }
@@ -21,6 +24,10 @@ public final class XAPlusTestSubordinateFinishedEvent extends
     @Override
     public void handle(Handler handler) throws InterruptedException {
         handler.handleTestSubordinateFinished(this);
+    }
+
+    public XAPlusXid getXid() {
+        return xid;
     }
 
     public boolean getStatus() {

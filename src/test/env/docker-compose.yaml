@@ -14,7 +14,7 @@ services:
       - POSTGRES_PASSWORD=qwe123
       - POSTGRES_USER=tlog
       - POSTGRES_DB=tlog
-    command: -c 'max_prepared_transactions=256'
+    command: -c max_prepared_transactions=256 -c max_connections=256
   pg1:
     image: postgres:13
     container_name: pg1
@@ -28,7 +28,7 @@ services:
       - POSTGRES_PASSWORD=qwe123
       - POSTGRES_USER=test
       - POSTGRES_DB=test
-    command: -c 'max_prepared_transactions=256'
+    command: -c max_prepared_transactions=256 -c max_connections=256
   pg2:
     image: postgres:13
     container_name: pg2
@@ -42,4 +42,4 @@ services:
       - POSTGRES_PASSWORD=qwe123
       - POSTGRES_USER=test
       - POSTGRES_DB=test
-    command: -c 'max_prepared_transactions=256'
+    command: -c max_prepared_transactions=256 -c max_connections=256

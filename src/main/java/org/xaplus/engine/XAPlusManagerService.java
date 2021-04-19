@@ -68,7 +68,7 @@ class XAPlusManagerService extends Bolt implements
                 logger.info("Transaction done, {}", transaction);
             }
             close(transaction);
-            transaction.getFuture().put(new XAPlusResult(true));
+            transaction.getFuture().putResult(new XAPlusResult(true));
         }
     }
 
@@ -84,7 +84,7 @@ class XAPlusManagerService extends Bolt implements
                 logger.info("Transaction 2pc failed, {}", transaction);
             }
             close(transaction);
-            transaction.getFuture().put(new XAPlusResult(new XAPlusCommitException("2pc commit exception")));
+            transaction.getFuture().putResult(new XAPlusResult(new XAPlusCommitException("2pc commit exception")));
         }
     }
 
@@ -100,7 +100,7 @@ class XAPlusManagerService extends Bolt implements
                 logger.info("Transaction rolled back, {}", transaction);
             }
             close(transaction);
-            transaction.getFuture().put(new XAPlusResult(false));
+            transaction.getFuture().putResult(new XAPlusResult(false));
         }
     }
 
@@ -116,7 +116,7 @@ class XAPlusManagerService extends Bolt implements
                 logger.info("Transaction rollback failed, {}", transaction);
             }
             close(transaction);
-            transaction.getFuture().put(new XAPlusResult(new XAPlusRollbackException("rollback exception")));
+            transaction.getFuture().putResult(new XAPlusResult(new XAPlusRollbackException("rollback exception")));
         }
     }
 
@@ -143,7 +143,7 @@ class XAPlusManagerService extends Bolt implements
             }
             for (XAPlusTransaction transaction : expiredTransactions) {
                 dispatcher.dispatch(new XAPlusTransactionTimedOutEvent(transaction));
-                transaction.getFuture().put(new XAPlusResult(new XAPlusTimeoutException("timeout exception")));
+                transaction.getFuture().putResult(new XAPlusResult(new XAPlusTimeoutException("timeout exception")));
                 inFlightTransactions.remove(transaction);
                 close(transaction);
             }

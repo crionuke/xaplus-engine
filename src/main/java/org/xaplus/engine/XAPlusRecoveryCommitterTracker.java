@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -21,7 +22,8 @@ class XAPlusRecoveryCommitterTracker {
     private long expireTimeInMillis;
     private Set<XAPlusRecoveredResource> recoveredResources;
     private Map<XAPlusXid, XAPlusRecoveredResource> resourceByXid;
-    private Set<XAPlusXid> waiting;
+    private Set<XAPlusXid> waitingXids;
+    private Set<XAPlusXid> finishedXids;
 
     XAPlusRecoveryCommitterTracker(long recoveryTimeoutInSeconds) {
         this.recoveryTimeoutInSeconds = recoveryTimeoutInSeconds;
@@ -30,7 +32,8 @@ class XAPlusRecoveryCommitterTracker {
         expireTimeInMillis = 0;
         recoveredResources = new HashSet<>();
         resourceByXid = new HashMap<>();
-        waiting = new HashSet<>();
+        waitingXids = new HashSet<>();
+        finishedXids = new HashSet<>();
     }
 
     Set<XAPlusRecoveredResource> getRecoveredResources() {
@@ -53,7 +56,7 @@ class XAPlusRecoveryCommitterTracker {
 
     void track(XAPlusRecoveredResource recoveredResource, XAPlusXid xid) {
         resourceByXid.put(xid, recoveredResource);
-        waiting.add(xid);
+        waitingXids.add(xid);
     }
 
     XAPlusRecoveredResource getRecoveredResourceFor(XAPlusXid xid) {
@@ -61,25 +64,39 @@ class XAPlusRecoveryCommitterTracker {
     }
 
     boolean statusFound(XAPlusXid xid) {
-        return waiting.contains(xid);
+        return waitingXids.contains(xid);
     }
 
     boolean findStatusFailed(XAPlusXid xid) {
-        return waiting.remove(xid);
+        return waitingXids.remove(xid);
     }
 
     boolean xidRecovered(XAPlusXid xid) {
-        return waiting.remove(xid);
+        if (waitingXids.remove(xid)) {
+            finishedXids.add(xid);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     boolean isRecoveryCommitted() {
-        return waiting.isEmpty();
+        return waitingXids.isEmpty();
+    }
+
+    public Set<XAPlusXid> getFinishedXids() {
+        return finishedXids;
     }
 
     void reset() {
         started = false;
+        // Close all resources
+        for (XAPlusRecoveredResource recoveredResource : recoveredResources) {
+            recoveredResource.close();
+        }
         recoveredResources.clear();
         resourceByXid.clear();
-        waiting.clear();
+        waitingXids.clear();
+        finishedXids.clear();
     }
 }

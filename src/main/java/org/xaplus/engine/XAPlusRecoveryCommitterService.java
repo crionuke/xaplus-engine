@@ -225,7 +225,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         if (tracker.isExpired()) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Recovery timed out, {}", System.currentTimeMillis());
-                reset();
+                tracker.reset();
             }
         }
     }
@@ -246,16 +246,8 @@ class XAPlusRecoveryCommitterService extends Bolt implements
 
     private void check() throws InterruptedException {
         if (tracker.isRecoveryCommitted()) {
-            reset();
-            dispatcher.dispatch(new XAPlusRecoveryFinishedEvent());
+            dispatcher.dispatch(new XAPlusRecoveryFinishedEvent(tracker.getFinishedXids()));
+            tracker.reset();
         }
-    }
-
-    void reset() {
-        // Close all connections opened to recovery
-        for (XAPlusRecoveredResource recoveredResource : tracker.getRecoveredResources()) {
-            recoveredResource.close();
-        }
-        tracker.reset();
     }
 }

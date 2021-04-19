@@ -55,7 +55,7 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
                 consumerStub.transactionClosedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction, event.getTransaction());
-        assertTrue(transaction.getFuture().get());
+        assertTrue(transaction.getFuture().getResult());
     }
 
     @Test
@@ -68,7 +68,7 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
                 consumerStub.transactionClosedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction, event.getTransaction());
-        assertFalse(transaction.getFuture().get());
+        assertFalse(transaction.getFuture().getResult());
     }
 
     @Test(expected = XAPlusCommitException.class)
@@ -81,7 +81,7 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
                 consumerStub.transactionClosedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction, event.getTransaction());
-        transaction.getFuture().get();
+        transaction.getFuture().getResult();
     }
 
     @Test(expected = XAPlusRollbackException.class)
@@ -94,7 +94,7 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
                 consumerStub.transactionClosedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event);
         assertEquals(transaction, event.getTransaction());
-        assertFalse(transaction.getFuture().get());
+        assertFalse(transaction.getFuture().getResult());
     }
 
     @Test(expected = XAPlusTimeoutException.class)
@@ -113,7 +113,7 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
                 consumerStub.transactionClosedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(transaction, event2.getTransaction());
-        assertFalse(transaction.getFuture().get());
+        assertFalse(transaction.getFuture().getResult());
     }
 
     @Test(expected = XAPlusTimeoutException.class)
@@ -132,7 +132,7 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
                 consumerStub.transactionClosedEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event2);
         assertEquals(transaction, event2.getTransaction());
-        assertFalse(transaction.getFuture().get());
+        assertFalse(transaction.getFuture().getResult());
     }
 
     private class ConsumerStub extends Bolt implements

@@ -14,25 +14,31 @@ import java.util.concurrent.TimeUnit;
  */
 public final class XAPlusFuture {
 
+    private final XAPlusXid xid;
     private final BlockingQueue<XAPlusResult> container;
 
-    XAPlusFuture() {
+    XAPlusFuture(XAPlusXid xid) {
+        this.xid = xid;
         container = new ArrayBlockingQueue<>(1);
     }
 
-    public boolean get()
+    public XAPlusXid getXid() {
+        return xid;
+    }
+
+    public boolean getResult()
             throws InterruptedException, XAPlusCommitException, XAPlusRollbackException, XAPlusTimeoutException {
         XAPlusResult result = container.take();
         return result.get();
     }
 
-    public boolean get(long timeout, TimeUnit unit)
+    public boolean getResult(long timeout, TimeUnit unit)
             throws InterruptedException, XAPlusCommitException, XAPlusRollbackException, XAPlusTimeoutException {
         XAPlusResult result = container.poll(timeout, unit);
         return result.get();
     }
 
-    void put(XAPlusResult result) throws InterruptedException {
+    void putResult(XAPlusResult result) throws InterruptedException {
         container.put(result);
     }
 }

@@ -1,6 +1,7 @@
 package org.xaplus.engine.events;
 
 import com.crionuke.bolts.Event;
+import org.xaplus.engine.XAPlusXid;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -8,11 +9,13 @@ import com.crionuke.bolts.Event;
  */
 public final class XAPlusTestSuperiorFailedEvent extends Event<XAPlusTestSuperiorFailedEvent.Handler> {
 
+    private final XAPlusXid xid;
     private final long value;
     private final Exception exception;
 
-    public XAPlusTestSuperiorFailedEvent(long value, Exception exception) {
+    public XAPlusTestSuperiorFailedEvent(XAPlusXid xid,  long value, Exception exception) {
         super();
+        this.xid = xid;
         this.value = value;
         this.exception = exception;
     }
@@ -20,6 +23,10 @@ public final class XAPlusTestSuperiorFailedEvent extends Event<XAPlusTestSuperio
     @Override
     public void handle(Handler handler) throws InterruptedException {
         handler.handleTestSuperiorFailed(this);
+    }
+
+    public XAPlusXid getXid() {
+        return xid;
     }
 
     public long getValue() {

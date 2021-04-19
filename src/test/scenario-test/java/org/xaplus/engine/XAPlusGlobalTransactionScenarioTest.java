@@ -16,6 +16,7 @@ import java.sql.PreparedStatement;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class XAPlusGlobalTransactionScenarioTest extends XAPlusScenarioTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusGlobalTransactionScenarioTest.class);
@@ -111,9 +112,15 @@ public class XAPlusGlobalTransactionScenarioTest extends XAPlusScenarioTest {
         XAPlusRecoveryFinishedEvent event3 = superiorInterceptorBolt.recoveryFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event3);
+        assertTrue(event3.getFinishedXids().stream()
+                .map(xid -> xid.getGtrid())
+                .anyMatch(gtrid -> gtrid.equals(event1.getXid().getGtrid())));
         XAPlusRecoveryFinishedEvent event4 = subordinateInterceptorBolt.recoveryFinishedEvents
                 .poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
         assertNotNull(event4);
+        assertTrue(event4.getFinishedXids().stream()
+                .map(xid -> xid.getGtrid())
+                .anyMatch(gtrid -> gtrid.equals(event2.getXid().getGtrid())));
     }
 
     @Test
@@ -260,18 +267,18 @@ public class XAPlusGlobalTransactionScenarioTest extends XAPlusScenarioTest {
             }
             // Wait result
             try {
-                boolean status = future.get();
+                boolean status = future.getResult();
                 logger.info("Superior side of transaction finished, status={}", status);
-                testDispatcher.dispatch(new XAPlusTestSuperiorFinishedEvent(status, value));
+                testDispatcher.dispatch(new XAPlusTestSuperiorFinishedEvent(future.getXid(), status, value));
             } catch (XAPlusCommitException commitException) {
                 logger.info("Superior side had commit exception, {}", commitException.getMessage());
-                testDispatcher.dispatch(new XAPlusTestSuperiorFailedEvent(value, commitException));
+                testDispatcher.dispatch(new XAPlusTestSuperiorFailedEvent(future.getXid(), value, commitException));
             } catch (XAPlusRollbackException rollbackException) {
                 logger.info("Superior side had rollback exception, {}", rollbackException.getMessage());
-                testDispatcher.dispatch(new XAPlusTestSuperiorFailedEvent(value, rollbackException));
+                testDispatcher.dispatch(new XAPlusTestSuperiorFailedEvent(future.getXid(), value, rollbackException));
             } catch (XAPlusTimeoutException timeoutException) {
                 logger.info("Superior side had timeout exception, {}", timeoutException.getMessage());
-                testDispatcher.dispatch(new XAPlusTestSuperiorFailedEvent(value, timeoutException));
+                testDispatcher.dispatch(new XAPlusTestSuperiorFailedEvent(future.getXid(), value, timeoutException));
             }
         }
 
@@ -326,18 +333,20 @@ public class XAPlusGlobalTransactionScenarioTest extends XAPlusScenarioTest {
             }
             // Wait result
             try {
-                boolean status = future.get();
+                boolean status = future.getResult();
                 logger.info("Subordinate side of transaction finished, status={}", status);
-                testDispatcher.dispatch(new XAPlusTestSubordinateFinishedEvent(status, value));
+                testDispatcher.dispatch(new XAPlusTestSubordinateFinishedEvent(future.getXid(), status, value));
             } catch (XAPlusCommitException commitException) {
                 logger.info("Subordinate side had commit exception, {}", commitException.getMessage());
-                testDispatcher.dispatch(new XAPlusTestSubordinateFailedEvent(value, commitException));
+                testDispatcher.dispatch(new XAPlusTestSubordinateFailedEvent(future.getXid(), value, commitException));
             } catch (XAPlusRollbackException rollbackException) {
                 logger.info("Subordinate side had rollback exception, {}", rollbackException.getMessage());
-                testDispatcher.dispatch(new XAPlusTestSubordinateFailedEvent(value, rollbackException));
+                testDispatcher.dispatch(
+                        new XAPlusTestSubordinateFailedEvent(future.getXid(), value, rollbackException));
             } catch (XAPlusTimeoutException timeoutException) {
                 logger.info("Subordinate side had timeout exception, {}", timeoutException.getMessage());
-                testDispatcher.dispatch(new XAPlusTestSubordinateFailedEvent(value, timeoutException));
+                testDispatcher.dispatch(
+                        new XAPlusTestSubordinateFailedEvent(future.getXid(), value, timeoutException));
             }
         }
 

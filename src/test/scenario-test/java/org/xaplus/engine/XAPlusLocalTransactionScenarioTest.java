@@ -112,7 +112,7 @@ public class XAPlusLocalTransactionScenarioTest extends XAPlusScenarioTest {
             }
             // Wait result
             try {
-                boolean status = future.get();
+                boolean status = future.getResult();
                 logger.info("Local transaction finished, status={}", status);
                 testDispatcher.dispatch(new XAPlusLocalTransactionFinishedEvent(status, value));
             } catch (XAPlusCommitException commitException) {
