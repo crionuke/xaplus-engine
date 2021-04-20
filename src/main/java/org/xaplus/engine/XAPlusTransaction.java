@@ -6,12 +6,14 @@ import org.xaplus.engine.events.xa.XAPlusCommitBranchRequestEvent;
 import org.xaplus.engine.events.xa.XAPlusPrepareBranchRequestEvent;
 import org.xaplus.engine.events.xa.XAPlusRollbackBranchRequestEvent;
 
+import javax.jms.XAJMSContext;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -27,8 +29,8 @@ public class XAPlusTransaction {
     private final String superiorServerId;
     private final long creationTimeInMillis;
     private final long expireTimeInMillis;
-    private final List<javax.sql.XAConnection> connections;
-    private final List<javax.jms.XAJMSContext> contexts;
+    private final Set<javax.sql.XAConnection> connections;
+    private final Set<XAJMSContext> contexts;
     private final Map<XAPlusXid, Branch> xaBranches;
     private final Map<XAPlusXid, Branch> xaPlusBranches;
     private final XAPlusFuture future;
@@ -41,8 +43,8 @@ public class XAPlusTransaction {
         superiorServerId = xid.getGtrid().getServerId();
         creationTimeInMillis = System.currentTimeMillis();
         expireTimeInMillis = creationTimeInMillis + timeoutInSeconds * 1000;
-        connections = new CopyOnWriteArrayList<>();
-        contexts = new CopyOnWriteArrayList<>();
+        connections = ConcurrentHashMap.newKeySet();
+        contexts = ConcurrentHashMap.newKeySet();
         xaBranches = new ConcurrentHashMap<>();
         xaPlusBranches = new ConcurrentHashMap<>();
         future = new XAPlusFuture(xid);
