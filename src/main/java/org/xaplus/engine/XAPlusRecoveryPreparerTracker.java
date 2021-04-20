@@ -38,7 +38,9 @@ class XAPlusRecoveryPreparerTracker {
     }
 
     void resourceFailed(XAPlusRecoveredResource resource) {
-        waiting.remove(resource);
+        if (waiting.remove(resource)) {
+            resource.close();
+        }
     }
 
     boolean isRecoveryPrepared() {
@@ -46,9 +48,7 @@ class XAPlusRecoveryPreparerTracker {
     }
 
     public Set<XAPlusRecoveredResource> getRecoveredResources() {
-        Set<XAPlusRecoveredResource> recoveredResources = new HashSet<>();
-        recoveredResources.addAll(recovered);
-        return recoveredResources;
+        return recovered;
     }
 
     void reset() {

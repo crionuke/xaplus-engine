@@ -4,6 +4,7 @@ import com.crionuke.bolts.Event;
 import org.xaplus.engine.XAPlusRecoveredResource;
 
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)
@@ -18,7 +19,8 @@ public final class XAPlusRecoveryPreparedEvent extends Event<XAPlusRecoveryPrepa
         if (recoveredResources == null) {
             throw new NullPointerException("recoveredResources is null");
         }
-        this.recoveredResources = recoveredResources;
+        this.recoveredResources = ConcurrentHashMap.newKeySet();
+        this.recoveredResources.addAll(recoveredResources);
     }
 
     @Override
