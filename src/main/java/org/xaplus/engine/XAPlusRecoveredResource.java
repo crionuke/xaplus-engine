@@ -80,8 +80,7 @@ public class XAPlusRecoveredResource {
                     logger.warn("Close connection to {} failed as {}", uniqueName, e.getMessage());
                 }
             }
-        }
-        if (jmsContext != null) {
+        } else if (jmsContext != null) {
             jmsContext.close();
         }
     }
