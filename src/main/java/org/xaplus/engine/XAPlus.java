@@ -32,7 +32,8 @@ public class XAPlus {
 
     private boolean constructed;
 
-    public XAPlus(String serverId, int transactionsTimeoutInSeconds, int recoveryTimeoutInSeconds) {
+    public XAPlus(String serverId, int transactionsTimeoutInSeconds, int recoveryTimeoutInSeconds,
+                  int recoveryPeriodInSeconds) {
         if (serverId == null) {
             throw new NullPointerException("serverId is null");
         }
@@ -48,8 +49,12 @@ public class XAPlus {
             throw new IllegalArgumentException("recovery timeout must be greater zero, " +
                     "recoveryTimeoutInSeconds=" + recoveryTimeoutInSeconds);
         }
+        if (recoveryPeriodInSeconds < 0) {
+            throw new IllegalArgumentException("recovery period must be greater/equal to zero, " +
+                    "recoveryPeriodInSeconds=" + recoveryPeriodInSeconds);
+        }
         properties = new XAPlusProperties(serverId, 128,
-                transactionsTimeoutInSeconds, recoveryTimeoutInSeconds);
+                transactionsTimeoutInSeconds, recoveryTimeoutInSeconds, recoveryPeriodInSeconds);
         threadPool = new XAPlusThreadPool();
         dispatcher = new XAPlusDispatcher();
         resources = new XAPlusResources();

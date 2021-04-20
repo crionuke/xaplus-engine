@@ -30,8 +30,8 @@ public class XAPlusDistributedTransactionScenarioTest extends XAPlusScenarioTest
     @Before
     public void beforeTest() {
         createComponents();
-
-        distributedXAPlus = new XAPlus(XA_PLUS_DISTRIBUTED, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S);
+        // Disable recovery by timer
+        distributedXAPlus = new XAPlus(XA_PLUS_DISTRIBUTED, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S, 0);
         distributedXAPlus.construct();
         distributedTransactionBolt = new DistributedTransactionBolt(distributedXAPlus);
         distributedTransactionBolt.postConstruct();

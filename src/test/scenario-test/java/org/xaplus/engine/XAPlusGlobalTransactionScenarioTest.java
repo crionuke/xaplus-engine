@@ -16,7 +16,6 @@ import java.sql.PreparedStatement;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class XAPlusGlobalTransactionScenarioTest extends XAPlusScenarioTest {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusGlobalTransactionScenarioTest.class);
@@ -45,9 +44,11 @@ public class XAPlusGlobalTransactionScenarioTest extends XAPlusScenarioTest {
     public void beforeTest() {
         createComponents();
 
-        superiorXAPlus = new XAPlus(XA_PLUS_SUPERIOR, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S);
+        // Disable recovery by timer
+
+        superiorXAPlus = new XAPlus(XA_PLUS_SUPERIOR, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S, 0);
         superiorXAPlus.construct();
-        subordinateXAPLus = new XAPlus(XA_PLUS_SUBORDINATE, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S);
+        subordinateXAPLus = new XAPlus(XA_PLUS_SUBORDINATE, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S, 0);
         subordinateXAPLus.construct();
 
         requestSuperiorExceptions = new XAPlusGlobalTransactionScenarioExceptions();

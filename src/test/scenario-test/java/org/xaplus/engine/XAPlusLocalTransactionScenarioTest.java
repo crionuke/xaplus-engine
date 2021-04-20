@@ -32,7 +32,7 @@ public class XAPlusLocalTransactionScenarioTest extends XAPlusScenarioTest {
     public void beforeTest() {
         createComponents();
 
-        localXAPlus = new XAPlus(XA_PLUS_LOCAL, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S);
+        localXAPlus = new XAPlus(XA_PLUS_LOCAL, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S, 0);
         localXAPlus.construct();
         localTransactionBolt = new LocalTransactionBolt(localXAPlus);
         localTransactionBolt.postConstruct();

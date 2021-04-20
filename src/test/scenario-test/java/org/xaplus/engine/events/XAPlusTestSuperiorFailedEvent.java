@@ -13,7 +13,7 @@ public final class XAPlusTestSuperiorFailedEvent extends Event<XAPlusTestSuperio
     private final long value;
     private final Exception exception;
 
-    public XAPlusTestSuperiorFailedEvent(XAPlusXid xid,  long value, Exception exception) {
+    public XAPlusTestSuperiorFailedEvent(XAPlusXid xid, long value, Exception exception) {
         super();
         this.xid = xid;
         this.value = value;

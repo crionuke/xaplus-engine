@@ -2,7 +2,7 @@ package org.xaplus.engine;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xaplus.engine.events.recovery.XAPlusStartRecoveryRequestEvent;
+import org.xaplus.engine.events.recovery.XAPlusUserRecoveryRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCommitRequestEvent;
 import org.xaplus.engine.events.user.XAPlusUserCreateTransactionEvent;
 import org.xaplus.engine.events.user.XAPlusUserRollbackRequestEvent;
@@ -278,18 +278,23 @@ public final class XAPlusEngine {
         return properties.getServerId();
     }
 
-    // TODO: start recovery on start and by timer
-    void startRecovery() throws InterruptedException {
+    /**
+     * Start recovery
+     *
+     * @throws InterruptedException recovery request interrupted
+     */
+    public void startRecovery() throws InterruptedException {
         if (logger.isInfoEnabled()) {
-            logger.info("Start recovery");
+            logger.info("User start recovery");
         }
-        dispatcher.dispatch(new XAPlusStartRecoveryRequestEvent());
+        dispatcher.dispatch(new XAPlusUserRecoveryRequestEvent());
     }
 
-    DataSource getTLogDataSource() {
-        return tLogDataSource;
-    }
-
+    /**
+     * Setup transaction log DataSource
+     *
+     * @param dataSource transaction log DataSource
+     */
     public void setTLogDataSource(DataSource dataSource) {
         if (dataSource == null) {
             throw new NullPointerException("dataSource is null");
@@ -298,6 +303,10 @@ public final class XAPlusEngine {
         if (logger.isTraceEnabled()) {
             logger.trace("Set journal dataSource={}", dataSource);
         }
+    }
+
+    DataSource getTLogDataSource() {
+        return tLogDataSource;
     }
 
     private XAPlusXid createAndStartBranch(String uniqueName, javax.sql.XAConnection connection)

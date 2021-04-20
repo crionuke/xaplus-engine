@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.XAPlusTickEvent;
+import org.xaplus.engine.events.recovery.XAPlusPrepareRecoveryRequestEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
 import org.xaplus.engine.events.tm.XAPlusTransactionClosedEvent;
@@ -30,7 +31,8 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
 
     @Before
     public void beforeTest() {
-        createXAPlusComponents(XA_PLUS_RESOURCE_1);
+        // Setup with recovery period
+        createXAPlusComponents(XA_PLUS_RESOURCE_1, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S);
         xaPlusManagerService = new XAPlusManagerService(properties, threadPool, dispatcher);
         xaPlusManagerService.postConstruct();
         consumerStub = new ConsumerStub();
@@ -133,17 +135,36 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
         assertFalse(transaction.getFuture().getResult());
     }
 
+    @Test
+    public void testRecoveryPeriods() throws InterruptedException {
+        // Period 1
+        Thread.sleep(properties.getRecoveryPeriodInSeconds() * 1000 + POLL_TIMIOUT_MS);
+        dispatcher.dispatch(new XAPlusTickEvent(1));
+        XAPlusPrepareRecoveryRequestEvent event2 =
+                consumerStub.prepareRecoveryRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event2);
+        // Period 2
+        Thread.sleep(properties.getRecoveryPeriodInSeconds() * 1000 + POLL_TIMIOUT_MS);
+        dispatcher.dispatch(new XAPlusTickEvent(2));
+        XAPlusPrepareRecoveryRequestEvent event3 =
+                consumerStub.prepareRecoveryRequestEvents.poll(POLL_TIMIOUT_MS, TimeUnit.MILLISECONDS);
+        assertNotNull(event3);
+    }
+
     private class ConsumerStub extends Bolt implements
             XAPlusTransactionClosedEvent.Handler,
-            XAPlusTransactionTimedOutEvent.Handler {
+            XAPlusTransactionTimedOutEvent.Handler,
+            XAPlusPrepareRecoveryRequestEvent.Handler {
 
         BlockingQueue<XAPlusTransactionClosedEvent> transactionClosedEvents;
         BlockingQueue<XAPlusTransactionTimedOutEvent> transactionTimedOutEvents;
+        BlockingQueue<XAPlusPrepareRecoveryRequestEvent> prepareRecoveryRequestEvents;
 
         ConsumerStub() {
             super("stub-consumer", QUEUE_SIZE);
             transactionClosedEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
             transactionTimedOutEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
+            prepareRecoveryRequestEvents = new LinkedBlockingQueue<>(QUEUE_SIZE);
         }
 
         @Override
@@ -156,10 +177,16 @@ public class XAPlusManagerServiceUnitTest extends XAPlusUnitTest {
             transactionTimedOutEvents.put(event);
         }
 
+        @Override
+        public void handlePrepareRecoveryRequest(XAPlusPrepareRecoveryRequestEvent event) throws InterruptedException {
+            prepareRecoveryRequestEvents.put(event);
+        }
+
         void postConstruct() {
             threadPool.execute(this);
             dispatcher.subscribe(this, XAPlusTransactionClosedEvent.class);
             dispatcher.subscribe(this, XAPlusTransactionTimedOutEvent.class);
+            dispatcher.subscribe(this, XAPlusPrepareRecoveryRequestEvent.class);
         }
     }
 }

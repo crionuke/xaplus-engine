@@ -34,11 +34,14 @@ public class XAPlusUnitTest extends Assert {
     protected XAPlusDispatcher dispatcher;
 
     protected void createXAPlusComponents(String serverId) {
-        createXAPlusComponents(serverId, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S);
+        // Disable recovery by default in tests
+        createXAPlusComponents(serverId, DEFAULT_TIMEOUT_S, DEFAULT_TIMEOUT_S, 0);
     }
 
-    protected void createXAPlusComponents(String serverId, int transactionsTimeoutInSeconds, int recoveryTimeoutInSeconds) {
-        properties = new XAPlusProperties(serverId, QUEUE_SIZE, transactionsTimeoutInSeconds, recoveryTimeoutInSeconds);
+    protected void createXAPlusComponents(String serverId, int transactionsTimeoutInSeconds,
+                                          int recoveryTimeoutInSeconds, int recoveryPeriodInSeconds) {
+        properties = new XAPlusProperties(serverId, QUEUE_SIZE, transactionsTimeoutInSeconds,
+                recoveryTimeoutInSeconds, recoveryPeriodInSeconds);
         resources = new XAPlusResources();
         resources.register(new XADataSourceStub(), XA_RESOURCE_1);
         resources.register(new XADataSourceStub(), XA_RESOURCE_2);

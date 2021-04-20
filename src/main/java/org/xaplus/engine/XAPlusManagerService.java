@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xaplus.engine.events.XAPlusTickEvent;
 import org.xaplus.engine.events.recovery.XAPlusPrepareRecoveryRequestEvent;
-import org.xaplus.engine.events.recovery.XAPlusStartRecoveryRequestEvent;
+import org.xaplus.engine.events.recovery.XAPlusUserRecoveryRequestEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackDoneEvent;
 import org.xaplus.engine.events.rollback.XAPlusRollbackFailedEvent;
 import org.xaplus.engine.events.tm.XAPlusTransactionClosedEvent;
@@ -29,22 +29,26 @@ class XAPlusManagerService extends Bolt implements
         XAPlus2pcFailedEvent.Handler,
         XAPlusRollbackDoneEvent.Handler,
         XAPlusRollbackFailedEvent.Handler,
-        XAPlusStartRecoveryRequestEvent.Handler,
+        XAPlusUserRecoveryRequestEvent.Handler,
         XAPlusTickEvent.Handler {
     static private final Logger logger = LoggerFactory.getLogger(XAPlusManagerService.class);
 
+    private final XAPlusProperties properties;
     private final XAPlusThreadPool threadPool;
     private final XAPlusDispatcher dispatcher;
     private final SortedSet<XAPlusTransaction> inFlightTransactions;
     private long lastCutoff;
+    private long lastRecoveryTime;
 
     XAPlusManagerService(XAPlusProperties properties, XAPlusThreadPool threadPool, XAPlusDispatcher dispatcher) {
         super(properties.getServerId() + "-manager", properties.getQueueSize());
+        this.properties = properties;
         this.threadPool = threadPool;
         this.dispatcher = dispatcher;
-        lastCutoff = System.currentTimeMillis();
         inFlightTransactions = new TreeSet<>(Comparator
                 .comparingLong((transaction) -> transaction.getCreationTimeInMillis()));
+        lastCutoff = System.currentTimeMillis();
+        lastRecoveryTime = 0;
     }
 
     @Override
@@ -121,11 +125,14 @@ class XAPlusManagerService extends Bolt implements
     }
 
     @Override
-    public void handleStartRecoveryRequest(XAPlusStartRecoveryRequestEvent event) throws InterruptedException {
+    public void handleUserRecoveryRequest(XAPlusUserRecoveryRequestEvent event) throws InterruptedException {
         if (logger.isTraceEnabled()) {
             logger.trace("Handle {}", event);
         }
-        dispatcher.dispatch(new XAPlusPrepareRecoveryRequestEvent(lastCutoff));
+        if (logger.isDebugEnabled()) {
+            logger.debug("Recovery started by user");
+        }
+        startRecovery();
     }
 
     @Override
@@ -149,6 +156,14 @@ class XAPlusManagerService extends Bolt implements
             }
             updateCutoff();
         }
+        if (properties.getRecoveryPeriodInSeconds() > 0) {
+            if (time > lastRecoveryTime + properties.getRecoveryPeriodInSeconds()) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Recovery started by timer, index={}", event.getIndex());
+                }
+                startRecovery();
+            }
+        }
     }
 
     void postConstruct() {
@@ -158,7 +173,7 @@ class XAPlusManagerService extends Bolt implements
         dispatcher.subscribe(this, XAPlus2pcFailedEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackDoneEvent.class);
         dispatcher.subscribe(this, XAPlusRollbackFailedEvent.class);
-        dispatcher.subscribe(this, XAPlusStartRecoveryRequestEvent.class);
+        dispatcher.subscribe(this, XAPlusUserRecoveryRequestEvent.class);
         dispatcher.subscribe(this, XAPlusTickEvent.class);
     }
 
@@ -176,6 +191,11 @@ class XAPlusManagerService extends Bolt implements
         } else {
             lastCutoff = inFlightTransactions.first().getCreationTimeInMillis();
         }
+    }
+
+    private void startRecovery() throws InterruptedException {
+        lastRecoveryTime = System.currentTimeMillis();
+        dispatcher.dispatch(new XAPlusPrepareRecoveryRequestEvent(lastCutoff));
     }
 }
 

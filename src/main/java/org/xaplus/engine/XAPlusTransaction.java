@@ -11,11 +11,9 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author Kirill Byvshev (k@byv.sh)

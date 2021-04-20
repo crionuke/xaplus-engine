@@ -10,12 +10,15 @@ class XAPlusProperties {
     private final int queueSize;
     private final int transactionsTimeoutInSeconds;
     private final int recoveryTimeoutInSeconds;
+    private final int recoveryPeriodInSeconds;
 
-    XAPlusProperties(String serverId, int queueSize, int transactionsTimeoutInSeconds, int recoveryTimeoutInSeconds) {
+    XAPlusProperties(String serverId, int queueSize, int transactionsTimeoutInSeconds, int recoveryTimeoutInSeconds,
+                     int recoveryPeriodInSeconds) {
         this.serverId = serverId;
         this.queueSize = queueSize;
         this.transactionsTimeoutInSeconds = transactionsTimeoutInSeconds;
         this.recoveryTimeoutInSeconds = recoveryTimeoutInSeconds;
+        this.recoveryPeriodInSeconds = recoveryPeriodInSeconds;
     }
 
     String getServerId() {
@@ -32,5 +35,9 @@ class XAPlusProperties {
 
     int getRecoveryTimeoutInSeconds() {
         return recoveryTimeoutInSeconds;
+    }
+
+    int getRecoveryPeriodInSeconds() {
+        return recoveryPeriodInSeconds;
     }
 }
