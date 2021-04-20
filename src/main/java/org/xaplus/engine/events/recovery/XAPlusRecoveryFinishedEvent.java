@@ -16,6 +16,9 @@ public final class XAPlusRecoveryFinishedEvent extends Event<XAPlusRecoveryFinis
 
     public XAPlusRecoveryFinishedEvent(Set<XAPlusXid> finishedXids) {
         super();
+        if (finishedXids == null) {
+            throw new NullPointerException("finishedXids is null");
+        }
         this.finishedXids = ConcurrentHashMap.newKeySet();
         this.finishedXids.addAll(finishedXids);
     }
