@@ -6,8 +6,6 @@ package org.xaplus.engine;
  */
 public class XAPlus {
 
-    private final static int MAX_SERVER_ID_LENGTH = 51;
-
     final XAPlusProperties properties;
     final XAPlusThreadPool threadPool;
     final XAPlusDispatcher dispatcher;
@@ -34,25 +32,6 @@ public class XAPlus {
 
     public XAPlus(String serverId, int transactionsTimeoutInSeconds, int recoveryTimeoutInSeconds,
                   int recoveryPeriodInSeconds) {
-        if (serverId == null) {
-            throw new NullPointerException("serverId is null");
-        }
-        if (serverId.length() > MAX_SERVER_ID_LENGTH) {
-            throw new IllegalArgumentException("too long serverId, limited by " + MAX_SERVER_ID_LENGTH + " bytes, " +
-                    "serverId=" + serverId);
-        }
-        if (transactionsTimeoutInSeconds <= 0) {
-            throw new IllegalArgumentException("transaction timeout must be greater zero, " +
-                    "transactionsTimeoutInSeconds=" + transactionsTimeoutInSeconds);
-        }
-        if (recoveryTimeoutInSeconds <= 0) {
-            throw new IllegalArgumentException("recovery timeout must be greater zero, " +
-                    "recoveryTimeoutInSeconds=" + recoveryTimeoutInSeconds);
-        }
-        if (recoveryPeriodInSeconds < 0) {
-            throw new IllegalArgumentException("recovery period must be greater/equal to zero, " +
-                    "recoveryPeriodInSeconds=" + recoveryPeriodInSeconds);
-        }
         properties = new XAPlusProperties(serverId, 128,
                 transactionsTimeoutInSeconds, recoveryTimeoutInSeconds, recoveryPeriodInSeconds);
         threadPool = new XAPlusThreadPool();
