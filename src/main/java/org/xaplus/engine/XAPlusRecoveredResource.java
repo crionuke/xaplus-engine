@@ -26,7 +26,8 @@ public class XAPlusRecoveredResource {
     private final XAResource xaResource;
     private final Set<XAPlusXid> recoveredXids;
 
-    XAPlusRecoveredResource(String uniqueName, String serverId, long inFlightCutoff, javax.sql.XAConnection jdbcConnection)
+    XAPlusRecoveredResource(String uniqueName, String serverId, long inFlightCutoff,
+                            javax.sql.XAConnection jdbcConnection)
             throws SQLException {
         this.uniqueName = uniqueName;
         this.serverId = serverId;
@@ -37,7 +38,8 @@ public class XAPlusRecoveredResource {
         this.recoveredXids = new HashSet<>();
     }
 
-    XAPlusRecoveredResource(String uniqueName, String serverId, long inFlightCutoff, javax.jms.XAJMSContext jmsContext) {
+    XAPlusRecoveredResource(String uniqueName, String serverId, long inFlightCutoff,
+                            javax.jms.XAJMSContext jmsContext) {
         this.uniqueName = uniqueName;
         this.serverId = serverId;
         this.inFlightCutoff = inFlightCutoff;
@@ -104,7 +106,7 @@ public class XAPlusRecoveredResource {
         return filteredXids.size();
     }
 
-    private int recover(Set<XAPlusXid> xids, String serverId, int flag) throws XAException {
+    private int recover(Set<XAPlusXid> xids, String expectedServerId, int flag) throws XAException {
         Xid[] recovered = xaResource.recover(flag);
         if (recovered == null) {
             if (logger.isDebugEnabled()) {
@@ -120,7 +122,13 @@ public class XAPlusRecoveredResource {
                 }
                 continue;
             }
-            XAPlusXid xaPlusXid = new XAPlusXid(xid);
+            XAPlusXid xaPlusXid;
+            try {
+                 xaPlusXid = new XAPlusXid(xid);
+            } catch (IllegalArgumentException e) {
+                logger.debug("Skipping xid={} as {}", xid, e.getMessage());
+                continue;
+            }
             if (xids.contains(xaPlusXid)) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Already recovered xid={}, skipping it", xaPlusXid);
@@ -128,21 +136,16 @@ public class XAPlusRecoveredResource {
                 continue;
             }
             // Used bqual to determine who is responsible for branch local server or not
-            String extractedServerId = xaPlusXid.getBqual().getServerId();
-            if (extractedServerId == null) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Skipping xid={} as its serverId is null", xaPlusXid);
-                }
-                continue;
-            }
-            if (!extractedServerId.equals(serverId)) {
+            String xidServerId = xaPlusXid.getBqual().getServerId();
+            if (!xidServerId.equals(expectedServerId)) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Skipping xid={} as its serverId={} does not match this serverId={}",
-                            xaPlusXid, extractedServerId, serverId);
+                            xaPlusXid, xidServerId, expectedServerId);
                 }
                 continue;
             }
             freshly.add(xaPlusXid);
+
         }
         xids.addAll(freshly);
         return freshly.size();

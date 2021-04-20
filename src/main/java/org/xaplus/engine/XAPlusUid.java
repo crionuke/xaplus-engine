@@ -1,5 +1,6 @@
 package org.xaplus.engine;
 
+import javax.transaction.xa.Xid;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -24,23 +25,36 @@ public final class XAPlusUid {
     private final int hashCodeValue;
     private final String toStringValue;
 
-    XAPlusUid(byte[] bytes) {
-        // TODO: validate bytes length
+    XAPlusUid(byte[] array) {
+        if (array == null) {
+            throw new IllegalArgumentException("byte array is null");
+        }
+        if (array.length > Xid.MAXGTRIDSIZE) {
+            throw new IllegalArgumentException("byte array too long");
+        }
+        if (array.length > Xid.MAXBQUALSIZE) {
+            throw new IllegalArgumentException("byte array too long");
+        }
+        if (array.length < 1 + Long.BYTES + Integer.BYTES) {
+            throw new IllegalArgumentException("byte array too short");
+        }
 
-        byte[] copy = new byte[bytes.length];
-        System.arraycopy(bytes, 0, copy, 0, bytes.length);
+        byte[] copy = new byte[array.length];
+        System.arraycopy(array, 0, copy, 0, array.length);
         this.array = copy;
 
-        this.serverId = extractServerId(bytes);
-        this.timestamp = extractTimestamp(bytes);
-        this.sequence = extractSequence(bytes);
+        this.serverId = extractServerId(array);
+        this.timestamp = extractTimestamp(array);
+        this.sequence = extractSequence(array);
 
-        this.hashCodeValue = arrayHashCode(bytes);
-        this.toStringValue = arrayToHex(bytes);
+        this.hashCodeValue = arrayHashCode(array);
+        this.toStringValue = arrayToHex(array);
     }
 
     XAPlusUid(String serverId) {
-        // TODO: validate serverId length
+        if (serverId == null) {
+            throw new IllegalArgumentException("serverId is null");
+        }
 
         this.serverId = serverId;
         this.timestamp = getCurrentMonotonicTimeMillis();
@@ -55,9 +69,16 @@ public final class XAPlusUid {
 
         System.arraycopy(serverIdBytes, 0, bytes, 0, serverIdBytes.length);
         System.arraycopy(timestampBytes, 0, bytes, serverIdBytes.length, timestampBytes.length);
-        System.arraycopy(sequenceBytes, 0, bytes, serverIdBytes.length + timestampBytes.length, sequenceBytes.length);
+        System.arraycopy(sequenceBytes, 0, bytes,
+                serverIdBytes.length + timestampBytes.length, sequenceBytes.length);
 
         this.array = bytes;
+        if (array.length > Xid.MAXGTRIDSIZE) {
+            throw new IllegalArgumentException("serverId too long");
+        }
+        if (array.length > Xid.MAXBQUALSIZE) {
+            throw new IllegalArgumentException("serverId too long");
+        }
         this.hashCodeValue = arrayHashCode(bytes);
         this.toStringValue = arrayToHex(bytes);
     }
