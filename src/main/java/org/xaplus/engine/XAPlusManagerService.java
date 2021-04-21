@@ -48,7 +48,7 @@ class XAPlusManagerService extends Bolt implements
         inFlightTransactions = new TreeSet<>(Comparator
                 .comparingLong((transaction) -> transaction.getCreationTimeInMillis()));
         lastCutoff = System.currentTimeMillis();
-        lastRecoveryTime = 0;
+        lastRecoveryTime = System.currentTimeMillis();
     }
 
     @Override
@@ -157,7 +157,7 @@ class XAPlusManagerService extends Bolt implements
             updateCutoff();
         }
         if (properties.getRecoveryPeriodInSeconds() > 0) {
-            if (time > lastRecoveryTime + properties.getRecoveryPeriodInSeconds()) {
+            if (time > lastRecoveryTime + properties.getRecoveryPeriodInSeconds() * 1000) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Recovery started by timer, index={}", event.getIndex());
                 }
