@@ -63,6 +63,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                 logger.debug("Recovery prepared for {} resources", recoveredResources.size());
             }
             tracker.start(recoveredResources);
+            boolean wasRequests = false;
             for (XAPlusRecoveredResource recoveredResource : recoveredResources) {
                 for (XAPlusXid recoveredXid : recoveredResource.getRecoveredXids()) {
                     String superiorServerId = recoveredXid.getGtrid().getServerId();
@@ -70,10 +71,12 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     if (superiorServerId.equals(properties.getServerId())) {
                         dispatcher.dispatch(
                                 new XAPlusFindRecoveredXidStatusRequestEvent(recoveredXid, recoveredResource));
+                        wasRequests = true;
                     } else {
                         try {
                             XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
                             dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(recoveredXid, resource));
+                            wasRequests = true;
                         } catch (XAPlusSystemException e) {
                             if (logger.isWarnEnabled()) {
                                 logger.warn("Non XA+ or unknown resource with name={}, {}",
@@ -81,6 +84,12 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                             }
                         }
                     }
+                }
+            }
+            if (!wasRequests) {
+                tracker.reset();
+                if (logger.isInfoEnabled()) {
+                    logger.info("Recovery cancelled, as no recovered xids");
                 }
             }
         }
@@ -248,6 +257,9 @@ class XAPlusRecoveryCommitterService extends Bolt implements
 
     private void check() throws InterruptedException {
         if (tracker.isRecoveryCommitted()) {
+            if (logger.isInfoEnabled()) {
+                logger.info("Recovery finished for {} xids", tracker.getFinishedXids().size());
+            }
             dispatcher.dispatch(new XAPlusRecoveryFinishedEvent(tracker.getFinishedXids()));
             tracker.reset();
         }

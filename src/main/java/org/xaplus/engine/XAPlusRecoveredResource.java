@@ -75,7 +75,7 @@ public class XAPlusRecoveredResource {
             try {
                 jdbcConnection.close();
                 if (logger.isDebugEnabled()) {
-                    logger.warn("Connection closed to {}", uniqueName);
+                    logger.debug("Connection closed to {}", uniqueName);
                 }
             } catch (SQLException e) {
                 if (logger.isWarnEnabled()) {
