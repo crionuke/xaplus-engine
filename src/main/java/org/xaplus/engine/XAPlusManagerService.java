@@ -57,7 +57,12 @@ class XAPlusManagerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         XAPlusTransaction transaction = event.getTransaction();
-        inFlightTransactions.add(transaction);
+        if (inFlightTransactions.add(transaction)) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("User create transaction, {}", transaction);
+            }
+        }
+
     }
 
     @Override
@@ -67,10 +72,10 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (inFlightTransactions.remove(transaction)) {
-            updateCutoff();
             if (logger.isInfoEnabled()) {
                 logger.info("Transaction done, {}", transaction);
             }
+            updateCutoff();
             close(transaction);
             transaction.getFuture().putResult(new XAPlusResult(true));
         }
@@ -83,10 +88,10 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (inFlightTransactions.remove(transaction)) {
-            updateCutoff();
             if (logger.isInfoEnabled()) {
                 logger.info("Transaction 2pc failed, {}", transaction);
             }
+            updateCutoff();
             close(transaction);
             transaction.getFuture().putResult(new XAPlusResult(new XAPlusCommitException("2pc commit exception")));
         }
@@ -99,10 +104,10 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (inFlightTransactions.remove(transaction)) {
-            updateCutoff();
             if (logger.isInfoEnabled()) {
                 logger.info("Transaction rolled back, {}", transaction);
             }
+            updateCutoff();
             close(transaction);
             transaction.getFuture().putResult(new XAPlusResult(false));
         }
@@ -115,10 +120,10 @@ class XAPlusManagerService extends Bolt implements
         }
         XAPlusTransaction transaction = event.getTransaction();
         if (inFlightTransactions.remove(transaction)) {
-            updateCutoff();
             if (logger.isInfoEnabled()) {
                 logger.info("Transaction rollback failed, {}", transaction);
             }
+            updateCutoff();
             close(transaction);
             transaction.getFuture().putResult(new XAPlusResult(new XAPlusRollbackException("rollback exception")));
         }
@@ -130,7 +135,7 @@ class XAPlusManagerService extends Bolt implements
             logger.trace("Handle {}", event);
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("Recovery started by user");
+            logger.debug("User request recovery");
         }
         startRecovery();
     }
@@ -159,7 +164,7 @@ class XAPlusManagerService extends Bolt implements
         if (properties.getRecoveryPeriodInSeconds() > 0) {
             if (time > lastRecoveryTime + properties.getRecoveryPeriodInSeconds() * 1000) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Recovery started by timer, index={}", event.getIndex());
+                    logger.debug("Recovery started by timer");
                 }
                 startRecovery();
             }
