@@ -60,8 +60,7 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         } else {
             Set<XAPlusRecoveredResource> recoveredResources = event.getRecoveredResources();
             if (logger.isDebugEnabled()) {
-                logger.debug("Commit recovery for {} resource/s, {}",
-                        recoveredResources.size(), System.currentTimeMillis());
+                logger.debug("Recovery prepared for {} resources", recoveredResources.size());
             }
             tracker.start(recoveredResources);
             for (XAPlusRecoveredResource recoveredResource : recoveredResources) {
@@ -69,18 +68,11 @@ class XAPlusRecoveryCommitterService extends Bolt implements
                     String superiorServerId = recoveredXid.getGtrid().getServerId();
                     tracker.track(recoveredResource, recoveredXid);
                     if (superiorServerId.equals(properties.getServerId())) {
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("Recovered transaction status from tlog, xid={}", recoveredXid);
-                        }
                         dispatcher.dispatch(
                                 new XAPlusFindRecoveredXidStatusRequestEvent(recoveredXid, recoveredResource));
                     } else {
                         try {
                             XAPlusResource resource = resources.getXAPlusResource(superiorServerId);
-                            if (logger.isDebugEnabled()) {
-                                logger.debug("Request transaction status from superior, superiorServerId={}, xid={}",
-                                        superiorServerId, recoveredXid);
-                            }
                             dispatcher.dispatch(new XAPlusRetryFromSuperiorRequestEvent(recoveredXid, resource));
                         } catch (XAPlusSystemException e) {
                             if (logger.isWarnEnabled()) {
@@ -102,15 +94,13 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         XAPlusXid xid = event.getXid();
         if (tracker.statusFound(xid)) {
             XAPlusRecoveredResource recoveredResource = event.getRecoveredResource();
-            if (event.getStatus()) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Status found, commit recovered xid, xid={}", xid);
-                }
+            boolean status = event.getStatus();
+            if (logger.isDebugEnabled()) {
+                logger.debug("Status found for recovered xid, xid={}, status={}", xid, status);
+            }
+            if (status) {
                 dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, recoveredResource));
             } else {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Status found, rollback recovered xid, xid={}", xid);
-                }
                 dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, recoveredResource));
             }
         }
@@ -125,10 +115,16 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         XAPlusXid xid = event.getXid();
         if (tracker.statusFound(xid)) {
             XAPlusRecoveredResource recoveredResource = tracker.getRecoveredResourceFor(xid);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Order to commit, commit recovered xid, xid={}", xid);
+            if (recoveredResource != null) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Order to commit for recovered xid, xid={}", xid);
+                }
+                dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, recoveredResource));
+            } else {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Order to commit for unknown xid ignored, xid={}", xid);
+                }
             }
-            dispatcher.dispatch(new XAPlusCommitRecoveredXidRequestEvent(xid, recoveredResource));
         }
     }
 
@@ -141,10 +137,16 @@ class XAPlusRecoveryCommitterService extends Bolt implements
         XAPlusXid xid = event.getXid();
         if (tracker.statusFound(xid)) {
             XAPlusRecoveredResource recoveredResource = tracker.getRecoveredResourceFor(xid);
-            if (logger.isDebugEnabled()) {
-                logger.debug("Order to rollback, rollback recovered xid, xid={}", xid);
+            if (recoveredResource != null) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Order to rollback for recovered xid, xid={}", xid);
+                }
+                dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, recoveredResource));
+            } else {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Order to rollback for unknown xid ignored, xid={}", xid);
+                }
             }
-            dispatcher.dispatch(new XAPlusRollbackRecoveredXidRequestEvent(xid, recoveredResource));
         }
     }
 
@@ -224,9 +226,9 @@ class XAPlusRecoveryCommitterService extends Bolt implements
     public void handleTick(XAPlusTickEvent event) throws InterruptedException {
         if (tracker.isExpired()) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Recovery timed out, {}", System.currentTimeMillis());
-                tracker.reset();
+                logger.debug("Recovery timed out");
             }
+            tracker.reset();
         }
     }
 

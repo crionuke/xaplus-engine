@@ -46,7 +46,7 @@ class XAPlusRecoveryPreparerService extends Bolt implements
             }
         } else {
             if (logger.isDebugEnabled()) {
-                logger.debug("Prepare to recovery, {}", System.currentTimeMillis());
+                logger.debug("Prepare to recovery");
             }
             tracker.start();
             // Recovery all registered XA resources
@@ -67,10 +67,6 @@ class XAPlusRecoveryPreparerService extends Bolt implements
                     }
                     if (recoveredResource != null) {
                         tracker.track(recoveredResource);
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("Request recovery for resource, uniqueName={}",
-                                    recoveredResource.getUniqueName());
-                        }
                         dispatcher.dispatch(new XAPlusRecoveryResourceRequestEvent(recoveredResource));
                     }
                 } catch (SQLException | JMSException e) {
