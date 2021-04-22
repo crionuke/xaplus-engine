@@ -95,7 +95,7 @@ public final class XAPlusEngine {
         threadContext.setTransaction(transaction);
         dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
         if (logger.isInfoEnabled()) {
-            logger.info("User begin transaction with new xid={}", xid);
+            logger.info("User begin transaction, xid={}", xid);
         }
     }
 
@@ -120,7 +120,7 @@ public final class XAPlusEngine {
         threadContext.setTransaction(transaction);
         dispatcher.dispatch(new XAPlusUserCreateTransactionEvent(transaction));
         if (logger.isInfoEnabled()) {
-            logger.info("Joined to transaction with xid={}", xid);
+            logger.info("Joined to transaction, xid={}", xid);
         }
     }
 

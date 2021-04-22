@@ -89,16 +89,13 @@ class XAPlusJournalService extends Bolt implements
         }
         XAPlusXid xid = event.getXid();
         XAPlusRecoveredResource recoveredResource = event.getRecoveredResource();
+        if (logger.isDebugEnabled()) {
+            logger.debug("Find status for recovered xid, xid={}", xid);
+        }
         try {
             boolean status = tlog.findTransactionStatus(xid.getGtrid());
-            if (logger.isDebugEnabled()) {
-                logger.debug("Status for recovered xid found, status={}, xid={}", status, xid);
-            }
             dispatcher.dispatch(new XAPlusRecoveredXidStatusFoundEvent(xid, recoveredResource, status));
         } catch (SQLException sqle) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Find transaction status request failed as {}, xid={}", sqle.getMessage(), xid);
-            }
             dispatcher.dispatch(new XAPlusFindRecoveredXidStatusFailedEvent(xid, recoveredResource, sqle));
         }
     }
@@ -113,17 +110,15 @@ class XAPlusJournalService extends Bolt implements
         try {
             boolean status = tlog.findTransactionStatus(xid.getGtrid());
             String subordinateServerId = xid.getBqual().getServerId();
+            if (logger.isDebugEnabled()) {
+                logger.debug("Status for requested xid found, xid={}, status={}, subordinateServerId={}",
+                        xid, status, subordinateServerId);
+            }
             try {
                 XAPlusResource resource = resources.getXAPlusResource(subordinateServerId);
                 if (status) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Retry commit order to {}, xid={}", subordinateServerId, xid);
-                    }
                     dispatcher.dispatch(new XAPlusRetryCommitOrderRequestEvent(xid, resource));
                 } else {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Retry rollback order to {}, xid={}", subordinateServerId, xid);
-                    }
                     dispatcher.dispatch(new XAPlusRetryRollbackOrderRequestEvent(xid, resource));
                 }
             } catch (XAPlusSystemException e) {
